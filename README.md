@@ -1,2 +1,1 @@
-# AL
-Scripts for Linux
+echo "sudo pacman -S fzf starship fish fisher tealdeer ripgrep zoxide eza bat fd lazygit lazydocker github-cli" echo "sudo pacman -S smartmontools superfile libqalculate calcurse zellij cmatrix gopass cava atac ly jq cups github-cli" Inclua métodos de instalação para as ferramentas: curl, git, aria2, btop, fastfetch, yt-dlp, e distrobox (via sudo pacman -S distrobox). Adicione também os métodos de instalação do intel-ucode (pacman -S intel-ucode) e do amd-ucode (pacman -S amd-ucode), colocando-os no grupo de drivers.
