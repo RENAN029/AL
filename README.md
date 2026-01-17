@@ -1,5 +1,1 @@
-tealdeer ripgrep zoxide btop curl eza bat fzf fd jq smartmontools libqalculate fastfetch git
-noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-noto-nerd noto-fonts-extra ttf-jetbrains-mono
-
-lazygit lazydocker github-cli gopass cava atac ly calcurse superfile cava jq aria2 gdu yt-dlp
- 
+echo "sudo pacman -S fzf starship fish fisher tealdeer ripgrep zoxide eza bat fd lazygit lazydocker github-cli" echo "sudo pacman -S smartmontools superfile libqalculate calcurse zellij cmatrix gopass cava atac ly jq cups github-cli" Inclua métodos de instalação para as ferramentas: curl, git, aria2, btop, fastfetch, yt-dlp, e distrobox (via sudo pacman -S distrobox). Adicione também os métodos de instalação do intel-ucode (pacman -S intel-ucode) e do amd-ucode (pacman -S amd-ucode), colocando-os no grupo de drivers.
