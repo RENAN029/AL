@@ -1,1 +1,1 @@
-Inclua métodos de instalação para as ferramentas: curl, git, aria2, btop, fastfetch, yt-dlp, smartmontools, distrobox, lazygit, lazydocker, github-cli, superfile, libqalculate, ly, gemini-cli. Adicione também os métodos de instalação do intel-ucode (pacman -S intel-ucode) e do amd-ucode (pacman -S amd-ucode), colocando-os no grupo de drivers.
+Inclua métodos de instalação para as ferramentas: curl, git, aria2, btop, fastfetch, yt-dlp, smartmontools, distrobox, lazygit, lazydocker, github-cli, superfile, libqalculate, ly, gemini-cli. 
