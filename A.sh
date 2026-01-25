@@ -5994,14 +5994,12 @@ oh_my_zsh_installer() {
         if confirm "Oh My Zsh detectado. Desinstalar?"; then
             echo "Desinstalando Oh My Zsh..."
             [ -d "$ohmyzsh_dir" ] && yes | "$ohmyzsh_dir"/tools/uninstall.sh 2>/dev/null || true
-            sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Oh My Zsh desinstalado."
         fi
     else
         if confirm "Instalar Oh My Zsh?"; then
             echo "Instalando Oh My Zsh..."
-            sudo chsh -s "$(which zsh)" "$USER"
             sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
             touch "$state_file"
             echo "Oh My Zsh instalado."
