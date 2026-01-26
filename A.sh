@@ -4667,6 +4667,7 @@ sdkman_installer() {
         echo "Desinstalando Sdkman..."
         yay -Rnsu --noconfirm "$pkg_sdkman" 2>/dev/null
         sed -i '\|# SDKMAN|,/^$/d' ~/.bashrc
+        rm -rf ~/.sdkman
         rm -f "$state_file"
         echo "Sdkman desinstalado."
     else
@@ -4674,11 +4675,15 @@ sdkman_installer() {
         echo "Instalando Sdkman..."
         yay -S --noconfirm "$pkg_sdkman"
         touch "$state_file"
-        mkdir -p ~/.sdkman
+        rm -rf ~/.sdkman
+        mkdir -p ~/.sdkman/{var/candidates,contrib/completion/bash,src,ext,archives,tmp,var}
         if ! grep -q "SDKMAN_DIR=" ~/.bashrc; then
-            echo -e "\n# SDKMAN\nexport SDKMAN_DIR=\"\$HOME/.sdkman\"\n[[ -s /usr/lib/sdkman/libexec/bin/sdkman-init.sh ]] && source /usr/lib/sdkman/libexec/bin/sdkman-init.sh" >> ~/.bashrc
+            echo -e "\n# SDKMAN\nexport SDKMAN_DIR=\"\$HOME/.sdkman\"\nexport SDKMAN_CANDIDATES_DIR=\"\$SDKMAN_DIR/var/candidates\"\n[[ -s /usr/lib/sdkman/libexec/bin/sdkman-init.sh ]] && source /usr/lib/sdkman/libexec/bin/sdkman-init.sh" >> ~/.bashrc
         fi
-        echo "Sdkman instalado."
+        export SDKMAN_DIR="$HOME/.sdkman"
+        export SDKMAN_CANDIDATES_DIR="$SDKMAN_DIR/var/candidates"
+        source /usr/lib/sdkman/libexec/bin/sdkman-init.sh
+        echo "Sdkman instalado. Execute 'source ~/.bashrc'"
     fi
 }
 
