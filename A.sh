@@ -2472,14 +2472,14 @@ homebrew_installer() {
     if [ -f "$state_file" ] || pacman -Q brew-git &>/dev/null; then
         if confirm "Brew detectado. Desinstalar?"; then
             echo "Desinstalando Brew..."
-            pacman -Qq brew-git &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_brew || true
+            pacman -Qq brew-git &>/dev/null && yay -Rsnu --noconfirm $pkg_brew || true
             cleanup_files "$state_file"
             echo "Brew desinstalado."
         fi
     else
         if confirm "Instalar Brew?"; then
             echo "Instalando Brew..."
-            sudo pacman -S --noconfirm $pkg_brew
+            yay -S --noconfirm $pkg_brew
             touch "$state_file"
             echo "Brew instalado."
         fi
@@ -3083,43 +3083,21 @@ lossless_scaling_installer() {
 
 lucidglyph_installer() {
     local state_file="$STATE_DIR/lucidglyph"
+    local pkg_lucidglyph="lucidglyph"
 
-    if [ -f "$state_file" ] || \
-       [ -f "/usr/share/lucidglyph/info" ] || \
-       [ -f "/usr/share/freetype-envision/info" ] || \
-       [ -f "$HOME/.local/share/lucidglyph/info" ] || \
-       { [ -d "/etc/fonts/conf.d" ] && find "/etc/fonts/conf.d" -name "*lucidglyph*" -o -name "*freetype-envision*" 2>/dev/null | grep -q .; }; then
-        
-        if confirm "LucidGlyph detectado. Desinstalar?"; then
-            echo "Desinstalando LucidGlyph..."
-            for uninstaller in "/usr/share/lucidglyph/uninstaller.sh" \
-                              "/usr/share/freetype-envision/uninstaller.sh" \
-                              "$HOME/.local/share/lucidglyph/uninstaller.sh"; do
-                [ -f "$uninstaller" ] && [ -x "$uninstaller" ] && sudo "$uninstaller" || true && break
-            done
+    if [ -f "$state_file" ] || pacman -Q lucidglyph &>/dev/null; then
+        if confirm "Lucidglyph detectado. Desinstalar?"; then
+            echo "Desinstalando Lucidglyph..."
+            pacman -Qq lucidglyph &>/dev/null && yay -Rsnu --noconfirm $pkg_lucidglyph || true
             cleanup_files "$state_file"
-            sudo rm -f /etc/fonts/conf.d/*lucidglyph* /etc/fonts/conf.d/*freetype-envision* 2>/dev/null || true
-            rm -f "$HOME/.config/fontconfig/conf.d/"*lucidglyph* "$HOME/.config/fontconfig/conf.d/"*freetype-envision* 2>/dev/null || true
-            sudo sed -i '/LUCIDGLYPH\|FREETYPE_ENVISION/d' /etc/environment 2>/dev/null || true
-            sudo fc-cache -f || true
-            echo "LucidGlyph desinstalado."
+            echo "Lucidglyph desinstalado."
         fi
     else
-        if confirm "Instalar LucidGlyph?"; then
-            echo "Instalando LucidGlyph..."
-            local tag=$(curl -s "https://api.github.com/repos/maximilionus/lucidglyph/releases/latest" | grep -oP '"tag_name": "\K(.*)(?=")')
-            local ver="${tag#v}"
-            cd "$HOME"
-            cleanup_files "${tag}.tar.gz" "lucidglyph-${ver}"
-            curl -L -o "${tag}.tar.gz" "https://github.com/maximilionus/lucidglyph/archive/refs/tags/${tag}.tar.gz"
-            tar -xvzf "${tag}.tar.gz"
-            cd "lucidglyph-${ver}"
-            chmod +x lucidglyph.sh
-            sudo ./lucidglyph.sh install
-            cd ..
-            cleanup_files "${tag}.tar.gz" "lucidglyph-${ver}"
+        if confirm "Instalar Lucidglyph?"; then
+            echo "Instalando Lucidglyph..."
+            yay -S --noconfirm $pkg_lucidglyph
             touch "$state_file"
-            echo "LucidGlyph instalado."
+            echo "Lucidglyph instalado."
         fi
     fi
 }
