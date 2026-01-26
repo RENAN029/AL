@@ -4669,27 +4669,19 @@ rcloneui_installer() {
 
 realtek_8821ce_installer() {
     local state_file="$STATE_DIR/rtl8821ce"
-    local pkg_deps="git base-devel linux-headers dkms bc"
+    local pkg_rtl8821ce="rtl8821ce-dkms-git"
 
     if [ -f "$state_file" ] || [ -d "/usr/src/rtl8821ce" ]; then
         if confirm "Driver Realtek 8821CE detectado. Desinstalar?"; then
             echo "Desinstalando..."
-            [ -d "$HOME/rtl8821ce" ] && cd "$HOME/rtl8821ce" 2>/dev/null && sudo ./dkms-remove.sh 2>/dev/null || true
-            sudo rm -rf /usr/src/rtl8821ce 2>/dev/null
-            cleanup_files "$state_file" "$HOME/rtl8821ce"
-            sudo modprobe -r 8821ce 2>/dev/null
+            pacman -Qq rtl8821ce-dkms-git &>/dev/null && yay -Rsnu --noconfirm $pkg_rtl8821ce || true
+            cleanup_files "$state_file"
             echo "Driver removido."
         fi
     else
         if confirm "Instalar driver Realtek 8821CE?"; then
             echo "Instalando..."
-            sudo pacman -S --noconfirm $pkg_deps
-            git clone https://github.com/tomaspinho/rtl8821ce.git "$HOME/rtl8821ce"
-            cd "$HOME/rtl8821ce"
-            sudo ./dkms-install.sh
-            echo "blacklist rtw88_8821ce" | sudo tee /etc/modprobe.d/blacklist-rtw88.conf >/dev/null
-            cd ..
-            rm -rf "$HOME/rtl8821ce"
+            yay -S --noconfirm $pkg_rtl8821ce
             touch "$state_file"
             echo "Driver instalado. Reinicie o sistema."
         fi
