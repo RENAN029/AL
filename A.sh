@@ -3374,47 +3374,22 @@ moonlight_installer() {
 }
 
 mscorefonts_installer() {
-    local state_file="$STATE_DIR/mscorefonts"
-    local font_dir="$HOME/.local/share/fonts/mscorefonts"
-    local pkg_cabextract="cabextract"
+    local state_file="$STATE_DIR/fzf"
+    local pkg_mscorefonts="ttf-ms-fonts"
 
-    if [ -f "$state_file" ] || [ -d "$font_dir" ]; then
-        if confirm "Microsoft Core Fonts detectado. Desinstalar?"; then
-            echo "Desinstalando Microsoft Core Fonts..."
-            pacman -Qq cabextract &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_cabextract || true
-            cleanup_files "$state_file" "$font_dir" "$HOME/*32.exe" "$HOME/fonts"
-            fc-cache -f
-            echo "Microsoft Core Fonts desinstalado."
+    if [ -f "$state_file" ] || pacman -Q ttf-ms-fonts &>/dev/null; then
+        if confirm "Mscorefonts detectado. Desinstalar?"; then
+            echo "Desinstalando Mscorefonts..."
+            pacman -Qq ttf-ms-fonts &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_mscorefonts || true
+            cleanup_files "$state_file"
+            echo "Mscorefonts desinstalado."
         fi
     else
-        if confirm "Instalar Microsoft Core Fonts?"; then
-            echo "Instalando Microsoft Core Fonts..."
-            sudo pacman -S --noconfirm $pkg_cabextract
-            local fonts=(
-                "http://downloads.sourceforge.net/corefonts/andale32.exe"
-                "http://downloads.sourceforge.net/corefonts/arial32.exe"
-                "http://downloads.sourceforge.net/corefonts/arialb32.exe"
-                "http://downloads.sourceforge.net/corefonts/comic32.exe"
-                "http://downloads.sourceforge.net/corefonts/courie32.exe"
-                "http://downloads.sourceforge.net/corefonts/georgi32.exe"
-                "http://downloads.sourceforge.net/corefonts/impact32.exe"
-                "http://downloads.sourceforge.net/corefonts/times32.exe"
-                "http://downloads.sourceforge.net/corefonts/trebuc32.exe"
-                "http://downloads.sourceforge.net/corefonts/verdan32.exe"
-                "http://downloads.sourceforge.net/corefonts/webdin32.exe"
-            )
-            mkdir -p "$HOME/fonts"
-            for font_url in "${fonts[@]}"; do
-                curl -s -L "$font_url" -o "$HOME/$(basename "$font_url")"
-                cabextract "$HOME/$(basename "$font_url")" -d "$HOME/fonts"
-                rm "$HOME/$(basename "$font_url")"
-            done
-            mkdir -p "$font_dir"
-            cp -v "$HOME/fonts"/*.ttf "$HOME/fonts"/*.TTF "$font_dir/"
-            rm -rf "$HOME/fonts"
-            fc-cache -f
+        if confirm "Instalar Mscorefonts?"; then
+            echo "Instalando Mscorefonts..."
+            sudo pacman -S --noconfirm $pkg_mscorefonts
             touch "$state_file"
-            echo "Microsoft Core Fonts instalado."
+            echo "Mscorefonts instalado."
         fi
     fi
 }
