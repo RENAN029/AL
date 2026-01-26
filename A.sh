@@ -23,12 +23,17 @@ cleanup_files() {
 acer_manager_installer() {
     local state_file="$STATE_DIR/acer_manager"
     local pkg_acer="base-devel linux-headers"
+    local pkg_deps="acpid cpupower lm_sensors"
 
     if [ -f "$state_file" ] || [ -d "/tmp/damx" ] || [ -f "/usr/local/bin/damx" ]; then
         if confirm "Acer Manager detectado. Desinstalar?"; then
             echo "Desinstalando Acer Manager..."
             [ -d "/tmp/damx" ] && cd /tmp/damx/ 2>/dev/null && echo -e "2\nq\nq\n" | sudo bash setup.sh 2>/dev/null || true
             sudo rm -rf /tmp/damx /usr/local/bin/damx 2>/dev/null || true
+            if confirm "Desinstalar também base-devel, linux-headers, acpid, cpupower e lm_sensors?"; then
+                sudo pacman -Rns --noconfirm $pkg_acer $pkg_deps
+                echo "Dependências removidas."
+            fi
             cleanup_files "$state_file"
             echo "Acer Manager desinstalado."
         fi
@@ -40,7 +45,7 @@ acer_manager_installer() {
         curl -L "https://github.com/$gh_user/$gh_repo/archive/refs/tags/$vers.tar.gz" -o /tmp/damx.tar.gz
         mkdir -p /tmp/damx
         tar -xzf /tmp/damx.tar.gz -C /tmp/damx --strip-components=1
-        sudo pacman -S --noconfirm $pkg_acer
+        sudo pacman -S --noconfirm $pkg_acer $pkg_deps
         cd /tmp/damx/
         echo -e "1\nq\nq\n" | sudo bash setup.sh
         touch "$state_file"
