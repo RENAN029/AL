@@ -4673,20 +4673,31 @@ sdkman_installer() {
     else
         confirm "Instalar Sdkman?" || return
         echo "Instalando Sdkman..."
-        yay -S --noconfirm "$pkg_sdkman"
+        sudo rm -rf /tmp/sdkman-install
+        git clone https://aur.archlinux.org/sdkman-bin.git /tmp/sdkman-install
+        cd /tmp/sdkman-install
+        makepkg -si --noconfirm
+        cd -
+        rm -rf /tmp/sdkman-install
+        
         touch "$state_file"
         rm -rf ~/.sdkman
-        mkdir -p ~/.sdkman/{var/candidates,contrib/completion/bash,src,ext,archives,tmp,var}
+        mkdir -p ~/.sdkman/var/candidates
+        
+        sudo mkdir -p /usr/lib/sdkman/libexec/var
+        sudo chmod 777 /usr/lib/sdkman/libexec/var
+        
         if ! grep -q "SDKMAN_DIR=" ~/.bashrc; then
-            echo -e "\n# SDKMAN\nexport SDKMAN_DIR=\"\$HOME/.sdkman\"\nexport SDKMAN_CANDIDATES_DIR=\"\$SDKMAN_DIR/var/candidates\"\n[[ -s /usr/lib/sdkman/libexec/bin/sdkman-init.sh ]] && source /usr/lib/sdkman/libexec/bin/sdkman-init.sh" >> ~/.bashrc
+            echo -e "\n# SDKMAN\nexport SDKMAN_DIR=\"/usr/lib/sdkman\"\nexport SDKMAN_CANDIDATES_DIR=\"\$HOME/.sdkman/var/candidates\"\nsource /usr/lib/sdkman/libexec/bin/sdkman-init.sh" >> ~/.bashrc
         fi
-        export SDKMAN_DIR="$HOME/.sdkman"
-        export SDKMAN_CANDIDATES_DIR="$SDKMAN_DIR/var/candidates"
+        
+        export SDKMAN_DIR="/usr/lib/sdkman"
+        export SDKMAN_CANDIDATES_DIR="$HOME/.sdkman/var/candidates"
         source /usr/lib/sdkman/libexec/bin/sdkman-init.sh
-        echo "Sdkman instalado. Execute 'source ~/.bashrc'"
+        
+        echo "Sdkman instalado. Reinicie o terminal."
     fi
 }
-
 shader_booster_installer() {
     local state_file="$STATE_DIR/shader_booster"
     local boost_file="$HOME/.booster"
