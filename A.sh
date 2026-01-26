@@ -5016,90 +5016,28 @@ stellarium_installer() {
     fi
 }
 
-stirlingpdf_fat_installer() {
-    local state_file="$STATE_DIR/stirlingpdf_fat"
+stirlingpdf_installer() {
+    local state_file="$STATE_DIR/stirling"
+    local pkg_stirling="stirling-pdf-bin"
 
-    if [ -f "$state_file" ] || docker ps -a | grep -q stirling-pdf-fat 2>/dev/null; then
-        if confirm "Stirling PDF Fat detectado. Desinstalar?"; then
-            echo "Desinstalando Stirling PDF Fat..."
-            docker stop stirling-pdf-fat 2>/dev/null || true
-            docker rm stirling-pdf-fat 2>/dev/null || true
+    if [ -f "$state_file" ] || pacman -Q stirling-pdf-bin &>/dev/null; then
+        if confirm "Stirling Pdf detectado. Desinstalar?"; then
+            echo "Desinstalando Stirling Pdf..."
+            sudo systemctl stop stirling-pdf 2>/dev/null || true
+            sudo systemctl disable stirling-pdf 2>/dev/null || true
+            pacman -Qq stirling-pdf-bin &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_stirling || true
             cleanup_files "$state_file"
-            echo "Stirling PDF Fat desinstalado."
+            echo "Stirling Pdf desinstalado."
         fi
     else
-        if confirm "Instalar Stirling PDF Fat?"; then
-            echo "Instalando Stirling PDF Fat..."
-            docker run -d -p 8080:8080 --name stirling-pdf-fat --restart=always frooodle/s-pdf:full
+        if confirm "Instalar Stirling Pdf?"; then
+            echo "Instalando Stirling Pdf..."
+            sudo pacman -S --noconfirm $pkg_stirling
+            sudo systemctl enable --now stirling-pdf
             touch "$state_file"
-            echo "Stirling PDF Fat instalado. Acesse: http://localhost:8080"
+            echo "Stirling Pdf instalado."
         fi
     fi
-}
-
-stirlingpdf_standard_installer() {
-    local state_file="$STATE_DIR/stirlingpdf_standard"
-
-    if [ -f "$state_file" ] || docker ps -a | grep -q stirling-pdf-standard 2>/dev/null; then
-        if confirm "Stirling PDF Standard detectado. Desinstalar?"; then
-            echo "Desinstalando Stirling PDF Standard..."
-            docker stop stirling-pdf-standard 2>/dev/null || true
-            docker rm stirling-pdf-standard 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Stirling PDF Standard desinstalado."
-        fi
-    else
-        if confirm "Instalar Stirling PDF Standard?"; then
-            echo "Instalando Stirling PDF Standard..."
-            docker run -d -p 8080:8080 --name stirling-pdf-standard --restart=always frooodle/s-pdf:latest
-            touch "$state_file"
-            echo "Stirling PDF Standard instalado. Acesse: http://localhost:8080"
-        fi
-    fi
-}
-
-stirlingpdf_ultra_lite_installer() {
-    local state_file="$STATE_DIR/stirlingpdf_ultra_lite"
-
-    if [ -f "$state_file" ] || docker ps -a | grep -q stirling-pdf-ultra-lite 2>/dev/null; then
-        if confirm "Stirling PDF Ultra-Lite detectado. Desinstalar?"; then
-            echo "Desinstalando Stirling PDF Ultra-Lite..."
-            docker stop stirling-pdf-ultra-lite 2>/dev/null || true
-            docker rm stirling-pdf-ultra-lite 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Stirling PDF Ultra-Lite desinstalado."
-        fi
-    else
-        if confirm "Instalar Stirling PDF Ultra-Lite?"; then
-            echo "Instalando Stirling PDF Ultra-Lite..."
-            docker run -d -p 8080:8080 --name stirling-pdf-ultra-lite --restart=always frooodle/s-pdf:lite
-            touch "$state_file"
-            echo "Stirling PDF Ultra-Lite instalado. Acesse: http://localhost:8080"
-        fi
-    fi
-}
-
-stirlingpdf_menu() {
-    while true; do
-        clear
-        echo "=== Stirling PDF ==="
-        echo "1) Standard"
-        echo "2) Fat"
-        echo "3) Ultra-Lite"
-        echo "4) Voltar"
-        echo
-        read -p "Selecione uma opção: " opcao
-
-        case $opcao in
-            1) clear; stirlingpdf_standard_installer ;;
-            2) clear; stirlingpdf_fat_installer ;;
-            3) clear; stirlingpdf_ultra_lite_installer ;;
-            4) return ;;
-            *) ;;
-        esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 3 ] && read -p "Pressione Enter para continuar..."
-    done
 }
 
 streamcontroller_installer() {
