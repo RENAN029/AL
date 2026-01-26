@@ -1965,24 +1965,39 @@ fisher_installer() {
     fi
 }
 
-flatpak_installer() {
-    local state_file="$STATE_DIR/flatpak"
+flatpak_flathub_installer() {
+    local flatpak_state="$STATE_DIR/flatpak"
+    local flathub_state="$STATE_DIR/flathub"
     local pkg_flatpak="flatpak"
 
-    if [ -f "$state_file" ] || pacman -Q flatpak &>/dev/null; then
+    if [ -f "$flatpak_state" ] || pacman -Q flatpak &>/dev/null; then
         if confirm "Flatpak detectado. Desinstalar?"; then
             echo "Desinstalando Flatpak..."
             pacman -Qq flatpak &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_flatpak || true
             rm -rf "$HOME/.local/share/flatpak" 2>/dev/null || true
             sudo rm -rf /var/lib/flatpak 2>/dev/null || true
-            cleanup_files "$state_file"
+            cleanup_files "$flatpak_state" "$flathub_state"
             echo "Flatpak desinstalado."
         fi
-    else
+    elif confirm "Instalar Flatpak?"; then
         echo "Instalando Flatpak..."
         sudo pacman -S --noconfirm $pkg_flatpak
-        touch "$state_file"
+        touch "$flatpak_state"
         echo "Flatpak instalado."
+    fi
+
+    if [ -f "$flathub_state" ] || flatpak remote-list | grep -q flathub 2>/dev/null; then
+        if confirm "Flathub detectado. Remover?"; then
+            echo "Removendo Flathub..."
+            flatpak remote-delete flathub 2>/dev/null || true
+            cleanup_files "$flathub_state"
+            echo "Flathub removido."
+        fi
+    elif confirm "Adicionar repositório Flathub?"; then
+        echo "Adicionando Flathub..."
+        flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        touch "$flathub_state"
+        echo "Flathub adicionado."
     fi
 }
 
@@ -4659,7 +4674,7 @@ repositorios_menu() {
             1) clear; appimage_fuse_installer ;;
             2) clear; cargo_installer ;;
             3) clear; chaotic_aur_installer ;;
-            4) clear; flatpak_installer ;;
+            4) clear; flatpak_flathub_installer ;;
             5) clear; fwupd_installer ;;
             6) clear; homebrew_installer ;;
             7) clear; paru_installer ;;
