@@ -4659,45 +4659,25 @@ s3drive_installer() {
 }
 
 sdkman_installer() {
-    local state_file="$STATE_DIR/sdkman"
-    local pkg_sdkman="sdkman-bin"
-
-    if [ -f "$state_file" ] || pacman -Q "$pkg_sdkman" &>/dev/null; then
-        confirm "Sdkman detectado. Desinstalar?" || return
-        echo "Desinstalando Sdkman..."
-        yay -Rnsu --noconfirm "$pkg_sdkman" 2>/dev/null
-        sed -i '\|# SDKMAN|,/^$/d' ~/.bashrc
-        rm -rf ~/.sdkman
-        rm -f "$state_file"
-        echo "Sdkman desinstalado."
-    else
-        confirm "Instalar Sdkman?" || return
-        echo "Instalando Sdkman..."
-        sudo rm -rf /tmp/sdkman-install
-        git clone https://aur.archlinux.org/sdkman-bin.git /tmp/sdkman-install
-        cd /tmp/sdkman-install
-        makepkg -si --noconfirm
-        cd -
-        rm -rf /tmp/sdkman-install
-        
-        touch "$state_file"
-        rm -rf ~/.sdkman
-        mkdir -p ~/.sdkman/var/candidates
-        
-        sudo mkdir -p /usr/lib/sdkman/libexec/var
-        sudo chmod 777 /usr/lib/sdkman/libexec/var
-        
-        if ! grep -q "SDKMAN_DIR=" ~/.bashrc; then
-            echo -e "\n# SDKMAN\nexport SDKMAN_DIR=\"/usr/lib/sdkman\"\nexport SDKMAN_CANDIDATES_DIR=\"\$HOME/.sdkman/var/candidates\"\nsource /usr/lib/sdkman/libexec/bin/sdkman-init.sh" >> ~/.bashrc
+    local sdkman_dir="$HOME/.sdkman"
+    
+    if [ -d "$sdkman_dir" ]; then
+        if confirm "Sdkman detectado. Desinstalar?"; then
+            echo "Desinstalando Sdkman..."
+            rm -rf "$sdkman_dir"
+            [ -f ~/.bashrc ] && sed -i '/SDKMAN/d' ~/.bashrc
+            [ -f ~/.zshrc ] && sed -i '/SDKMAN/d' ~/.zshrc
+            echo "Sdkman desinstalado."
         fi
-        
-        export SDKMAN_DIR="/usr/lib/sdkman"
-        export SDKMAN_CANDIDATES_DIR="$HOME/.sdkman/var/candidates"
-        source /usr/lib/sdkman/libexec/bin/sdkman-init.sh
-        
-        echo "Sdkman instalado. Reinicie o terminal."
+    else
+        if confirm "Instalar Sdkman?"; then
+            echo "Instalando Sdkman..."
+            curl -s "https://get.sdkman.io" | bash
+            echo "Sdkman instalado."
+        fi
     fi
 }
+
 shader_booster_installer() {
     local state_file="$STATE_DIR/shader_booster"
     local boost_file="$HOME/.booster"
