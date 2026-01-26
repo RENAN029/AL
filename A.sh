@@ -1225,7 +1225,7 @@ devs_menu() {
             16) clear; starship_installer ;;
             17) clear; tailscale_installer ;;
             18) clear; zerotier_installer ;;
-            19) clear; zsh_menu ;;
+            19) clear; zsh_ohmyzsh_installer ;;
             20) return ;;
             *) ;;
         esac
@@ -5816,68 +5816,40 @@ zerotier_installer() {
     fi
 }
 
-zsh_menu() {
-    while true; do
-        clear
-        echo "=== Zsh Shell ==="
-        echo "1) Zsh"
-        echo "2) Oh My Zsh"
-        echo "3) Voltar"
-        echo
-        read -p "Selecione uma opção: " opcao
-
-        case $opcao in
-            1) clear; zsh_installer ;;
-            2) clear; oh_my_zsh_installer ;;
-            3) return ;;
-            *) ;;
-        esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 2 ] && read -p "Pressione Enter para continuar..."
-    done
-}
-
-zsh_installer() {
-    local state_file="$STATE_DIR/zsh"
+zsh_ohmyzsh_installer() {
+    local zsh_state="$STATE_DIR/zsh"
+    local ohmyzsh_state="$STATE_DIR/oh_my_zsh"
     local pkg_zsh="zsh"
+    local ohmyzsh_dir="$HOME/.oh-my-zsh"
 
-    if [ -f "$state_file" ] || pacman -Q zsh &>/dev/null; then
+    if [ -f "$zsh_state" ] || pacman -Q zsh &>/dev/null; then
         if confirm "Zsh detectado. Desinstalar?"; then
             echo "Desinstalando Zsh..."
             pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zsh || true
             sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
-            cleanup_files "$state_file"
+            cleanup_files "$zsh_state" "$ohmyzsh_state"
             echo "Zsh desinstalado."
         fi
-    else
-        if confirm "Instalar Zsh?"; then
-            echo "Instalando Zsh..."
-            sudo pacman -S --noconfirm $pkg_zsh
-            sudo chsh -s "$(which zsh)" "$USER"
-            touch "$state_file"
-            echo "Zsh instalado."
-        fi
+    elif confirm "Instalar Zsh?"; then
+        echo "Instalando Zsh..."
+        sudo pacman -S --noconfirm $pkg_zsh
+        sudo chsh -s "$(which zsh)" "$USER"
+        touch "$zsh_state"
+        echo "Zsh instalado."
     fi
-}
 
-oh_my_zsh_installer() {
-    local state_file="$STATE_DIR/oh_my_zsh"
-    local ohmyzsh_dir="$HOME/.oh-my-zsh"
-
-    if [ -f "$state_file" ] || [ -d "$ohmyzsh_dir" ]; then
+    if [ -f "$ohmyzsh_state" ] || [ -d "$ohmyzsh_dir" ]; then
         if confirm "Oh My Zsh detectado. Desinstalar?"; then
             echo "Desinstalando Oh My Zsh..."
             [ -d "$ohmyzsh_dir" ] && yes | "$ohmyzsh_dir"/tools/uninstall.sh 2>/dev/null || true
-            cleanup_files "$state_file"
+            cleanup_files "$ohmyzsh_state"
             echo "Oh My Zsh desinstalado."
         fi
-    else
-        if confirm "Instalar Oh My Zsh?"; then
-            echo "Instalando Oh My Zsh..."
-            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-            touch "$state_file"
-            echo "Oh My Zsh instalado."
-        fi
+    elif confirm "Instalar Oh My Zsh?"; then
+        echo "Instalando Oh My Zsh..."
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+        touch "$ohmyzsh_state"
+        echo "Oh My Zsh instalado."
     fi
 }
 
