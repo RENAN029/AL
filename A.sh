@@ -2467,20 +2467,21 @@ heroic_games_launcher_installer() {
 
 homebrew_installer() {
     local state_file="$STATE_DIR/homebrew"
+    local pkg_brew="brew-git"
 
-    if [ -f "$state_file" ] || command -v brew &>/dev/null; then
-        if confirm "Homebrew detectado. Desinstalar?"; then
-            echo "Desinstalando Homebrew..."
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)" || true
+    if [ -f "$state_file" ] || pacman -Q brew-git &>/dev/null; then
+        if confirm "Brew detectado. Desinstalar?"; then
+            echo "Desinstalando Brew..."
+            pacman -Qq brew-git &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_brew || true
             cleanup_files "$state_file"
-            echo "Homebrew desinstalado."
+            echo "Brew desinstalado."
         fi
     else
-        if confirm "Instalar Homebrew?"; then
-            echo "Instalando Homebrew..."
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        if confirm "Instalar Brew?"; then
+            echo "Instalando Brew..."
+            sudo pacman -S --noconfirm $pkg_brew
             touch "$state_file"
-            echo "Homebrew instalado."
+            echo "Brew instalado."
         fi
     fi
 }
