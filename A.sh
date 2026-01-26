@@ -3535,12 +3535,13 @@ nvim_lazyvim_installer() {
     if [ -f "$lazyvim_state" ] || [ -d "$nvim_dir" ]; then
         if confirm "LazyVim detectado. Desinstalar?"; then
             echo "Desinstalando LazyVim..."
-            cleanup_files "$lazyvim_state" "$nvim_dir"
+            rm -rf "$nvim_dir"
+            cleanup_files "$lazyvim_state"
             echo "LazyVim desinstalado."
         fi
     elif confirm "Instalar LazyVim?"; then
         echo "Instalando LazyVim..."
-        cleanup_files "$nvim_dir"
+        rm -rf "$nvim_dir"
         git clone https://github.com/LazyVim/starter "$nvim_dir"
         rm -rf "$nvim_dir/.git"
         touch "$lazyvim_state"
