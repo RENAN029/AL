@@ -2252,69 +2252,44 @@ git_installer() {
     fi
 }
 
-gimp_installer() {
-    local state_file="$STATE_DIR/gimp"
+gimp_photogimp_installer() {
+    local gimp_state="$STATE_DIR/gimp"
+    local photogimp_state="$STATE_DIR/photogimp"
+    local gimp_config="$HOME/.config/GIMP"
+    local gimp_share="$HOME/.local/share/GIMP"
 
-    if [ -f "$state_file" ] || flatpak list --app | grep -q org.gimp.GIMP 2>/dev/null; then
+    if [ -f "$gimp_state" ] || flatpak list --app | grep -q org.gimp.GIMP 2>/dev/null; then
         if confirm "GIMP detectado. Desinstalar?"; then
             echo "Desinstalando GIMP..."
             flatpak uninstall --user -y org.gimp.GIMP 2>/dev/null || true
-            rm -rf "$HOME/.config/GIMP" "$HOME/.local/share/GIMP" 2>/dev/null || true
-            cleanup_files "$state_file"
+            rm -rf "$gimp_config" "$gimp_share" 2>/dev/null || true
+            cleanup_files "$gimp_state"
             echo "GIMP desinstalado."
         fi
-    else
-        if confirm "Instalar GIMP?"; then
-            echo "Instalando GIMP..."
-            flatpak install --or-update --user --noninteractive flathub org.gimp.GIMP
-            touch "$state_file"
-            echo "GIMP instalado."
-        fi
+    elif confirm "Instalar GIMP?"; then
+        echo "Instalando GIMP..."
+        flatpak install --or-update --user --noninteractive flathub org.gimp.GIMP
+        touch "$gimp_state"
+        echo "GIMP instalado."
     fi
-}
 
-photogimp_installer() {
-    local state_file="$STATE_DIR/photogimp"
-
-    if [ -f "$state_file" ] || [ -d "$HOME/.config/GIMP" ]; then
+    if [ -f "$photogimp_state" ] || [ -d "$gimp_config" ]; then
         if confirm "PhotoGIMP detectado. Desinstalar?"; then
             echo "Desinstalando PhotoGIMP..."
-            rm -rf "$HOME/.config/GIMP" "$HOME/.local/share/GIMP" 2>/dev/null || true
-            cleanup_files "$state_file"
+            rm -rf "$gimp_config" "$gimp_share" 2>/dev/null || true
+            cleanup_files "$photogimp_state"
             echo "PhotoGIMP desinstalado."
         fi
-    else
-        if confirm "Instalar PhotoGIMP (temas e configurações extras)?"; then
-            echo "Instalando PhotoGIMP..."
-            git clone --depth=1 https://github.com/Diolinux/PhotoGIMP.git /tmp/photogimp
-            cp -rvf /tmp/photogimp/.config/* ~/.config/ 2>/dev/null || true
-            cp -rvf /tmp/photogimp/.local/* ~/.local/ 2>/dev/null || true
-            rm -rf /tmp/photogimp
-            touch "$state_file"
-            echo "PhotoGIMP instalado."
-        fi
+    elif confirm "Instalar PhotoGIMP (temas e configurações extras)?"; then
+        echo "Instalando PhotoGIMP..."
+        rm -rf "$gimp_config" "$gimp_share" 2>/dev/null || true
+        git clone --depth=1 https://github.com/Diolinux/PhotoGIMP.git /tmp/photogimp
+        cp -rvf /tmp/photogimp/.config/* ~/.config/ 2>/dev/null || true
+        cp -rvf /tmp/photogimp/.local/* ~/.local/ 2>/dev/null || true
+        rm -rf /tmp/photogimp
+        touch "$photogimp_state"
+        echo "PhotoGIMP instalado."
     fi
-}
-
-gimp_menu() {
-    while true; do
-        clear
-        echo "=== GIMP ==="
-        echo "1) GIMP"
-        echo "2) PhotoGIMP"
-        echo "3) Voltar"
-        echo
-        read -p "Selecione uma opção: " opcao
-
-        case $opcao in
-            1) clear; gimp_installer ;;
-            2) clear; photogimp_installer ;;
-            3) return ;;
-            *) ;;
-        esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 2 ] && read -p "Pressione Enter para continuar..."
-    done
 }
 
 gnome_boxes_installer() {
@@ -3820,7 +3795,7 @@ office_menu() {
             8) clear; figma_installer ;;
             9) clear; foliate_installer ;;
             10) clear; freecad_installer ;;
-            11) clear; gimp_menu ;;
+            11) clear; gimp_photogimp_installer ;;
             12) clear; inkscape_installer ;;
             13) clear; kdenlive_installer ;;
             14) clear; kicad_installer ;;
