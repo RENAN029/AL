@@ -4666,6 +4666,7 @@ sdkman_installer() {
         confirm "Sdkman detectado. Desinstalar?" || return
         echo "Desinstalando Sdkman..."
         yay -Rnsu --noconfirm "$pkg_sdkman" 2>/dev/null
+        sed -i '\|# SDKMAN|,/^$/d' ~/.bashrc
         rm -f "$state_file"
         echo "Sdkman desinstalado."
     else
@@ -4673,10 +4674,10 @@ sdkman_installer() {
         echo "Instalando Sdkman..."
         yay -S --noconfirm "$pkg_sdkman"
         touch "$state_file"
-        if ! grep -q "export SDKMAN_DIR=\"\$HOME/.sdkman\"" ~/.bashrc; then
-            echo -e "\n# SDKMAN (AUR sdkman-bin)\nexport SDKMAN_DIR=\"\$HOME/.sdkman\"\n[[ -s /usr/lib/sdkman/libexec/bin/sdkman-init.sh ]] && source /usr/lib/sdkman/libexec/bin/sdkman-init.sh" >> ~/.bashrc
-        fi
         mkdir -p ~/.sdkman
+        if ! grep -q "SDKMAN_DIR=" ~/.bashrc; then
+            echo -e "\n# SDKMAN\nexport SDKMAN_DIR=\"\$HOME/.sdkman\"\n[[ -s /usr/lib/sdkman/libexec/bin/sdkman-init.sh ]] && source /usr/lib/sdkman/libexec/bin/sdkman-init.sh" >> ~/.bashrc
+        fi
         echo "Sdkman instalado."
     fi
 }
