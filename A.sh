@@ -4145,7 +4145,7 @@ pessoal_menu() {
             6) clear; gnome_boxes_installer ;;
             7) clear; hydra_launcher_installer ;;
             8) clear; cachyos_installer ;;
-            9) clear; stirlingpdf_menu ;;
+            9) clear; stirlingpdf_installer ;;
             10) return ;;
             *) ;;
         esac
@@ -4321,23 +4321,24 @@ podman_installer() {
 
 portainer_installer() {
     local state_file="$STATE_DIR/portainer"
+    local pkg_portainer="portainer-bin"
 
-    if [ -f "$state_file" ] || docker ps -a | grep -q portainer 2>/dev/null; then
+    if [ -f "$state_file" ] || pacman -Q portainer-bin &>/dev/null; then
         if confirm "Portainer detectado. Desinstalar?"; then
             echo "Desinstalando Portainer..."
-            docker stop portainer 2>/dev/null || true
-            docker rm portainer 2>/dev/null || true
-            docker volume rm portainer_data 2>/dev/null || true
+            sudo systemctl stop portainer 2>/dev/null || true
+            sudo systemctl disable portainer 2>/dev/null || true
+            pacman -Qq portainer-bin &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_portainer || true
             cleanup_files "$state_file"
             echo "Portainer desinstalado."
         fi
     else
-        if confirm "Instalar Portainer CE?"; then
-            echo "Instalando Portainer CE..."
-            docker volume create portainer_data
-            docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:lts
+        if confirm "Instalar Portainer?"; then
+            echo "Instalando Portainer..."
+            sudo pacman -S --noconfirm $pkg_portainer
+            sudo systemctl enable --now portainer
             touch "$state_file"
-            echo "Portainer instalado. Acesse: https://localhost:9443"
+            echo "Portainer instalado."
         fi
     fi
 }
