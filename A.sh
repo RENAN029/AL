@@ -1611,6 +1611,8 @@ expressvpn_installer() {
     if [ -f "$state_file" ] || pacman -Q expressvpn &>/dev/null; then
         if confirm "Expressvpn detectado. Desinstalar?"; then
             echo "Desinstalando Expressvpn..."
+            sudo systemctl stop expressvpn-service.service 2>/dev/null || true
+            sudo systemctl disable expressvpn-service.service 2>/dev/null || true
             pacman -Qq expressvpn &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_expressvpn || true
             cleanup_files "$state_file"
             echo "Expressvpn desinstalado."
@@ -1619,6 +1621,7 @@ expressvpn_installer() {
         if confirm "Instalar Expressvpn?"; then
             echo "Instalando Expressvpn..."
             sudo pacman -S --noconfirm $pkg_expressvpn
+            sudo systemctl enable --now expressvpn
             touch "$state_file"
             echo "Expressvpn instalado."
         fi
