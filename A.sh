@@ -23,7 +23,7 @@ cleanup_files() {
 acer_manager_installer() {
     local state_file="$STATE_DIR/acer_manager"
     local pkg_acer="base-devel linux-headers"
-    
+
     if [ -f "$state_file" ] || [ -d "/tmp/damx" ] || [ -f "/usr/local/bin/damx" ]; then
         if confirm "Acer Manager detectado. Desinstalar?"; then
             [ -d "/tmp/damx" ] && cd /tmp/damx/ && echo -e "2\nq\nq\n" | sudo bash setup.sh
@@ -126,14 +126,14 @@ android_studio_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.google.AndroidStudio 2>/dev/null; then
         if confirm "Android Studio detectado. Desinstalar?"; then
             echo "Desinstalando Android Studio..."
-            flatpak uninstall --user -y com.google.AndroidStudio 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_android 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Android Studio desinstalado."
         fi
     else
         if confirm "Instalar Android Studio?"; then
             echo "Instalando Android Studio..."
-            flatpak install --user --or-update --noninteractive flathub com.google.AndroidStudio
+            flatpak install --user --or-update --noninteractive flathub $pkg_android
             touch "$state_file"
             echo "Android Studio instalado."
         fi
@@ -147,14 +147,14 @@ anydesk_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.anydesk.Anydesk 2>/dev/null; then
         if confirm "AnyDesk detectado. Desinstalar?"; then
             echo "Desinstalando AnyDesk..."
-            flatpak uninstall --user -y com.anydesk.Anydesk 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_anydesk 2>/dev/null || true
             cleanup_files "$state_file"
             echo "AnyDesk desinstalado."
         fi
     else
         if confirm "Instalar AnyDesk?"; then
             echo "Instalando AnyDesk..."
-            flatpak install --or-update --user --noninteractive flathub com.anydesk.Anydesk
+            flatpak install --or-update --user --noninteractive flathub $pkg_anydesk
             touch "$state_file"
             echo "AnyDesk instalado."
         fi
@@ -313,14 +313,14 @@ audacity_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.audacityteam.Audacity 2>/dev/null; then
         if confirm "Audacity detectado. Desinstalar?"; then
             echo "Desinstalando Audacity..."
-            flatpak uninstall --user -y org.audacityteam.Audacity 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_audacity 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Audacity desinstalado."
         fi
     else
         if confirm "Instalar Audacity?"; then
             echo "Instalando Audacity..."
-            flatpak install --or-update --user --noninteractive flathub org.audacityteam.Audacity
+            flatpak install --or-update --user --noninteractive flathub $pkg_audacity
             touch "$state_file"
             echo "Audacity instalado."
         fi
@@ -334,14 +334,14 @@ bazaar_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.kolunmi.Bazaar 2>/dev/null; then
         if confirm "Bazaar detectado. Desinstalar?"; then
             echo "Desinstalando Bazaar..."
-            flatpak uninstall --user -y io.github.kolunmi.Bazaar 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_bazaar 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Bazaar desinstalado."
         fi
     else
         if confirm "Instalar Bazaar?"; then
             echo "Instalando Bazaar..."
-            flatpak install --or-update --user --noninteractive flathub io.github.kolunmi.Bazaar
+            flatpak install --or-update --user --noninteractive flathub $pkg_bazaar
             touch "$state_file"
             echo "Bazaar instalado."
         fi
@@ -355,14 +355,14 @@ bitwarden_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.bitwarden.desktop 2>/dev/null; then
         if confirm "Bitwarden detectado. Desinstalar?"; then
             echo "Desinstalando Bitwarden..."
-            flatpak uninstall --user -y com.bitwarden.desktop 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_bitwarden 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Bitwarden desinstalado."
         fi
     else
         if confirm "Instalar Bitwarden?"; then
             echo "Instalando Bitwarden..."
-            flatpak install --or-update --user --noninteractive flathub com.bitwarden.desktop
+            flatpak install --or-update --user --noninteractive flathub $pkg_bitwarden
             touch "$state_file"
             echo "Bitwarden instalado."
         fi
@@ -376,14 +376,14 @@ blender_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.blender.Blender 2>/dev/null; then
         if confirm "Blender detectado. Desinstalar?"; then
             echo "Desinstalando Blender..."
-            flatpak uninstall --user -y org.blender.Blender 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_blender 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Blender desinstalado."
         fi
     else
         if confirm "Instalar Blender?"; then
             echo "Instalando Blender..."
-            flatpak install --or-update --user --noninteractive flathub org.blender.Blender
+            flatpak install --or-update --user --noninteractive flathub $pkg_blender
             touch "$state_file"
             echo "Blender instalado."
         fi
@@ -397,14 +397,14 @@ bottles_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.usebottles.bottles 2>/dev/null; then
         if confirm "Bottles detectado. Desinstalar?"; then
             echo "Desinstalando Bottles..."
-            flatpak uninstall --user -y com.usebottles.bottles 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_bottles 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Bottles desinstalado."
         fi
     else
         if confirm "Instalar Bottles?"; then
             echo "Instalando Bottles..."
-            flatpak install --or-update --user --noninteractive flathub com.usebottles.bottles
+            flatpak install --or-update --user --noninteractive flathub $pkg_bottles
             touch "$state_file"
             echo "Bottles instalado."
         fi
@@ -418,14 +418,14 @@ brave_browser_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.brave.Browser 2>/dev/null; then
         if confirm "Brave Browser detectado. Desinstalar?"; then
             echo "Desinstalando Brave Browser..."
-            flatpak uninstall --user -y com.brave.Browser 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_brave 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Brave Browser desinstalado."
         fi
     else
         if confirm "Instalar Brave Browser?"; then
             echo "Instalando Brave Browser..."
-            flatpak install --or-update --user --noninteractive flathub com.brave.Browser
+            flatpak install --or-update --user --noninteractive flathub $pkg_brave
             touch "$state_file"
             echo "Brave Browser instalado."
         fi
@@ -536,7 +536,7 @@ btop_installer() {
 
 cachyconfs_installer() {
     local state_file="$STATE_DIR/cachyconfs"
-    
+
     if [ -f "$state_file" ] || [ -f "/usr/lib/sysctl.d/99-cachyos-settings.conf" ]; then
         if confirm "CachyOS Configs detectado. Desinstalar?"; then
             sudo rm -f /usr/lib/sysctl.d/99-cachyos-settings.conf
@@ -637,14 +637,14 @@ chrome_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.google.Chrome 2>/dev/null; then
         if confirm "Google Chrome detectado. Desinstalar?"; then
             echo "Desinstalando Google Chrome..."
-            flatpak uninstall --user -y com.google.Chrome 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_chrome 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Google Chrome desinstalado."
         fi
     else
         if confirm "Instalar Google Chrome?"; then
             echo "Instalando Google Chrome..."
-            flatpak install --or-update --user --noninteractive flathub com.google.Chrome
+            flatpak install --or-update --user --noninteractive flathub $pkg_chrome
             touch "$state_file"
             echo "Google Chrome instalado."
         fi
@@ -658,14 +658,14 @@ cockpit_client_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.cockpit_project.CockpitClient 2>/dev/null; then
         if confirm "Cockpit Client detectado. Desinstalar?"; then
             echo "Desinstalando Cockpit Client..."
-            flatpak uninstall --user -y org.cockpit_project.CockpitClient 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_cockpitc 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Cockpit Client desinstalado."
         fi
     else
         if confirm "Instalar Cockpit Client?"; then
             echo "Instalando Cockpit Client..."
-            flatpak install --or-update --user --noninteractive flathub org.cockpit_project.CockpitClient
+            flatpak install --or-update --user --noninteractive flathub $pkg_cockpitc
             touch "$state_file"
             echo "Cockpit Client instalado."
         fi
@@ -703,14 +703,14 @@ cohesion_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.brunofin.Cohesion 2>/dev/null; then
         if confirm "Cohesion detectado. Desinstalar?"; then
             echo "Desinstalando Cohesion..."
-            flatpak uninstall --user -y io.github.brunofin.Cohesion 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_cohesion 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Cohesion desinstalado."
         fi
     else
         if confirm "Instalar Cohesion?"; then
             echo "Instalando Cohesion..."
-            flatpak install --or-update --user --noninteractive flathub io.github.brunofin.Cohesion
+            flatpak install --or-update --user --noninteractive flathub $pkg_cohesion
             touch "$state_file"
             echo "Cohesion instalado."
         fi
@@ -766,14 +766,14 @@ cpux_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.thetumultuousunicornofdarkness.cpu-x 2>/dev/null; then
         if confirm "CPU-X detectado. Desinstalar?"; then
             echo "Desinstalando CPU-X..."
-            flatpak uninstall --user -y io.github.thetumultuousunicornofdarkness.cpu-x 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_cpux 2>/dev/null || true
             cleanup_files "$state_file"
             echo "CPU-X desinstalado."
         fi
     else
         if confirm "Instalar CPU-X?"; then
             echo "Instalando CPU-X..."
-            flatpak install --or-update --user --noninteractive flathub io.github.thetumultuousunicornofdarkness.cpu-x
+            flatpak install --or-update --user --noninteractive flathub $pkg_cpux
             touch "$state_file"
             echo "CPU-X instalado."
         fi
@@ -808,14 +808,14 @@ cryptomator_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.cryptomator.Cryptomator 2>/dev/null; then
         if confirm "Cryptomator detectado. Desinstalar?"; then
             echo "Desinstalando Cryptomator..."
-            flatpak uninstall --user -y org.cryptomator.Cryptomator 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_cryptomator 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Cryptomator desinstalado."
         fi
     else
         if confirm "Instalar Cryptomator?"; then
             echo "Instalando Cryptomator..."
-            flatpak install --or-update --user --noninteractive flathub org.cryptomator.Cryptomator
+            flatpak install --or-update --user --noninteractive flathub $pkg_cryptomator
             touch "$state_file"
             echo "Cryptomator instalado."
         fi
@@ -850,14 +850,14 @@ darktable_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.darktable.Darktable 2>/dev/null; then
         if confirm "Darktable detectado. Desinstalar?"; then
             echo "Desinstalando Darktable..."
-            flatpak uninstall --user -y org.darktable.Darktable 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_darktable 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Darktable desinstalado."
         fi
     else
         if confirm "Instalar Darktable?"; then
             echo "Instalando Darktable..."
-            flatpak install --or-update --user --noninteractive flathub org.darktable.Darktable
+            flatpak install --or-update --user --noninteractive flathub $pkg_darktable
             touch "$state_file"
             echo "Darktable instalado."
         fi
@@ -867,7 +867,7 @@ darktable_installer() {
 davinci_resolve_free_installer() {
     local state_file="$STATE_DIR/davinci_resolve_free"
     local pkg_unzip="unzip"
-    
+
     if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ]; then
         if confirm "DaVinci Resolve Free detectado. Desinstalar?"; then
             sudo rm -rf /opt/resolve
@@ -917,7 +917,7 @@ davinci_resolve_free_installer() {
 davinci_resolve_studio_installer() {
     local state_file="$STATE_DIR/davinci_resolve_studio"
     local pkg_unzip="unzip"
-    
+
     if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ]; then
         if confirm "DaVinci Resolve Studio detectado. Desinstalar?"; then
             sudo rm -rf /opt/resolve
@@ -1034,7 +1034,7 @@ de_gnome_installer() {
 de_hyprland_installer() {
     local state_file="$STATE_DIR/de_hyprland"
     local pkg_sddm="sddm"
-    
+
     if [ -f "$state_file" ]; then
         if confirm "Dank Linux Hyprland detectado. Desinstalar?"; then
             cleanup_files "$state_file"
@@ -1159,14 +1159,14 @@ discord_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.discordapp.Discord 2>/dev/null; then
         if confirm "Discord detectado. Desinstalar?"; then
             echo "Desinstalando Discord..."
-            flatpak uninstall --user -y com.discordapp.Discord 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_discord 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Discord desinstalado."
         fi
     else
         if confirm "Instalar Discord?"; then
             echo "Instalando Discord..."
-            flatpak install --or-update --user --noninteractive flathub com.discordapp.Discord
+            flatpak install --or-update --user --noninteractive flathub $pkg_discord
             touch "$state_file"
             echo "Discord instalado."
         fi
@@ -1180,14 +1180,14 @@ distroshelf_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.ranfdev.DistroShelf 2>/dev/null; then
         if confirm "Distroshelf detectado. Desinstalar?"; then
             echo "Desinstalando Distroshelf..."
-            flatpak uninstall --user -y com.ranfdev.DistroShelf 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_distroshelf 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Distroshelf desinstalado."
         fi
     else
         if confirm "Instalar Distroshelf?"; then
             echo "Instalando Distroshelf..."
-            flatpak install --or-update --user --noninteractive flathub com.ranfdev.DistroShelf
+            flatpak install --or-update --user --noninteractive flathub $pkg_distroshelf
             touch "$state_file"
             echo "Distroshelf instalado."
         fi
@@ -1213,7 +1213,7 @@ distrobox_adv_installer() {
             sudo pacman -S --noconfirm $pkg_distrobox
             sudo systemctl enable --now pcscd.service
             distrobox-assemble create --file https://raw.githubusercontent.com/pedrohqb/distrobox-adv-br/refs/heads/main/distrobox-adv-br
-            flatpak install --or-update --user --noninteractive flathub com.ranfdev.DistroShelf
+            flatpak install --or-update --user --noninteractive flathub $pkg_distroshelf
             touch "$state_file"
             echo "Distrobox-Adv instalado."
         fi
@@ -1458,14 +1458,14 @@ easyeffects_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.wwmm.easyeffects 2>/dev/null; then
         if confirm "EasyEffects detectado. Desinstalar?"; then
             echo "Desinstalando EasyEffects..."
-            flatpak uninstall --user -y com.github.wwmm.easyeffects 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_easyeffects 2>/dev/null || true
             cleanup_files "$state_file"
             echo "EasyEffects desinstalado."
         fi
     else
         if confirm "Instalar EasyEffects?"; then
             echo "Instalando EasyEffects..."
-            flatpak install --or-update --user --noninteractive flathub com.github.wwmm.easyeffects
+            flatpak install --or-update --user --noninteractive flathub $pkg_easyeffects
             touch "$state_file"
             echo "EasyEffects instalado."
         fi
@@ -1508,14 +1508,14 @@ endlesskey_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.endlessos.Key 2>/dev/null; then
         if confirm "Endless Key detectado. Desinstalar?"; then
             echo "Desinstalando Endless Key..."
-            flatpak uninstall --user -y org.endlessos.Key 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_endlesskey 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Endless Key desinstalado."
         fi
     else
         if confirm "Instalar Endless Key?"; then
             echo "Instalando Endless Key..."
-            flatpak install --or-update --user --noninteractive flathub org.endlessos.Key
+            flatpak install --or-update --user --noninteractive flathub $pkg_endlesskey
             touch "$state_file"
             echo "Endless Key instalado."
         fi
@@ -1637,14 +1637,14 @@ faugus_launcher_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.Faugus.faugus-launcher 2>/dev/null; then
         if confirm "Faugus Launcher detectado. Desinstalar?"; then
             echo "Desinstalando Faugus Launcher..."
-            flatpak uninstall --user -y io.github.Faugus.faugus-launcher 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_faugus 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Faugus Launcher desinstalado."
         fi
     else
         if confirm "Instalar Faugus Launcher?"; then
             echo "Instalando Faugus Launcher..."
-            flatpak install --user --noninteractive flathub io.github.Faugus.faugus-launcher
+            flatpak install --user --noninteractive flathub $pkg_faugus
             sudo flatpak override io.github.Faugus.faugus-launcher --filesystem=~/.var/app/com.valvesoftware.Steam/.steam/steam/userdata/
             sudo flatpak override com.valvesoftware.Steam --talk-name=org.freedesktop.Flatpak
             sudo flatpak override com.valvesoftware.Steam --filesystem=~/.var/app/io.github.Faugus.faugus-launcher/config/faugus-launcher/
@@ -1870,14 +1870,14 @@ flatseal_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.tchx84.Flatseal 2>/dev/null; then
         if confirm "Flatseal detectado. Desinstalar?"; then
             echo "Desinstalando Flatseal..."
-            flatpak uninstall --user -y com.github.tchx84.Flatseal 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_flatseal 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Flatseal desinstalado."
         fi
     else
         if confirm "Instalar Flatseal?"; then
             echo "Instalando Flatseal..."
-            flatpak install --or-update --user --noninteractive flathub com.github.tchx84.Flatseal
+            flatpak install --or-update --user --noninteractive flathub $pkg_flatseal
             touch "$state_file"
             echo "Flatseal instalado."
         fi
@@ -1891,14 +1891,14 @@ foliate_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.johnfactotum.Foliate 2>/dev/null; then
         if confirm "Foliate detectado. Desinstalar?"; then
             echo "Desinstalando Foliate..."
-            flatpak uninstall --user -y com.github.johnfactotum.Foliate 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_foliate 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Foliate desinstalado."
         fi
     else
         if confirm "Instalar Foliate?"; then
             echo "Instalando Foliate..."
-            flatpak install --or-update --user --noninteractive flathub com.github.johnfactotum.Foliate
+            flatpak install --or-update --user --noninteractive flathub $pkg_foliate
             touch "$state_file"
             echo "Foliate instalado."
         fi
@@ -1912,14 +1912,14 @@ freecad_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.freecad.FreeCAD 2>/dev/null; then
         if confirm "FreeCAD detectado. Desinstalar?"; then
             echo "Desinstalando FreeCAD..."
-            flatpak uninstall --user -y org.freecad.FreeCAD 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_freecad 2>/dev/null || true
             cleanup_files "$state_file"
             echo "FreeCAD desinstalado."
         fi
     else
         if confirm "Instalar FreeCAD?"; then
             echo "Instalando FreeCAD..."
-            flatpak install --or-update --user --noninteractive flathub org.freecad.FreeCAD
+            flatpak install --or-update --user --noninteractive flathub $pkg_freecad
             touch "$state_file"
             echo "FreeCAD instalado."
         fi
@@ -2019,14 +2019,14 @@ gcompris_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.kde.gcompris 2>/dev/null; then
         if confirm "GCompris detectado. Desinstalar?"; then
             echo "Desinstalando GCompris..."
-            flatpak uninstall --user -y org.kde.gcompris 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_gcompris 2>/dev/null || true
             cleanup_files "$state_file"
             echo "GCompris desinstalado."
         fi
     else
         if confirm "Instalar GCompris?"; then
             echo "Instalando GCompris..."
-            flatpak install --or-update --user --noninteractive flathub org.kde.gcompris
+            flatpak install --or-update --user --noninteractive flathub $pkg_gcompris
             touch "$state_file"
             echo "GCompris instalado."
         fi
@@ -2061,14 +2061,14 @@ gearlever_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q it.mijorus.gearlever 2>/dev/null; then
         if confirm "Gear Lever detectado. Desinstalar?"; then
             echo "Desinstalando Gear Lever..."
-            flatpak uninstall --user -y it.mijorus.gearlever 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_gearlever 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Gear Lever desinstalado."
         fi
     else
         if confirm "Instalar Gear Lever?"; then
             echo "Instalando Gear Lever..."
-            flatpak install --or-update --user --noninteractive flathub it.mijorus.gearlever
+            flatpak install --or-update --user --noninteractive flathub $pkg_gearlever
             touch "$state_file"
             echo "Gear Lever instalado."
         fi
@@ -2082,7 +2082,7 @@ geforce_now_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.nvidia.geforcenow 2>/dev/null; then
         if confirm "GeForce NOW detectado. Desinstalar?"; then
             echo "Desinstalando GeForce NOW..."
-            flatpak uninstall --user -y com.nvidia.geforcenow 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_geforcenow 2>/dev/null || true
             flatpak remote-delete GeForceNOW 2>/dev/null || true
             cleanup_files "$state_file"
             echo "GeForce NOW desinstalado."
@@ -2092,8 +2092,8 @@ geforce_now_installer() {
             echo "Instalando GeForce NOW..."
             flatpak install --or-update --user --noninteractive flathub org.freedesktop.Sdk//24.08
             flatpak remote-add --user --if-not-exists GeForceNOW https://international.download.nvidia.com/GFNLinux/flatpak/geforcenow.flatpakrepo
-            flatpak install --or-update --user --noninteractive GeForceNOW com.nvidia.geforcenow
-            flatpak override --user --nosocket=wayland com.nvidia.geforcenow
+            flatpak install --or-update --user --noninteractive GeForceNOW $pkg_geforcenow
+            flatpak override --user --nosocket=wayland $pkg_geforcenow
             touch "$state_file"
             echo "GeForce NOW instalado."
         fi
@@ -2107,14 +2107,14 @@ geogebra_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.geogebra.GeoGebra 2>/dev/null; then
         if confirm "GeoGebra detectado. Desinstalar?"; then
             echo "Desinstalando GeoGebra..."
-            flatpak uninstall --user -y org.geogebra.GeoGebra 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_geogebra 2>/dev/null || true
             cleanup_files "$state_file"
             echo "GeoGebra desinstalado."
         fi
     else
         if confirm "Instalar GeoGebra?"; then
             echo "Instalando GeoGebra..."
-            flatpak install --or-update --user --noninteractive flathub org.geogebra.GeoGebra
+            flatpak install --or-update --user --noninteractive flathub $pkg_geogebra
             touch "$state_file"
             echo "GeoGebra instalado."
         fi
@@ -2169,17 +2169,22 @@ gimp_photogimp_installer() {
     local pkg_gimp="org.gimp.GIMP"
     local gimp_config="$HOME/.config/GIMP"
     local gimp_share="$HOME/.local/share/GIMP"
-    
+
     if [ -f "$gimp_state" ] || flatpak list --app | grep -q org.gimp.GIMP 2>/dev/null; then
         if confirm "GIMP detectado. Desinstalar?"; then
-            flatpak uninstall --user -y org.gimp.GIMP
+            flatpak uninstall --user -y $pkg_gimp
             rm -rf "$gimp_config" "$gimp_share"
-            cleanup_files "$gimp_state" "$photogimp_state"
+            if [ -f "$photogimp_state" ]; then
+                if confirm "PhotoGIMP detectado. Desinstalar também?"; then
+                    cleanup_files "$photogimp_state"
+                fi
+            fi
+            cleanup_files "$gimp_state"
         fi
     elif confirm "Instalar GIMP?"; then
-        flatpak install --or-update --user --noninteractive flathub org.gimp.GIMP
+        flatpak install --or-update --user --noninteractive flathub $pkg_gimp
         touch "$gimp_state"
-        
+
         if [ -f "$photogimp_state" ] || [ -d "$gimp_config" ]; then
             if confirm "PhotoGIMP detectado. Desinstalar?"; then
                 rm -rf "$gimp_config" "$gimp_share"
@@ -2203,14 +2208,14 @@ gnome_boxes_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.gnome.Boxes 2>/dev/null; then
         if confirm "GNOME Boxes detectado. Desinstalar?"; then
             echo "Desinstalando GNOME Boxes..."
-            flatpak uninstall --user -y org.gnome.Boxes 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_boxes 2>/dev/null || true
             cleanup_files "$state_file"
             echo "GNOME Boxes desinstalado."
         fi
     else
         if confirm "Instalar GNOME Boxes?"; then
             echo "Instalando GNOME Boxes..."
-            flatpak install --or-update --user --noninteractive flathub org.gnome.Boxes
+            flatpak install --or-update --user --noninteractive flathub $pkg_boxes
             touch "$state_file"
             echo "GNOME Boxes instalado."
         fi
@@ -2327,14 +2332,14 @@ handbrake_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q fr.handbrake.ghb 2>/dev/null; then
         if confirm "HandBrake detectado. Desinstalar?"; then
             echo "Desinstalando HandBrake..."
-            flatpak uninstall --user -y fr.handbrake.ghb 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_handbrake 2>/dev/null || true
             cleanup_files "$state_file"
             echo "HandBrake desinstalado."
         fi
     else
         if confirm "Instalar HandBrake?"; then
             echo "Instalando HandBrake..."
-            flatpak install --or-update --user --noninteractive flathub fr.handbrake.ghb
+            flatpak install --or-update --user --noninteractive flathub $pkg_handbrake
             touch "$state_file"
             echo "HandBrake instalado."
         fi
@@ -2348,14 +2353,14 @@ heroic_games_launcher_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.heroicgameslauncher.hgl 2>/dev/null; then
         if confirm "Heroic Launcher detectado. Desinstalar?"; then
             echo "Desinstalando Heroic Launcher..."
-            flatpak uninstall --user -y com.heroicgameslauncher.hgl 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_heroic 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Heroic Launcher desinstalado."
         fi
     else
         if confirm "Instalar Heroic Launcher?"; then
             echo "Instalando Heroic Launcher..."
-            flatpak install --or-update --user --noninteractive flathub com.heroicgameslauncher.hgl
+            flatpak install --or-update --user --noninteractive flathub $pkg_heroic
             touch "$state_file"
             echo "Heroic Launcher instalado."
         fi
@@ -2364,7 +2369,7 @@ heroic_games_launcher_installer() {
 
 homebrew_installer() {
     local state_file="$STATE_DIR/homebrew"
-    
+
     if [ -f "$state_file" ] || command -v brew &>/dev/null; then
         if confirm "Brew detectado. Desinstalar?"; then
             NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
@@ -2394,14 +2399,14 @@ httpie_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.httpie.Httpie 2>/dev/null; then
         if confirm "HTTPie detectado. Desinstalar?"; then
             echo "Desinstalando HTTPie..."
-            flatpak uninstall --user -y io.httpie.Httpie 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_httpie 2>/dev/null || true
             cleanup_files "$state_file"
             echo "HTTPie desinstalado."
         fi
     else
         if confirm "Instalar HTTPie?"; then
             echo "Instalando HTTPie..."
-            flatpak install --user --or-update --noninteractive flathub io.httpie.Httpie
+            flatpak install --user --or-update --noninteractive flathub $pkg_httpie
             touch "$state_file"
             echo "HTTPie instalado."
         fi
@@ -2490,14 +2495,14 @@ inkscape_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.inkscape.Inkscape 2>/dev/null; then
         if confirm "Inkscape detectado. Desinstalar?"; then
             echo "Desinstalando Inkscape..."
-            flatpak uninstall --user -y org.inkscape.Inkscape 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_inkscape 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Inkscape desinstalado."
         fi
     else
         if confirm "Instalar Inkscape?"; then
             echo "Instalando Inkscape..."
-            flatpak install --or-update --user --noninteractive flathub org.inkscape.Inkscape
+            flatpak install --or-update --user --noninteractive flathub $pkg_inkscape
             touch "$state_file"
             echo "Inkscape instalado."
         fi
@@ -2532,14 +2537,14 @@ insomnia_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q rest.insomnia.Insomnia 2>/dev/null; then
         if confirm "Insomnia detectado. Desinstalar?"; then
             echo "Desinstalando Insomnia..."
-            flatpak uninstall --user -y rest.insomnia.Insomnia 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_insomnia 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Insomnia desinstalado."
         fi
     else
         if confirm "Instalar Insomnia?"; then
             echo "Instalando Insomnia..."
-            flatpak install --user --or-update --noninteractive flathub rest.insomnia.Insomnia
+            flatpak install --user --or-update --noninteractive flathub $pkg_insomnia
             touch "$state_file"
             echo "Insomnia instalado."
         fi
@@ -2708,14 +2713,14 @@ kalzium_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.kde.kalzium 2>/dev/null; then
         if confirm "Kalzium detectado. Desinstalar?"; then
             echo "Desinstalando Kalzium..."
-            flatpak uninstall --user -y org.kde.kalzium 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_kalzium 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Kalzium desinstalado."
         fi
     else
         if confirm "Instalar Kalzium?"; then
             echo "Instalando Kalzium..."
-            flatpak install --or-update --user --noninteractive flathub org.kde.kalzium
+            flatpak install --or-update --user --noninteractive flathub $pkg_kalzium
             touch "$state_file"
             echo "Kalzium instalado."
         fi
@@ -2729,14 +2734,14 @@ keepassxc_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.keepassxc.KeePassXC 2>/dev/null; then
         if confirm "KeePassXC detectado. Desinstalar?"; then
             echo "Desinstalando KeePassXC..."
-            flatpak uninstall --user -y org.keepassxc.KeePassXC 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_keepassxc 2>/dev/null || true
             cleanup_files "$state_file"
             echo "KeePassXC desinstalado."
         fi
     else
         if confirm "Instalar KeePassXC?"; then
             echo "Instalando KeePassXC..."
-            flatpak install --or-update --user --noninteractive flathub org.keepassxc.KeePassXC
+            flatpak install --or-update --user --noninteractive flathub $pkg_keepassxc
             touch "$state_file"
             echo "KeePassXC instalado."
         fi
@@ -2750,14 +2755,14 @@ kdenlive_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.kde.kdenlive 2>/dev/null; then
         if confirm "Kdenlive detectado. Desinstalar?"; then
             echo "Desinstalando Kdenlive..."
-            flatpak uninstall --user -y org.kde.kdenlive 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_kdenlive 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Kdenlive desinstalado."
         fi
     else
         if confirm "Instalar Kdenlive?"; then
             echo "Instalando Kdenlive..."
-            flatpak install --or-update --user --noninteractive flathub org.kde.kdenlive
+            flatpak install --or-update --user --noninteractive flathub $pkg_kdenlive
             touch "$state_file"
             echo "Kdenlive instalado."
         fi
@@ -2771,14 +2776,14 @@ kicad_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.kicad.KiCad 2>/dev/null; then
         if confirm "KiCad detectado. Desinstalar?"; then
             echo "Desinstalando KiCad..."
-            flatpak uninstall --user -y org.kicad.KiCad 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_kicad 2>/dev/null || true
             cleanup_files "$state_file"
             echo "KiCad desinstalado."
         fi
     else
         if confirm "Instalar KiCad?"; then
             echo "Instalando KiCad..."
-            flatpak install --or-update --user --noninteractive flathub org.kicad.KiCad
+            flatpak install --or-update --user --noninteractive flathub $pkg_kicad
             touch "$state_file"
             echo "KiCad instalado."
         fi
@@ -2792,14 +2797,14 @@ kolibri_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.learningequality.Kolibri 2>/dev/null; then
         if confirm "Kolibri detectado. Desinstalar?"; then
             echo "Desinstalando Kolibri..."
-            flatpak uninstall --user -y org.learningequality.Kolibri 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_kolibri 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Kolibri desinstalado."
         fi
     else
         if confirm "Instalar Kolibri?"; then
             echo "Instalando Kolibri..."
-            flatpak install --or-update --user --noninteractive flathub org.learningequality.Kolibri
+            flatpak install --or-update --user --noninteractive flathub $pkg_kolibri
             touch "$state_file"
             echo "Kolibri instalado."
         fi
@@ -2813,14 +2818,14 @@ krita_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.kde.krita 2>/dev/null; then
         if confirm "Krita detectado. Desinstalar?"; then
             echo "Desinstalando Krita..."
-            flatpak uninstall --user -y org.kde.krita 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_krita 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Krita desinstalado."
         fi
     else
         if confirm "Instalar Krita?"; then
             echo "Instalando Krita..."
-            flatpak install --or-update --user --noninteractive flathub org.kde.krita
+            flatpak install --or-update --user --noninteractive flathub $pkg_krita
             touch "$state_file"
             echo "Krita instalado."
         fi
@@ -2834,14 +2839,14 @@ lact_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.ilya_zlobintsev.LACT 2>/dev/null; then
         if confirm "LACT detectado. Desinstalar?"; then
             echo "Desinstalando LACT..."
-            flatpak uninstall --user -y io.github.ilya_zlobintsev.LACT 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_lact 2>/dev/null || true
             cleanup_files "$state_file"
             echo "LACT desinstalado."
         fi
     else
         if confirm "Instalar LACT?"; then
             echo "Instalando LACT..."
-            flatpak install --or-update --user --noninteractive flathub io.github.ilya_zlobintsev.LACT
+            flatpak install --or-update --user --noninteractive flathub $pkg_lact
             touch "$state_file"
             echo "LACT instalado."
         fi
@@ -2918,14 +2923,14 @@ libreoffice_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.libreoffice.LibreOffice 2>/dev/null; then
         if confirm "LibreOffice detectado. Desinstalar?"; then
             echo "Desinstalando LibreOffice..."
-            flatpak uninstall --user -y org.libreoffice.LibreOffice 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_libreoffice 2>/dev/null || true
             cleanup_files "$state_file"
             echo "LibreOffice desinstalado."
         fi
     else
         if confirm "Instalar LibreOffice?"; then
             echo "Instalando LibreOffice..."
-            flatpak install --or-update --user --noninteractive flathub org.libreoffice.LibreOffice
+            flatpak install --or-update --user --noninteractive flathub $pkg_libreoffice
             touch "$state_file"
             echo "LibreOffice instalado."
         fi
@@ -2939,14 +2944,14 @@ librewolf_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.gitlab.librewolf-community 2>/dev/null; then
         if confirm "LibreWolf detectado. Desinstalar?"; then
             echo "Desinstalando LibreWolf..."
-            flatpak uninstall --user -y io.gitlab.librewolf-community 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_librewolf 2>/dev/null || true
             cleanup_files "$state_file"
             echo "LibreWolf desinstalado."
         fi
     else
         if confirm "Instalar LibreWolf?"; then
             echo "Instalando LibreWolf..."
-            flatpak install --or-update --user --noninteractive flathub io.gitlab.librewolf-community
+            flatpak install --or-update --user --noninteractive flathub $pkg_librewolf
             touch "$state_file"
             echo "LibreWolf instalado."
         fi
@@ -2960,14 +2965,14 @@ logseq_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.logseq.Logseq 2>/dev/null; then
         if confirm "LogSEQ detectado. Desinstalar?"; then
             echo "Desinstalando LogSEQ..."
-            flatpak uninstall --user -y com.logseq.Logseq 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_logseq 2>/dev/null || true
             cleanup_files "$state_file"
             echo "LogSEQ desinstalado."
         fi
     else
         if confirm "Instalar LogSEQ?"; then
             echo "Instalando LogSEQ..."
-            flatpak install --or-update --user --noninteractive flathub com.logseq.Logseq
+            flatpak install --or-update --user --noninteractive flathub $pkg_logseq
             touch "$state_file"
             echo "LogSEQ instalado."
         fi
@@ -3023,7 +3028,7 @@ lutris_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q net.lutris.Lutris 2>/dev/null; then
         if confirm "Lutris detectado. Desinstalar?"; then
             echo "Desinstalando Lutris..."
-            flatpak uninstall --user -y net.lutris.Lutris 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_lutris 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Lutris desinstalado."
         fi
@@ -3046,7 +3051,7 @@ mangojuice_installer() {
         if confirm "MangoJuice detectado. Desinstalar?"; then
             echo "Desinstalando MangoJuice..."
             pacman -Qq mangohud &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_mangohud || true
-            flatpak uninstall --user -y io.github.radiolamp.mangojuice 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_mangojuice 2>/dev/null || true
             cleanup_files "$state_file"
             echo "MangoJuice desinstalado."
         fi
@@ -3055,7 +3060,7 @@ mangojuice_installer() {
             echo "Instalando MangoJuice..."
             sudo pacman -S --noconfirm $pkg_mangohud
             flatpak install --or-update --user --noninteractive flathub com.valvesoftware.Steam.VulkanLayer.MangoHud/x86_64/stable org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/23.08 org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/24.08
-            flatpak install --or-update --user --noninteractive flathub io.github.radiolamp.mangojuice
+            flatpak install --or-update --user --noninteractive flathub $pkg_mangojuice
             touch "$state_file"
             echo "MangoJuice instalado."
         fi
@@ -3090,14 +3095,14 @@ microsoft_teams_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.IsmaelMartinez.teams_for_linux 2>/dev/null; then
         if confirm "Microsoft Teams detectado. Desinstalar?"; then
             echo "Desinstalando Microsoft Teams..."
-            flatpak uninstall --user -y com.github.IsmaelMartinez.teams_for_linux 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_teams 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Microsoft Teams desinstalado."
         fi
     else
         if confirm "Instalar Microsoft Teams?"; then
             echo "Instalando Microsoft Teams..."
-            flatpak install --or-update --user --noninteractive flathub com.github.IsmaelMartinez.teams_for_linux
+            flatpak install --or-update --user --noninteractive flathub $pkg_teams
             touch "$state_file"
             echo "Microsoft Teams instalado."
         fi
@@ -3111,14 +3116,14 @@ minecraft_bedrock_launcher_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.mrarm.mcpelauncher 2>/dev/null; then
         if confirm "Minecraft Bedrock Launcher detectado. Desinstalar?"; then
             echo "Desinstalando Minecraft Bedrock Launcher..."
-            flatpak uninstall --user -y io.mrarm.mcpelauncher 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_minecraft 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Minecraft Bedrock Launcher desinstalado."
         fi
     else
         if confirm "Instalar Minecraft Bedrock Launcher?"; then
             echo "Instalando Minecraft Bedrock Launcher..."
-            flatpak install --or-update --user --noninteractive flathub io.mrarm.mcpelauncher
+            flatpak install --or-update --user --noninteractive flathub $pkg_minecraft
             touch "$state_file"
             echo "Minecraft Bedrock Launcher instalado."
         fi
@@ -3178,14 +3183,14 @@ missioncenter_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.missioncenter.MissionCenter 2>/dev/null; then
         if confirm "Mission Center detectado. Desinstalar?"; then
             echo "Desinstalando Mission Center..."
-            flatpak uninstall --user -y io.missioncenter.MissionCenter 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_missioncenter 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Mission Center desinstalado."
         fi
     else
         if confirm "Instalar Mission Center?"; then
             echo "Instalando Mission Center..."
-            flatpak install --or-update --user --noninteractive flathub io.missioncenter.MissionCenter
+            flatpak install --or-update --user --noninteractive flathub $pkg_missioncenter
             touch "$state_file"
             echo "Mission Center instalado."
         fi
@@ -3226,14 +3231,14 @@ moonlight_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.moonlight_stream.Moonlight 2>/dev/null; then
         if confirm "Moonlight detectado. Desinstalar?"; then
             echo "Desinstalando Moonlight..."
-            flatpak uninstall --user -y com.moonlight_stream.Moonlight 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_moonlight 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Moonlight desinstalado."
         fi
     else
         if confirm "Instalar Moonlight?"; then
             echo "Instalando Moonlight..."
-            flatpak install --or-update --user --noninteractive flathub com.moonlight_stream.Moonlight
+            flatpak install --or-update --user --noninteractive flathub $pkg_moonlight
             touch "$state_file"
             echo "Moonlight instalado."
         fi
@@ -3268,14 +3273,14 @@ mullvad_browser_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q net.mullvad.MullvadBrowser 2>/dev/null; then
         if confirm "Mullvad Browser detectado. Desinstalar?"; then
             echo "Desinstalando Mullvad Browser..."
-            flatpak uninstall --user -y net.mullvad.MullvadBrowser 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_mullvad 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Mullvad Browser desinstalado."
         fi
     else
         if confirm "Instalar Mullvad Browser?"; then
             echo "Instalando Mullvad Browser..."
-            flatpak install --or-update --user --noninteractive flathub net.mullvad.MullvadBrowser
+            flatpak install --or-update --user --noninteractive flathub $pkg_mullvad
             touch "$state_file"
             echo "Mullvad Browser instalado."
         fi
@@ -3350,16 +3355,22 @@ nvim_lazyvim_installer() {
     local lazyvim_state="$STATE_DIR/nvim_lazyvim"
     local pkg_neovim="neovim"
     local nvim_dir="$HOME/.config/nvim"
-    
+
     if [ -f "$nvim_state" ] || pacman -Q neovim &>/dev/null; then
         if confirm "NeoVim detectado. Desinstalar?"; then
             pacman -Qq neovim &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_neovim
-            cleanup_files "$nvim_state" "$lazyvim_state"
+            if [ -f "$lazyvim_state" ]; then
+                if confirm "LazyVim detectado. Desinstalar também?"; then
+                    rm -rf "$nvim_dir"
+                    cleanup_files "$lazyvim_state"
+                fi
+            fi
+            cleanup_files "$nvim_state"
         fi
     elif confirm "Instalar NeoVim?"; then
         sudo pacman -S --noconfirm $pkg_neovim
         touch "$nvim_state"
-        
+
         if [ -f "$lazyvim_state" ] || [ -d "$nvim_dir" ]; then
             if confirm "LazyVim detectado. Desinstalar?"; then
                 rm -rf "$nvim_dir"
@@ -3499,7 +3510,7 @@ nvidia_proprietary_menu() {
 nvidia_v470_installer() {
     local state_file="$STATE_DIR/nvidia_v470"
     local pkg_nvidia="nvidia-470xx-dkms nvidia-470xx-utils nvidia-470xx-settings"
-    
+
     if [ -f "$state_file" ] || pacman -Q nvidia-470xx-dkms &>/dev/null; then
         if confirm "Nvidia Drivers v470 detectado. Desinstalar?"; then
             pacman -Qq nvidia-470xx-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_nvidia
@@ -3541,10 +3552,10 @@ obs_installer() {
     local state_file="$STATE_DIR/obs"
     local pkg_wireplumber="wireplumber xorg-xwayland"
     local pkg_obs="com.obsproject.Studio"
-    
+
     if [ -f "$state_file" ] || flatpak list --app --columns=application | grep -q "com.obsproject.Studio"; then
         if confirm "OBS Studio detectado. Desinstalar?"; then
-            flatpak remove --user -y --noninteractive com.obsproject.Studio
+            flatpak remove --user -y --noninteractive $pkg_obs
             cleanup_files "$state_file" "$HOME/.var/app/com.obsproject.Studio"
             if confirm "Desinstalar também wireplumber e xorg-xwayland?"; then
                 sudo pacman -Rns --noconfirm $pkg_wireplumber
@@ -3553,21 +3564,21 @@ obs_installer() {
     elif confirm "Instalar OBS Studio?"; then
         if confirm "Instalar plugins recomendados (pipewire audio capture)?"; then
             sudo pacman -S --noconfirm $pkg_wireplumber
-            flatpak install --user -y --noninteractive flathub com.obsproject.Studio
-            
+            flatpak install --user -y --noninteractive flathub $pkg_obs
+
             local ver=$(curl -s "https://api.github.com/repos/dimtpap/obs-pipewire-audio-capture/releases/latest" | grep -oP '"tag_name": "\K(.*)(?=")')
             mkdir -p /tmp/obspipe && cd /tmp/obspipe
             curl -fsSL "https://github.com/dimtpap/obs-pipewire-audio-capture/releases/download/${ver}/linux-pipewire-audio-${ver}-flatpak-30.tar.gz" -o linux-pipewire-audio.tar.gz
             tar -xvzf linux-pipewire-audio.tar.gz
             mkdir -p "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio"
             cp -rf linux-pipewire-audio/* "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio/"
-            
-            flatpak override --user --filesystem=xdg-run/pipewire-0 com.obsproject.Studio
-            flatpak override --user --socket=x11 --nosocket=wayland --env=QT_QPA_PLATFORM=xcb com.obsproject.Studio
-            
+
+            flatpak override --user --filesystem=xdg-run/pipewire-0 $pkg_obs
+            flatpak override --user --socket=x11 --nosocket=wayland --env=QT_QPA_PLATFORM=xcb $pkg_obs
+
             cd .. && rm -rf /tmp/obspipe
         else
-            flatpak install --user -y --noninteractive flathub com.obsproject.Studio
+            flatpak install --user -y --noninteractive flathub $pkg_obs
         fi
         touch "$state_file"
     fi
@@ -3580,14 +3591,14 @@ obsidian_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q md.obsidian.Obsidian 2>/dev/null; then
         if confirm "Obsidian detectado. Desinstalar?"; then
             echo "Desinstalando Obsidian..."
-            flatpak uninstall --user -y md.obsidian.Obsidian 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_obsidian 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Obsidian desinstalado."
         fi
     else
         if confirm "Instalar Obsidian?"; then
             echo "Instalando Obsidian..."
-            flatpak install --or-update --user --noninteractive flathub md.obsidian.Obsidian
+            flatpak install --or-update --user --noninteractive flathub $pkg_obsidian
             touch "$state_file"
             echo "Obsidian instalado."
         fi
@@ -3653,7 +3664,7 @@ office_menu() {
 
 oh_my_bash_installer() {
     local state_file="$STATE_DIR/oh_my_bash"
-    
+
     if [ -f "$state_file" ] || [ -d "$HOME/.oh-my-bash" ]; then
         if confirm "Oh My Bash detectado. Desinstalar?"; then
             [ -d "$HOME/.oh-my-bash" ] && yes | "$HOME/.oh-my-bash"/tools/uninstall.sh
@@ -3786,14 +3797,14 @@ onlyoffice_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.onlyoffice.desktopeditors 2>/dev/null; then
         if confirm "OnlyOffice detectado. Desinstalar?"; then
             echo "Desinstalando OnlyOffice..."
-            flatpak uninstall --user -y org.onlyoffice.desktopeditors 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_onlyoffice 2>/dev/null || true
             cleanup_files "$state_file"
             echo "OnlyOffice desinstalado."
         fi
     else
         if confirm "Instalar OnlyOffice?"; then
             echo "Instalando OnlyOffice..."
-            flatpak install --or-update --user --noninteractive flathub org.onlyoffice.desktopeditors
+            flatpak install --or-update --user --noninteractive flathub $pkg_onlyoffice
             touch "$state_file"
             echo "OnlyOffice instalado."
         fi
@@ -3852,14 +3863,14 @@ openrgb_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.openrgb.OpenRGB 2>/dev/null; then
         if confirm "OpenRGB detectado. Desinstalar?"; then
             echo "Desinstalando OpenRGB..."
-            flatpak uninstall --user -y org.openrgb.OpenRGB 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_openrgb 2>/dev/null || true
             cleanup_files "$state_file"
             echo "OpenRGB desinstalado."
         fi
     else
         if confirm "Instalar OpenRGB?"; then
             echo "Instalando OpenRGB..."
-            flatpak install --or-update --user --noninteractive flathub org.openrgb.OpenRGB
+            flatpak install --or-update --user --noninteractive flathub $pkg_openrgb
             touch "$state_file"
             echo "OpenRGB instalado."
         fi
@@ -3895,14 +3906,14 @@ optimusui_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q de.z_ray.OptimusUI 2>/dev/null; then
         if confirm "OptimusUI detectado. Desinstalar?"; then
             echo "Desinstalando OptimusUI..."
-            flatpak uninstall --user -y de.z_ray.OptimusUI 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_optimusui 2>/dev/null || true
             cleanup_files "$state_file"
             echo "OptimusUI desinstalado."
         fi
     else
         if confirm "Instalar OptimusUI?"; then
             echo "Instalando OptimusUI..."
-            flatpak install --or-update --user --noninteractive flathub de.z_ray.OptimusUI
+            flatpak install --or-update --user --noninteractive flathub $pkg_optimusui
             touch "$state_file"
             echo "OptimusUI instalado."
         fi
@@ -3916,14 +3927,14 @@ osu_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q sh.ppy.osu 2>/dev/null; then
         if confirm "Osu! detectado. Desinstalar?"; then
             echo "Desinstalando Osu!..."
-            flatpak uninstall --user -y sh.ppy.osu 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_osu 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Osu! desinstalado."
         fi
     else
         if confirm "Instalar Osu!?"; then
             echo "Instalando Osu!..."
-            flatpak install --or-update --user --noninteractive flathub sh.ppy.osu
+            flatpak install --or-update --user --noninteractive flathub $pkg_osu
             touch "$state_file"
             echo "Osu! instalado."
         fi
@@ -3933,16 +3944,16 @@ osu_installer() {
 oversteer_installer() {
     local state_file="$STATE_DIR/oversteer"
     local pkg_oversteer="io.github.berarma.Oversteer"
-    
+
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.berarma.Oversteer 2>/dev/null; then
         if confirm "Oversteer detectado. Desinstalar?"; then
-            flatpak uninstall --user -y io.github.berarma.Oversteer
+            flatpak uninstall --user -y $pkg_oversteer
             sudo rm -f /etc/udev/rules.d/99-fanatec-wheel-perms.rules /etc/udev/rules.d/99-logitech-wheel-perms.rules /etc/udev/rules.d/99-thrustmaster-wheel-perms.rules
             cleanup_files "$state_file"
         fi
     else
         if confirm "Instalar Oversteer?"; then
-            flatpak install --or-update --user --noninteractive flathub io.github.berarma.Oversteer
+            flatpak install --or-update --user --noninteractive flathub $pkg_oversteer
             if confirm "Instalar configurações extras (regras udev para volantes)?"; then
                 sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-fanatec-wheel-perms.rules -o /etc/udev/rules.d/99-fanatec-wheel-perms.rules
                 sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-logitech-wheel-perms.rules -o /etc/udev/rules.d/99-logitech-wheel-perms.rules
@@ -3981,14 +3992,14 @@ peazip_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.peazip.PeaZip 2>/dev/null; then
         if confirm "PeaZip detectado. Desinstalar?"; then
             echo "Desinstalando PeaZip..."
-            flatpak uninstall --user -y io.github.peazip.PeaZip 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_peazip 2>/dev/null || true
             cleanup_files "$state_file"
             echo "PeaZip desinstalado."
         fi
     else
         if confirm "Instalar PeaZip?"; then
             echo "Instalando PeaZip..."
-            flatpak install --or-update --user --noninteractive flathub io.github.peazip.PeaZip
+            flatpak install --or-update --user --noninteractive flathub $pkg_peazip
             touch "$state_file"
             echo "PeaZip instalado."
         fi
@@ -4112,14 +4123,14 @@ pika_backup_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.gnome.World.PikaBackup 2>/dev/null; then
         if confirm "Pika Backup detectado. Desinstalar?"; then
             echo "Desinstalando Pika Backup..."
-            flatpak uninstall --user -y org.gnome.World.PikaBackup 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_pika 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Pika Backup desinstalado."
         fi
     else
         if confirm "Instalar Pika Backup?"; then
             echo "Instalando Pika Backup..."
-            flatpak install --or-update --user --noninteractive flathub org.gnome.World.PikaBackup
+            flatpak install --or-update --user --noninteractive flathub $pkg_pika
             touch "$state_file"
             echo "Pika Backup instalado."
         fi
@@ -4133,14 +4144,14 @@ pinta_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.PintaProject.Pinta 2>/dev/null; then
         if confirm "Pinta detectado. Desinstalar?"; then
             echo "Desinstalando Pinta..."
-            flatpak uninstall --user -y com.github.PintaProject.Pinta 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_pinta 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Pinta desinstalado."
         fi
     else
         if confirm "Instalar Pinta?"; then
             echo "Instalando Pinta..."
-            flatpak install --or-update --user --noninteractive flathub com.github.PintaProject.Pinta
+            flatpak install --or-update --user --noninteractive flathub $pkg_pinta
             touch "$state_file"
             echo "Pinta instalado."
         fi
@@ -4154,14 +4165,14 @@ piper_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.freedesktop.Piper 2>/dev/null; then
         if confirm "Piper detectado. Desinstalar?"; then
             echo "Desinstalando Piper..."
-            flatpak uninstall --user -y org.freedesktop.Piper 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_piper 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Piper desinstalado."
         fi
     else
         if confirm "Instalar Piper?"; then
             echo "Instalando Piper..."
-            flatpak install --or-update --user --noninteractive flathub org.freedesktop.Piper
+            flatpak install --or-update --user --noninteractive flathub $pkg_piper
             touch "$state_file"
             echo "Piper instalado."
         fi
@@ -4262,14 +4273,14 @@ postman_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.getpostman.Postman 2>/dev/null; then
         if confirm "Postman detectado. Desinstalar?"; then
             echo "Desinstalando Postman..."
-            flatpak uninstall --user -y com.getpostman.Postman 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_postman 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Postman desinstalado."
         fi
     else
         if confirm "Instalar Postman?"; then
             echo "Instalando Postman..."
-            flatpak install --user --or-update --noninteractive flathub com.getpostman.Postman
+            flatpak install --user --or-update --noninteractive flathub $pkg_postman
             touch "$state_file"
             echo "Postman instalado."
         fi
@@ -4310,14 +4321,14 @@ prism_launcher_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.prismlauncher.PrismLauncher 2>/dev/null; then
         if confirm "Prism Launcher detectado. Desinstalar?"; then
             echo "Desinstalando Prism Launcher..."
-            flatpak uninstall --user -y org.prismlauncher.PrismLauncher 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_prism 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Prism Launcher desinstalado."
         fi
     else
         if confirm "Instalar Prism Launcher?"; then
             echo "Instalando Prism Launcher..."
-            flatpak install --or-update --user --noninteractive flathub org.prismlauncher.PrismLauncher
+            flatpak install --or-update --user --noninteractive flathub $pkg_prism
             touch "$state_file"
             echo "Prism Launcher instalado."
         fi
@@ -4380,14 +4391,14 @@ protonplus_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.vysp3r.ProtonPlus 2>/dev/null; then
         if confirm "ProtonPlus detectado. Desinstalar?"; then
             echo "Desinstalando ProtonPlus..."
-            flatpak uninstall --user -y com.vysp3r.ProtonPlus 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_protonplus 2>/dev/null || true
             cleanup_files "$state_file"
             echo "ProtonPlus desinstalado."
         fi
     else
         if confirm "Instalar ProtonPlus?"; then
             echo "Instalando ProtonPlus..."
-            flatpak install --or-update --user --noninteractive flathub com.vysp3r.ProtonPlus
+            flatpak install --or-update --user --noninteractive flathub $pkg_protonplus
             touch "$state_file"
             echo "ProtonPlus instalado."
         fi
@@ -4401,14 +4412,14 @@ protonvpn_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.protonvpn.www 2>/dev/null; then
         if confirm "ProtonVPN detectado. Desinstalar?"; then
             echo "Desinstalando ProtonVPN..."
-            flatpak uninstall --user -y com.protonvpn.www 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_protonvpn 2>/dev/null || true
             cleanup_files "$state_file"
             echo "ProtonVPN desinstalado."
         fi
     else
         if confirm "Instalar ProtonVPN?"; then
             echo "Instalando ProtonVPN..."
-            flatpak install --or-update --user --noninteractive flathub com.protonvpn.www
+            flatpak install --or-update --user --noninteractive flathub $pkg_protonvpn
             touch "$state_file"
             echo "ProtonVPN instalado."
         fi
@@ -4422,14 +4433,14 @@ protontricks_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.Matoking.protontricks 2>/dev/null; then
         if confirm "Protontricks detectado. Desinstalar?"; then
             echo "Desinstalando Protontricks..."
-            flatpak uninstall --user -y com.github.Matoking.protontricks 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_protontricks 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Protontricks desinstalado."
         fi
     else
         if confirm "Instalar Protontricks?"; then
             echo "Instalando Protontricks..."
-            flatpak install --or-update --user --noninteractive flathub com.github.Matoking.protontricks
+            flatpak install --or-update --user --noninteractive flathub $pkg_protontricks
             touch "$state_file"
             echo "Protontricks instalado."
         fi
@@ -4443,14 +4454,14 @@ protonup_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q net.davidotek.pupgui2 2>/dev/null; then
         if confirm "ProtonUp detectado. Desinstalar?"; then
             echo "Desinstalando ProtonUp..."
-            flatpak uninstall --user -y net.davidotek.pupgui2 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_protonup 2>/dev/null || true
             cleanup_files "$state_file"
             echo "ProtonUp desinstalado."
         fi
     else
         if confirm "Instalar ProtonUp?"; then
             echo "Instalando ProtonUp..."
-            flatpak install --or-update --user --noninteractive flathub net.davidotek.pupgui2
+            flatpak install --or-update --user --noninteractive flathub $pkg_protonup
             touch "$state_file"
             echo "ProtonUp instalado."
         fi
@@ -4488,12 +4499,12 @@ CPU_MIN="0"
 apply_settings() {
     echo "$CPU_GOV" | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1 || true
     echo "$ENERGY_PERF" | tee /sys/devices/system/cpu/cpu*/power/energy_performance_preference >/dev/null 2>&1 || true
-    
+
     if [ -f /sys/devices/system/cpu/intel_pstate/max_perf_pct ]; then
         echo "$CPU_MAX" | tee /sys/devices/system/cpu/intel_pstate/max_perf_pct >/dev/null
         echo "$CPU_MIN" | tee /sys/devices/system/cpu/intel_pstate/min_perf_pct >/dev/null
     fi
-    
+
     if [ -f /sys/block/sda/queue/scheduler ]; then
         echo "$SCHEDULER" | tee /sys/block/sd*/queue/scheduler >/dev/null 2>&1 || true
     fi
@@ -4532,14 +4543,14 @@ pwgraph_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.rncbc.qpwgraph 2>/dev/null; then
         if confirm "QPWGraph detectado. Desinstalar?"; then
             echo "Desinstalando QPWGraph..."
-            flatpak uninstall --user -y org.rncbc.qpwgraph 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_pwgraph 2>/dev/null || true
             cleanup_files "$state_file"
             echo "QPWGraph desinstalado."
         fi
     else
         if confirm "Instalar QPWGraph?"; then
             echo "Instalando QPWGraph..."
-            flatpak install --or-update --user --noninteractive flathub org.rncbc.qpwgraph
+            flatpak install --or-update --user --noninteractive flathub $pkg_pwgraph
             touch "$state_file"
             echo "QPWGraph instalado."
         fi
@@ -4574,14 +4585,14 @@ rcloneui_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.rcloneui.RcloneUI 2>/dev/null; then
         if confirm "Rclone UI detectado. Desinstalar?"; then
             echo "Desinstalando Rclone UI..."
-            flatpak uninstall --user -y com.rcloneui.RcloneUI 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_rcloneui 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Rclone UI desinstalado."
         fi
     else
         if confirm "Instalar Rclone UI?"; then
             echo "Instalando Rclone UI..."
-            flatpak install --or-update --user --noninteractive flathub com.rcloneui.RcloneUI
+            flatpak install --or-update --user --noninteractive flathub $pkg_rcloneui
             touch "$state_file"
             echo "Rclone UI instalado."
         fi
@@ -4651,14 +4662,14 @@ s3drive_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.kapsa.drive 2>/dev/null; then
         if confirm "S3Drive detectado. Desinstalar?"; then
             echo "Desinstalando S3Drive..."
-            flatpak uninstall --user -y io.kapsa.drive 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_s3drive 2>/dev/null || true
             cleanup_files "$state_file"
             echo "S3Drive desinstalado."
         fi
     else
         if confirm "Instalar S3Drive?"; then
             echo "Instalando S3Drive..."
-            flatpak install --or-update --user --noninteractive flathub io.kapsa.drive
+            flatpak install --or-update --user --noninteractive flathub $pkg_s3drive
             touch "$state_file"
             echo "S3Drive instalado."
         fi
@@ -4668,7 +4679,7 @@ s3drive_installer() {
 sdkman_installer() {
     local state_file="$STATE_DIR/sdkman"
     local pkg_unzip="unzip zip"
-    
+
     if [ -f "$state_file" ] || [ -d "$HOME/.sdkman" ]; then
         if confirm "Sdkman detectado. Desinstalar?"; then
             rm -rf "$HOME/.sdkman"
@@ -4692,7 +4703,7 @@ sdkman_installer() {
 shader_booster_installer() {
     local state_file="$STATE_DIR/shader_booster"
     local boost_file="$HOME/.booster"
-    
+
     if [ -f "$state_file" ] || [ -f "$boost_file" ]; then
         if confirm "Shader Booster detectado. Desinstalar?"; then
             for shell_file in "$HOME/.bash_profile" "$HOME/.profile" "$HOME/.zshrc"; do
@@ -4706,17 +4717,17 @@ shader_booster_installer() {
             local has_mesa=$(lspci | grep -Ei '(vga|3d)' | grep -vi nvidia)
             local patch_applied=0
             local dest_file=""
-            
+
             for file in "$HOME/.bash_profile" "$HOME/.profile" "$HOME/.zshrc"; do
                 [ -f "$file" ] && dest_file="$file" && break
             done
             [ -z "$dest_file" ] && dest_file="$HOME/.bash_profile" && touch "$dest_file"
-            
+
             echo -e "\n# Shader Booster patches" >> "$dest_file"
             [ -n "$has_nvidia" ] && curl -s https://raw.githubusercontent.com/psygreg/shader-booster/main/patch-nvidia >> "$dest_file" && patch_applied=1
             [ -n "$has_mesa" ] && curl -s https://raw.githubusercontent.com/psygreg/shader-booster/main/patch-mesa >> "$dest_file" && patch_applied=1
             echo "# End Shader Booster" >> "$dest_file"
-            
+
             [ $patch_applied -eq 1 ] && echo "1" > "$boost_file" && touch "$state_file"
         fi
     fi
@@ -4729,14 +4740,14 @@ signal_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.signal.Signal 2>/dev/null; then
         if confirm "Signal detectado. Desinstalar?"; then
             echo "Desinstalando Signal..."
-            flatpak uninstall --user -y org.signal.Signal 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_signal 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Signal desinstalado."
         fi
     else
         if confirm "Instalar Signal?"; then
             echo "Instalando Signal..."
-            flatpak install --or-update --user --noninteractive flathub org.signal.Signal
+            flatpak install --or-update --user --noninteractive flathub $pkg_signal
             touch "$state_file"
             echo "Signal instalado."
         fi
@@ -4750,14 +4761,14 @@ sirikali_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.mhogomchungu.sirikali 2>/dev/null; then
         if confirm "SiriKali detectado. Desinstalar?"; then
             echo "Desinstalando SiriKali..."
-            flatpak uninstall --user -y io.github.mhogomchungu.sirikali 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_sirikali 2>/dev/null || true
             cleanup_files "$state_file"
             echo "SiriKali desinstalado."
         fi
     else
         if confirm "Instalar SiriKali?"; then
             echo "Instalando SiriKali..."
-            flatpak install --or-update --user --noninteractive flathub io.github.mhogomchungu.sirikali
+            flatpak install --or-update --user --noninteractive flathub $pkg_sirikali
             touch "$state_file"
             echo "SiriKali instalado."
         fi
@@ -4771,14 +4782,14 @@ slack_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.slack.Slack 2>/dev/null; then
         if confirm "Slack detectado. Desinstalar?"; then
             echo "Desinstalando Slack..."
-            flatpak uninstall --user -y com.slack.Slack 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_slack 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Slack desinstalado."
         fi
     else
         if confirm "Instalar Slack?"; then
             echo "Instalando Slack..."
-            flatpak install --or-update --user --noninteractive flathub com.slack.Slack
+            flatpak install --or-update --user --noninteractive flathub $pkg_slack
             touch "$state_file"
             echo "Slack instalado."
         fi
@@ -4813,14 +4824,14 @@ sober_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.vinegarhq.Sober 2>/dev/null; then
         if confirm "Sober detectado. Desinstalar?"; then
             echo "Desinstalando Sober..."
-            flatpak uninstall --user -y org.vinegarhq.Sober 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_sober 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Sober desinstalado."
         fi
     else
         if confirm "Instalar Sober?"; then
             echo "Instalando Sober..."
-            flatpak install --or-update --user --noninteractive flathub org.vinegarhq.Sober
+            flatpak install --or-update --user --noninteractive flathub $pkg_sober
             touch "$state_file"
             echo "Sober instalado."
         fi
@@ -4932,14 +4943,14 @@ stellarium_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.stellarium.Stellarium 2>/dev/null; then
         if confirm "Stellarium detectado. Desinstalar?"; then
             echo "Desinstalando Stellarium..."
-            flatpak uninstall --user -y org.stellarium.Stellarium 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_stellarium 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Stellarium desinstalado."
         fi
     else
         if confirm "Instalar Stellarium?"; then
             echo "Instalando Stellarium..."
-            flatpak install --or-update --user --noninteractive flathub org.stellarium.Stellarium
+            flatpak install --or-update --user --noninteractive flathub $pkg_stellarium
             touch "$state_file"
             echo "Stellarium instalado."
         fi
@@ -4977,14 +4988,14 @@ streamcontroller_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.core447.StreamController 2>/dev/null; then
         if confirm "StreamController detectado. Desinstalar?"; then
             echo "Desinstalando StreamController..."
-            flatpak uninstall --user -y com.core447.StreamController 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_streamcontroller 2>/dev/null || true
             cleanup_files "$state_file"
             echo "StreamController desinstalado."
         fi
     else
         if confirm "Instalar StreamController?"; then
             echo "Instalando StreamController..."
-            flatpak install --or-update --user --noninteractive flathub com.core447.StreamController
+            flatpak install --or-update --user --noninteractive flathub $pkg_streamcontroller
             touch "$state_file"
             echo "StreamController instalado."
         fi
@@ -4994,7 +5005,7 @@ streamcontroller_installer() {
 sublime_text_installer() {
     local state_file="$STATE_DIR/sublime_text"
     local pkg_sublime="sublime-text"
-    
+
     if [ -f "$state_file" ] || pacman -Q sublime-text &>/dev/null; then
         if confirm "Sublime Text detectado. Desinstalar?"; then
             pacman -Qq sublime-text &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_sublime
@@ -5019,15 +5030,15 @@ sunshine_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q dev.lizardbyte.app.Sunshine 2>/dev/null; then
         if confirm "Sunshine detectado. Desinstalar?"; then
             echo "Desinstalando Sunshine..."
-            flatpak uninstall --user -y dev.lizardbyte.app.Sunshine 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_sunshine 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Sunshine desinstalado."
         fi
     else
         if confirm "Instalar Sunshine?"; then
             echo "Instalando Sunshine..."
-            flatpak install --or-update --user --noninteractive flathub dev.lizardbyte.app.Sunshine
-            flatpak run --command=additional-install.sh dev.lizardbyte.app.Sunshine
+            flatpak install --or-update --user --noninteractive flathub $pkg_sunshine
+            flatpak run --command=additional-install.sh $pkg_sunshine
             touch "$state_file"
             echo "Sunshine instalado."
         fi
@@ -5062,14 +5073,14 @@ surfsharkvpn_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.surfshark.Surfshark 2>/dev/null; then
         if confirm "Surfshark VPN detectado. Desinstalar?"; then
             echo "Desinstalando Surfshark VPN..."
-            flatpak uninstall --user -y com.surfshark.Surfshark 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_surfshark 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Surfshark VPN desinstalado."
         fi
     else
         if confirm "Instalar Surfshark VPN?"; then
             echo "Instalando Surfshark VPN..."
-            flatpak install --or-update --user --noninteractive flathub com.surfshark.Surfshark
+            flatpak install --or-update --user --noninteractive flathub $pkg_surfshark
             touch "$state_file"
             echo "Surfshark VPN instalado."
         fi
@@ -5079,7 +5090,7 @@ surfsharkvpn_installer() {
 swapfile_create() {
     local location="$1"
     local size="$2"
-    
+
     case $location in
         1)
             if findmnt -n -o FSTYPE / | grep -q "btrfs"; then
@@ -5111,14 +5122,14 @@ swapfile_create() {
             ;;
         *) echo "Opção inválida"; return 1 ;;
     esac
-    
+
     echo "# swapfile" | sudo tee -a /etc/fstab
     return 0
 }
 
 swapfile_installer() {
     local state_file="$STATE_DIR/swapfile"
-    
+
     if [ -f "$state_file" ] || swapon --show | grep -q '.'; then
         if confirm "Swapfile detectado. Desinstalar?"; then
             echo "Desinstalando Swapfile..."
@@ -5138,7 +5149,7 @@ swapfile_installer() {
         echo "3) Cancelar"
         echo
         read -p "Selecione local: " location
-        
+
         case $location in
             1|2)
                 read -p "Tamanho em GB (padrão: 8): " size
@@ -5186,14 +5197,14 @@ telegram_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.telegram.desktop 2>/dev/null; then
         if confirm "Telegram detectado. Desinstalar?"; then
             echo "Desinstalando Telegram..."
-            flatpak uninstall --user -y org.telegram.desktop 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_telegram 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Telegram desinstalado."
         fi
     else
         if confirm "Instalar Telegram?"; then
             echo "Instalando Telegram..."
-            flatpak install --or-update --user --noninteractive flathub org.telegram.desktop
+            flatpak install --or-update --user --noninteractive flathub $pkg_telegram
             touch "$state_file"
             echo "Telegram instalado."
         fi
@@ -5207,14 +5218,14 @@ termius_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.termius.Termius 2>/dev/null; then
         if confirm "Termius detectado. Desinstalar?"; then
             echo "Desinstalando Termius..."
-            flatpak uninstall --user -y com.termius.Termius 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_termius 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Termius desinstalado."
         fi
     else
         if confirm "Instalar Termius?"; then
             echo "Instalando Termius..."
-            flatpak install --or-update --user --noninteractive flathub com.termius.Termius
+            flatpak install --or-update --user --noninteractive flathub $pkg_termius
             touch "$state_file"
             echo "Termius instalado."
         fi
@@ -5304,14 +5315,14 @@ ungoogled_chromium_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.ungoogled_software.ungoogled_chromium 2>/dev/null; then
         if confirm "Ungoogled Chromium detectado. Desinstalar?"; then
             echo "Desinstalando Ungoogled Chromium..."
-            flatpak uninstall --user -y io.github.ungoogled_software.ungoogled_chromium 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_chromium 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Ungoogled Chromium desinstalado."
         fi
     else
         if confirm "Instalar Ungoogled Chromium?"; then
             echo "Instalando Ungoogled Chromium..."
-            flatpak install --or-update --user --noninteractive flathub io.github.ungoogled_software.ungoogled_chromium
+            flatpak install --or-update --user --noninteractive flathub $pkg_chromium
             touch "$state_file"
             echo "Ungoogled Chromium instalado."
         fi
@@ -5325,7 +5336,7 @@ unmojang_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.unmojang.FjordLauncher 2>/dev/null; then
         if confirm "Fjord Launcher detectado. Desinstalar?"; then
             echo "Desinstalando Fjord Launcher..."
-            flatpak uninstall --user -y org.unmojang.FjordLauncher 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_fjord 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Fjord Launcher desinstalado."
         fi
@@ -5333,7 +5344,7 @@ unmojang_installer() {
         if confirm "Instalar Fjord Launcher?"; then
             echo "Instalando Fjord Launcher..."
             flatpak remote-add --user --if-not-exists hero-persson https://hero-persson.github.io/unmojang-flatpak/index.flatpakrepo
-            flatpak install --user --or-update --noninteractive hero-persson org.unmojang.FjordLauncher
+            flatpak install --user --or-update --noninteractive hero-persson $pkg_fjord
             touch "$state_file"
             echo "Fjord Launcher instalado."
         fi
@@ -5408,14 +5419,14 @@ vinegar_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.vinegarhq.Vinegar 2>/dev/null; then
         if confirm "Vinegar detectado. Desinstalar?"; then
             echo "Desinstalando Vinegar..."
-            flatpak uninstall --user -y org.vinegarhq.Vinegar 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_vinegar 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Vinegar desinstalado."
         fi
     else
         if confirm "Instalar Vinegar?"; then
             echo "Instalando Vinegar..."
-            flatpak install --or-update --user --noninteractive flathub org.vinegarhq.Vinegar
+            flatpak install --or-update --user --noninteractive flathub $pkg_vinegar
             touch "$state_file"
             echo "Vinegar instalado."
         fi
@@ -5492,14 +5503,14 @@ vscodium_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.vscodium.codium 2>/dev/null; then
         if confirm "VSCodium detectado. Desinstalar?"; then
             echo "Desinstalando VSCodium..."
-            flatpak uninstall --user -y com.vscodium.codium 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_vscodium 2>/dev/null || true
             cleanup_files "$state_file"
             echo "VSCodium desinstalado."
         fi
     else
         if confirm "Instalar VSCodium?"; then
             echo "Instalando VSCodium..."
-            flatpak install --user --or-update --noninteractive flathub com.vscodium.codium
+            flatpak install --user --or-update --noninteractive flathub $pkg_vscodium
             touch "$state_file"
             echo "VSCodium instalado."
         fi
@@ -5513,14 +5524,14 @@ warehouse_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.flattool.Warehouse 2>/dev/null; then
         if confirm "Warehouse detectado. Desinstalar?"; then
             echo "Desinstalando Warehouse..."
-            flatpak uninstall --user -y io.github.flattool.Warehouse 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_warehouse 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Warehouse desinstalado."
         fi
     else
         if confirm "Instalar Warehouse?"; then
             echo "Instalando Warehouse..."
-            flatpak install --or-update --user --noninteractive flathub io.github.flattool.Warehouse
+            flatpak install --or-update --user --noninteractive flathub $pkg_warehouse
             touch "$state_file"
             echo "Warehouse instalado."
         fi
@@ -5584,7 +5595,7 @@ windscribevpn_installer() {
         if confirm "Windscribe detectado. Desinstalar?"; then
             echo "Desinstalando Windscribe..."
             pacman -Qq windscribe-v2-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_windscribe || true
-            cleanup_files "$state_file" 
+            cleanup_files "$state_file"
             echo "Windscribe desinstalado."
         fi
     else
@@ -5625,14 +5636,14 @@ wivrn_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.wivrn.wivrn 2>/dev/null; then
         if confirm "WiVRn detectado. Desinstalar?"; then
             echo "Desinstalando WiVRn..."
-            flatpak uninstall --user -y io.github.wivrn.wivrn 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_wivrn 2>/dev/null || true
             cleanup_files "$state_file"
             echo "WiVRn desinstalado."
         fi
     else
         if confirm "Instalar WiVRn?"; then
             echo "Instalando WiVRn..."
-            flatpak install --or-update --user --noninteractive flathub io.github.wivrn.wivrn
+            flatpak install --or-update --user --noninteractive flathub $pkg_wivrn
             touch "$state_file"
             echo "WiVRn instalado."
         fi
@@ -5643,7 +5654,7 @@ xdg_base_installer() {
     local state_file="$STATE_DIR/xdg_base"
     local pkg_xdg="xdg-user-dirs xdg-utils"
 
-    if [ -f "$state_file" ]; then
+    if [ -f "$state_file" ] || pacman -Q xdg-user-dirs &>/dev/null; then
         if confirm "XDG Base detectado. Desinstalar?"; then
             echo "Desinstalando XDG Base..."
             pacman -Qq xdg-user-dirs &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_xdg || true
@@ -5664,7 +5675,7 @@ xpadneo_installer() {
     local state_file="$STATE_DIR/xpadneo"
     local pkg_xpadneo="xpadneo-dkms"
 
-    if [ -f "$state_file" ]; then
+    if [ -f "$state_file" ] || pacman -Q xpadneo-dkms &>/dev/null; then
         if confirm "Xpadneo detectado. Desinstalar?"; then
             echo "Desinstalando Xpadneo..."
             pacman -Qq xpadneo-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_xpadneo || true
@@ -5683,7 +5694,7 @@ xpadneo_installer() {
 
 yay_installer() {
     local state_file="$STATE_DIR/yay"
-    local pkg_yay="yay base-devel"
+    local pkg_yay="yay"
 
     if [ -f "$state_file" ] || pacman -Q yay &>/dev/null; then
         if confirm "Yay detectado. Desinstalar?"; then
@@ -5730,14 +5741,14 @@ zapzap_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.rtosta.zapzap 2>/dev/null; then
         if confirm "ZapZap detectado. Desinstalar?"; then
             echo "Desinstalando ZapZap..."
-            flatpak uninstall --user -y com.rtosta.zapzap 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_zapzap 2>/dev/null || true
             cleanup_files "$state_file"
             echo "ZapZap desinstalado."
         fi
     else
         if confirm "Instalar ZapZap?"; then
             echo "Instalando ZapZap..."
-            flatpak install --or-update --user --noninteractive flathub com.rtosta.zapzap
+            flatpak install --or-update --user --noninteractive flathub $pkg_zapzap
             touch "$state_file"
             echo "ZapZap instalado."
         fi
@@ -5746,19 +5757,19 @@ zapzap_installer() {
 
 zed_installer() {
     local state_file="$STATE_DIR/zed"
-    local pkg_zed="dev.zed.Zed"
+    local pkg_zed="zed-editor"
 
-    if [ -f "$state_file" ] || flatpak list --app | grep -q dev.zed.Zed 2>/dev/null; then
+    if [ -f "$state_file" ] || pacman -Q zed-editor &>/dev/null; then
         if confirm "Zed detectado. Desinstalar?"; then
             echo "Desinstalando Zed..."
-            flatpak uninstall --user -y dev.zed.Zed 2>/dev/null || true
+            pacman -Qq zed-editor &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zed || true
             cleanup_files "$state_file"
             echo "Zed desinstalado."
         fi
     else
         if confirm "Instalar Zed?"; then
             echo "Instalando Zed..."
-            flatpak install --user --or-update --noninteractive flathub dev.zed.Zed
+            sudo pacman -S --noconfirm $pkg_zed
             touch "$state_file"
             echo "Zed instalado."
         fi
@@ -5788,19 +5799,19 @@ zellij_installer() {
 
 zen_browser_installer() {
     local state_file="$STATE_DIR/zen_browser"
-    local pkg_zen="com.github.casualsnek.zenbrowser"
+    local pkg_zen="org.gnome.Browser"
 
-    if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.casualsnek.zenbrowser 2>/dev/null; then
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.gnome.Browser 2>/dev/null; then
         if confirm "Zen Browser detectado. Desinstalar?"; then
             echo "Desinstalando Zen Browser..."
-            flatpak uninstall --user -y com.github.casualsnek.zenbrowser 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_zen 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Zen Browser desinstalado."
         fi
     else
         if confirm "Instalar Zen Browser?"; then
             echo "Instalando Zen Browser..."
-            flatpak install --or-update --user --noninteractive flathub com.github.casualsnek.zenbrowser
+            flatpak install --or-update --user --noninteractive flathub $pkg_zen
             touch "$state_file"
             echo "Zen Browser instalado."
         fi
@@ -5832,24 +5843,35 @@ zerotier_installer() {
 }
 
 zsh_ohmyzsh_installer() {
-    local state_file="$STATE_DIR/zsh_ohmyzsh"
+    local zsh_state="$STATE_DIR/zsh"
+    local ohmyzsh_state="$STATE_DIR/ohmyzsh"
     local pkg_zsh="zsh"
-    local pkg_ohmyzsh="oh-my-zsh-git"
-    local zsh_dir="$HOME/.oh-my-zsh"
 
-    if [ -f "$state_file" ] || pacman -Q zsh &>/dev/null; then
+    if [ -f "$zsh_state" ] || pacman -Q zsh &>/dev/null; then
         if confirm "Zsh detectado. Desinstalar?"; then
-            pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zsh $pkg_ohmyzsh || true
-            [ -d "$zsh_dir" ] && rm -rf "$zsh_dir"
-            sudo chsh -s "$(which bash)" "$USER"
-            cleanup_files "$state_file"
+            pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zsh
+            if [ -f "$ohmyzsh_state" ]; then
+                if confirm "Oh My Zsh detectado. Desinstalar também?"; then
+                    [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
+                    cleanup_files "$ohmyzsh_state"
+                fi
+            fi
+            sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
+            cleanup_files "$zsh_state"
         fi
-    else
-        if confirm "Instalar Zsh + Oh My Zsh?"; then
-            sudo pacman -S --noconfirm $pkg_zsh
-            yay -S --noconfirm $pkg_ohmyzsh
-            sudo chsh -s "$(which zsh)" "$USER"
-            touch "$state_file"
+    elif confirm "Instalar Zsh?"; then
+        sudo pacman -S --noconfirm $pkg_zsh
+        sudo chsh -s "$(which zsh)" "$USER"
+        touch "$zsh_state"
+
+        if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
+            if confirm "Oh My Zsh detectado. Desinstalar?"; then
+                [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
+                cleanup_files "$ohmyzsh_state"
+            fi
+        elif confirm "Instalar Oh My Zsh?"; then
+            sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+            touch "$ohmyzsh_state"
         fi
     fi
 }
