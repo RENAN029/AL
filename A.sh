@@ -4687,6 +4687,7 @@ sdkman_installer() {
             rm -rf "$sdkman_dir"
             [ -f ~/.bashrc ] && sed -i '/SDKMAN/d' ~/.bashrc
             [ -f ~/.zshrc ] && sed -i '/SDKMAN/d' ~/.zshrc
+            [ -f ~/.config/fish/config.fish ] && sed -i '/SDKMAN/d' ~/.config/fish/config.fish
             if confirm "Desinstalar também unzip e 7zip?"; then
                 sudo pacman -Rns --noconfirm $packages
                 echo "Dependências removidas."
