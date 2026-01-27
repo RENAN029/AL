@@ -3935,24 +3935,22 @@ osu_installer() {
 
 oversteer_installer() {
     local state_file="$STATE_DIR/oversteer"
-
+    
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.berarma.Oversteer 2>/dev/null; then
         if confirm "Oversteer detectado. Desinstalar?"; then
-            echo "Desinstalando Oversteer..."
-            flatpak uninstall --user -y io.github.berarma.Oversteer 2>/dev/null || true
-            sudo rm -f /etc/udev/rules.d/99-fanatec-wheel-perms.rules /etc/udev/rules.d/99-logitech-wheel-perms.rules /etc/udev/rules.d/99-thrustmaster-wheel-perms.rules 2>/dev/null || true
+            flatpak uninstall --user -y io.github.berarma.Oversteer
+            sudo rm -f /etc/udev/rules.d/99-fanatec-wheel-perms.rules /etc/udev/rules.d/99-logitech-wheel-perms.rules /etc/udev/rules.d/99-thrustmaster-wheel-perms.rules
             cleanup_files "$state_file"
-            echo "Oversteer desinstalado."
         fi
     else
         if confirm "Instalar Oversteer?"; then
-            echo "Instalando Oversteer..."
             flatpak install --or-update --user --noninteractive flathub io.github.berarma.Oversteer
-            sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-fanatec-wheel-perms.rules -o /etc/udev/rules.d/99-fanatec-wheel-perms.rules
-            sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-logitech-wheel-perms.rules -o /etc/udev/rules.d/99-logitech-wheel-perms.rules
-            sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-thrustmaster-wheel-perms.rules -o /etc/udev/rules.d/99-thrustmaster-wheel-perms.rules
+            if confirm "Instalar configurações extras (regras udev para volantes)?"; then
+                sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-fanatec-wheel-perms.rules -o /etc/udev/rules.d/99-fanatec-wheel-perms.rules
+                sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-logitech-wheel-perms.rules -o /etc/udev/rules.d/99-logitech-wheel-perms.rules
+                sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-thrustmaster-wheel-perms.rules -o /etc/udev/rules.d/99-thrustmaster-wheel-perms.rules
+            fi
             touch "$state_file"
-            echo "Oversteer instalado."
         fi
     fi
 }
