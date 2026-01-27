@@ -4677,7 +4677,7 @@ s3drive_installer() {
 
 sdkman_installer() {
     local sdkman_dir="$HOME/.sdkman"
-    local packages="unzip p7zip"
+    local packages="unzip zip"
     
     if [ -d "$sdkman_dir" ]; then
         if confirm "Sdkman detectado. Desinstalar?"; then
@@ -4686,7 +4686,7 @@ sdkman_installer() {
             [ -f ~/.bashrc ] && sed -i '/SDKMAN/d' ~/.bashrc
             [ -f ~/.zshrc ] && sed -i '/SDKMAN/d' ~/.zshrc
             [ -f ~/.config/fish/config.fish ] && sed -i '/SDKMAN/d' ~/.config/fish/config.fish
-            if confirm "Desinstalar também unzip e 7zip?"; then
+            if confirm "Desinstalar também unzip e zip?"; then
                 sudo pacman -Rns --noconfirm $packages
                 echo "Dependências removidas."
             fi
