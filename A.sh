@@ -5765,6 +5765,9 @@ zsh_ohmyzsh_installer() {
                 cleanup_files "$ohmyzsh_state"
             fi
         elif confirm "Instalar Oh My Zsh?"; then
+            if [ -d "$HOME/.oh-my-zsh" ]; then
+                rm -rf "$HOME/.oh-my-zsh"
+            fi
             sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
             touch "$ohmyzsh_state"
         fi
