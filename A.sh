@@ -3793,21 +3793,16 @@ office_menu() {
 
 oh_my_bash_installer() {
     local state_file="$STATE_DIR/oh_my_bash"
-    local osh_dir="$HOME/.oh-my-bash"
-
-    if [ -f "$state_file" ] || [ -d "$osh_dir" ]; then
+    
+    if [ -f "$state_file" ] || [ -d "$HOME/.oh-my-bash" ]; then
         if confirm "Oh My Bash detectado. Desinstalar?"; then
-            echo "Desinstalando Oh My Bash..."
-            [ -d "$osh_dir" ] && yes | "$osh_dir"/tools/uninstall.sh 2>/dev/null || true
+            [ -d "$HOME/.oh-my-bash" ] && yes | "$HOME/.oh-my-bash"/tools/uninstall.sh
             cleanup_files "$state_file"
-            echo "Oh My Bash desinstalado."
         fi
     else
         if confirm "Instalar Oh My Bash?"; then
-            echo "Instalando Oh My Bash..."
             bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh)" --unattended
             touch "$state_file"
-            echo "Oh My Bash instalado."
         fi
     fi
 }
