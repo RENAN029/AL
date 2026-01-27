@@ -2464,13 +2464,13 @@ heroic_games_launcher_installer() {
 
 homebrew_installer() {
     local state_file="$STATE_DIR/homebrew"
-    local brew_path="/home/linuxbrew/.linuxbrew/bin/brew"
+    local brew_path="$HOME/.linuxbrew"
     
     if [ -f "$state_file" ] || command -v brew &>/dev/null; then
         if confirm "Brew detectado. Desinstalar?"; then
             if command -v brew &>/dev/null; then
                 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
-                sudo rm -rf /home/linuxbrew
+                rm -rf ~/.linuxbrew
             fi
             [ -f ~/.bashrc ] && sed -i '/linuxbrew/d' ~/.bashrc
             [ -f ~/.zshrc ] && sed -i '/linuxbrew/d' ~/.zshrc
@@ -2480,26 +2480,23 @@ homebrew_installer() {
         fi
     else
         if confirm "Instalar Brew?"; then
-            NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            mkdir -p ~/.linuxbrew
+            NONINTERACTIVE=1 CI=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             
-            local shell_config=""
             if [[ "$SHELL" == *"zsh"* ]]; then
-                shell_config="$HOME/.zshrc"
-                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$shell_config"
+                echo 'eval "$(~/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
             elif [[ "$SHELL" == *"bash"* ]]; then
-                shell_config="$HOME/.bashrc"
-                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$shell_config"
+                echo 'eval "$(~/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
             elif [[ "$SHELL" == *"fish"* ]]; then
-                fish -c 'echo "set -gx PATH /home/linuxbrew/.linuxbrew/bin \$PATH" >> ~/.config/fish/config.fish'
+                fish -c 'echo "set -gx PATH ~/.linuxbrew/bin \$PATH" >> ~/.config/fish/config.fish'
             fi
             
-            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            eval "$(~/.linuxbrew/bin/brew shellenv)"
             touch "$state_file"
             echo "Brew instalado."
         fi
     fi
 }
-
 
 httpie_installer() {
     local state_file="$STATE_DIR/httpie"
