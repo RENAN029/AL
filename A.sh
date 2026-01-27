@@ -22,33 +22,28 @@ cleanup_files() {
 
 acer_manager_installer() {
     local state_file="$STATE_DIR/acer_manager"
-    local pkg_acer="base-devel linux-headers"
-
+    local_pkg="base-devel linux-headers"
+    
     if [ -f "$state_file" ] || [ -d "/tmp/damx" ] || [ -f "/usr/local/bin/damx" ]; then
         if confirm "Acer Manager detectado. Desinstalar?"; then
-            echo "Desinstalando Acer Manager..."
-            [ -d "/tmp/damx" ] && cd /tmp/damx/ 2>/dev/null && echo -e "2\nq\nq\n" | sudo bash setup.sh 2>/dev/null || true
-            sudo rm -rf /tmp/damx /usr/local/bin/damx 2>/dev/null || true
+            [ -d "/tmp/damx" ] && cd /tmp/damx/ && echo -e "2\nq\nq\n" | sudo bash setup.sh
+            sudo rm -rf /tmp/damx /usr/local/bin/damx
             if confirm "Desinstalar também base-devel e linux-headers?"; then
-                sudo pacman -Rns --noconfirm $pkg_acer
-                echo "Dependências removidas."
+                sudo pacman -Rns --noconfirm $local_pkg
             fi
             cleanup_files "$state_file"
-            echo "Acer Manager desinstalado."
         fi
     else
-        echo "Instalando Acer Manager..."
-        local gh_user="PXDiv"
-        local gh_repo="Div-Acer-Manager-Max"
-        local vers=$(curl -s https://api.github.com/repos/$gh_user/$gh_repo/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
-        curl -L "https://github.com/$gh_user/$gh_repo/archive/refs/tags/$vers.tar.gz" -o /tmp/damx.tar.gz
-        mkdir -p /tmp/damx
-        tar -xzf /tmp/damx.tar.gz -C /tmp/damx --strip-components=1
-        sudo pacman -S --noconfirm $pkg_acer
-        cd /tmp/damx/
-        echo -e "1\nq\nq\n" | sudo bash setup.sh
-        touch "$state_file"
-        echo "Acer Manager instalado. Reinicie para aplicar."
+        if confirm "Instalar Acer Manager?"; then
+            sudo pacman -S --noconfirm $local_pkg
+            local vers=$(curl -s https://api.github.com/repos/PXDiv/Div-Acer-Manager-Max/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+            curl -L "https://github.com/PXDiv/Div-Acer-Manager-Max/archive/refs/tags/$vers.tar.gz" -o /tmp/damx.tar.gz
+            mkdir -p /tmp/damx
+            tar -xzf /tmp/damx.tar.gz -C /tmp/damx --strip-components=1
+            cd /tmp/damx/
+            echo -e "1\nq\nq\n" | sudo bash setup.sh
+            touch "$state_file"
+        fi
     fi
 }
 
@@ -2467,28 +2462,21 @@ homebrew_installer() {
     
     if [ -f "$state_file" ] || command -v brew &>/dev/null; then
         if confirm "Brew detectado. Desinstalar?"; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
+            NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
+            sed -i '/brew shellenv/d' ~/.bashrc
+            [ -f ~/.zshrc ] && sed -i '/brew shellenv/d' ~/.zshrc
+            [ -f ~/.config/fish/config.fish ] && sed -i '/fish_add_path.*linuxbrew/d' ~/.config/fish/config.fish
             cleanup_files "$state_file"
-            
-            for shell_file in ~/.bashrc ~/.zshrc ~/.config/fish/config.fish; do
-                [ -f "$shell_file" ] && sed -i '/brew shellenv/d' "$shell_file"
-            done
+            rm -rf /home/$USER/.linuxbrew /home/$USER/.local/share/Homebrew /home/$USER/.cache/Homebrew
         fi
     else
         if confirm "Instalar Brew?"; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            
-            local shell_rc
-            case "$SHELL" in
-                */bash) shell_rc=~/.bashrc ;;
-                */zsh) shell_rc=~/.zshrc ;;
-                */fish) shell_rc=~/.config/fish/config.fish ;;
-                *) shell_rc=~/.bashrc ;;
-            esac
-            
-            [ -f "$shell_rc" ] && echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$shell_rc"
-            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            
+            NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            [ -f /home/linuxbrew/.linuxbrew/bin/brew ] && BREW_PATH="/home/linuxbrew/.linuxbrew/bin/brew" || BREW_PATH="$HOME/.linuxbrew/bin/brew"
+            echo "eval \"\$($BREW_PATH shellenv)\"" >> ~/.bashrc
+            [ -f ~/.zshrc ] && echo "eval \"\$($BREW_PATH shellenv)\"" >> ~/.zshrc
+            [ -f ~/.config/fish/config.fish ] && echo "fish_add_path $(dirname $BREW_PATH)" >> ~/.config/fish/config.fish
+            eval "$($BREW_PATH shellenv)"
             touch "$state_file"
         fi
     fi
@@ -4677,22 +4665,25 @@ s3drive_installer() {
 }
 
 sdkman_installer() {
-    local sdkman_dir="$HOME/.sdkman"
+    local state_file="$STATE_DIR/sdkman"
+    local_pkg="unzip zip"
     
-    if [ -d "$sdkman_dir" ]; then
+    if [ -f "$state_file" ] || [ -d "$HOME/.sdkman" ]; then
         if confirm "Sdkman detectado. Desinstalar?"; then
-            rm -rf "$sdkman_dir"
+            rm -rf "$HOME/.sdkman"
             sed -i '/SDKMAN/d' ~/.bashrc
             [ -f ~/.zshrc ] && sed -i '/SDKMAN/d' ~/.zshrc
             [ -f ~/.config/fish/config.fish ] && sed -i '/SDKMAN/d' ~/.config/fish/config.fish
             if confirm "Desinstalar também unzip e zip?"; then
-                sudo pacman -Rns --noconfirm unzip zip
+                sudo pacman -Rns --noconfirm $local_pkg
             fi
+            cleanup_files "$state_file"
         fi
     else
         if confirm "Instalar Sdkman?"; then
-            sudo pacman -S --noconfirm unzip zip
+            sudo pacman -S --noconfirm $local_pkg
             curl -s "https://get.sdkman.io" | bash
+            touch "$state_file"
         fi
     fi
 }
