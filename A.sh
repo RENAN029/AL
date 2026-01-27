@@ -2464,31 +2464,32 @@ heroic_games_launcher_installer() {
 
 homebrew_installer() {
     local state_file="$STATE_DIR/homebrew"
-    local brew_path="/home/linuxbrew/.linuxbrew/bin"
-
+    
     if [ -f "$state_file" ] || command -v brew &>/dev/null; then
         if confirm "Homebrew detectado. Desinstalar?"; then
             echo "Desinstalando Homebrew..."
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)" </dev/null
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)" < /dev/null
             cleanup_files "$state_file"
-            [ -d "$brew_path" ] && rm -rf "$brew_path"
             echo "Homebrew desinstalado."
         fi
     else
         if confirm "Instalar Homebrew?"; then
             echo "Instalando Homebrew..."
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" </dev/null
-            echo "Homebrew instalado."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
             
-            if [[ "$SHELL" == *"bash"* ]] && ! grep -q "$brew_path" ~/.bashrc; then
-                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
-            elif [[ "$SHELL" == *"zsh"* ]] && ! grep -q "$brew_path" ~/.zshrc; then
-                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
-            elif [[ "$SHELL" == *"fish"* ]] && ! fish -c "contains $brew_path \$PATH" &>/dev/null; then
-                fish -c "set -U fish_user_paths $brew_path \$fish_user_paths"
-            fi
+            for shell_file in ~/.bashrc ~/.zshrc ~/.config/fish/config.fish; do
+                if [[ -f "$shell_file" ]]; then
+                    if [[ "$shell_file" == *fish* ]]; then
+                        echo 'fish_add_path /home/linuxbrew/.linuxbrew/bin' >> "$shell_file"
+                    else
+                        echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"' >> "$shell_file"
+                    fi
+                fi
+            done
             
+            export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
             touch "$state_file"
+            echo "Homebrew instalado."
         fi
     fi
 }
