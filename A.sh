@@ -2462,31 +2462,30 @@ heroic_games_launcher_installer() {
     fi
 }
 
-homebrew_installer() {
-    local state_file="$STATE_DIR/homebrew"
-    local brew_bin="$HOME/.linuxbrew/bin/brew"
+sdkman_installer() {
+    local sdkman_dir="$HOME/.sdkman"
+    local packages="unzip zip"
     
-    if [ -f "$state_file" ] || command -v brew &>/dev/null; then
-        if confirm "Brew detectado. Desinstalar?"; then
-            if command -v brew &>/dev/null; then
-                NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
-                sudo rm -rf /home/linuxbrew
-                rm -rf ~/.linuxbrew
+    if [ -d "$sdkman_dir" ]; then
+        if confirm "Sdkman detectado. Desinstalar?"; then
+            echo "Desinstalando Sdkman..."
+            rm -rf "$sdkman_dir"
+            [ -f ~/.bashrc ] && sed -i '/SDKMAN/d' ~/.bashrc
+            [ -f ~/.zshrc ] && sed -i '/SDKMAN/d' ~/.zshrc
+            [ -f ~/.config/fish/config.fish ] && sed -i '/SDKMAN/d' ~/.config/fish/config.fish
+            if confirm "Desinstalar também unzip e zip?"; then
+                sudo pacman -Rns --noconfirm $packages
+                echo "Dependências removidas."
             fi
-            cleanup_files "$state_file"
-            echo "Brew desinstalado."
+            echo "Sdkman desinstalado."
         fi
     else
-        if confirm "Instalar Brew?"; then
-            NONINTERACTIVE=1 CI=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            
-            [ -f ~/.zshrc ] && echo 'eval "$('"$brew_bin"' shellenv)"' >> ~/.zshrc
-            [ -f ~/.bashrc ] && echo 'eval "$('"$brew_bin"' shellenv)"' >> ~/.bashrc
-            [ -f ~/.config/fish/config.fish ] && echo 'set -gx PATH '"$brew_bin"' $PATH' >> ~/.config/fish/config.fish
-            
-            eval "$($brew_bin shellenv)"
-            touch "$state_file"
-            echo "Brew instalado."
+        if confirm "Instalar Sdkman?"; then
+            echo "Instalando dependências..."
+            sudo pacman -S --noconfirm $packages
+            echo "Instalando Sdkman..."
+            curl -s "https://get.sdkman.io" | bash
+            echo "Sdkman instalado."
         fi
     fi
 }
