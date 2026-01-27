@@ -899,7 +899,6 @@ davinci_resolve_free_installer() {
                 -H 'Accept-Encoding: gzip, deflate, br' \
                 -H 'Accept-Language: en-US,en;q=0.9' \
                 -H 'Authority: www.blackmagicdesign.com' \
-                -H 'Cookie: _ga=GA1.2.1849503966.1518103294; _gid=GA1.2.953840595.1518103294' \
                 --data-ascii "$reqjson" \
                 --compressed \
                 "https://www.blackmagicdesign.com/api/register/us/download/${downloadId}")
@@ -949,7 +948,6 @@ davinci_resolve_studio_installer() {
                 -H 'Accept-Encoding: gzip, deflate, br' \
                 -H 'Accept-Language: en-US,en;q=0.9' \
                 -H 'Authority: www.blackmagicdesign.com' \
-                -H 'Cookie: _ga=GA1.2.1849503966.1518103294; _gid=GA1.2.953840595.1518103294' \
                 --data-ascii "$reqjson" \
                 --compressed \
                 "https://www.blackmagicdesign.com/api/register/us/download/${downloadId}")
@@ -1126,7 +1124,7 @@ devs_menu() {
 
         case $opcao in
             1) clear; docker_installer ;;
-            2) clear; fish_menu ;;
+            2) clear; fish_fisher_installer ;;
             3) clear; godot_installer ;;
             4) clear; httpie_installer ;;
             5) clear; insomnia_installer ;;
@@ -1763,71 +1761,44 @@ figma_installer() {
     fi
 }
 
-fish_installer() {
-    local state_file="$STATE_DIR/fish"
+fish_fisher_installer() {
+    local fish_state="$STATE_DIR/fish"
+    local fisher_state="$STATE_DIR/fisher"
     local pkg_fish="fish"
-
-    if [ -f "$state_file" ] || pacman -Q fish &>/dev/null; then
-        if confirm "Fish básico detectado. Desinstalar?"; then
-            echo "Desinstalando Fish básico..."
-            pacman -Qq fish &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fish || true
-            sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
-            cleanup_files "$state_file" "$HOME/.config/fish"
-            echo "Fish básico desinstalado."
-        fi
-    else
-        if confirm "Instalar Fish básico?"; then
-            echo "Instalando Fish básico..."
-            sudo pacman -S --noconfirm $pkg_fish
-            sudo chsh -s "$(which fish)" "$USER"
-            mkdir -p ~/.config/fish
-            echo "set fish_greeting" > ~/.config/fish/config.fish
-            touch "$state_file"
-            echo "Fish básico instalado."
-        fi
-    fi
-}
-
-fish_menu() {
-    while true; do
-        clear
-        echo "=== Fish Shell ==="
-        echo "1) Fish"
-        echo "2) Fisher"
-        echo "3) Voltar"
-        echo
-        read -p "Selecione uma opção: " opcao
-
-        case $opcao in
-            1) clear; fish_installer ;;
-            2) clear; fisher_installer ;;
-            3) return ;;
-            *) ;;
-        esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 2 ] && read -p "Pressione Enter para continuar..."
-    done
-}
-
-fisher_installer() {
-    local state_file="$STATE_DIR/fisher"
     local pkg_fisher="fisher"
 
-    if [ -f "$state_file" ] || pacman -Q fisher &>/dev/null; then
-        if confirm "Fisher detectado. Desinstalar?"; then
-            echo "Desinstalando Fisher..."
-            pacman -Qq fisher &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fisher || true
-            cleanup_files "$state_file"
-            echo "Fisher desinstalado."
+    if [ -f "$fish_state" ] || pacman -Q fish &>/dev/null; then
+        if confirm "Fish Shell detectado. Desinstalar?"; then
+            pacman -Qq fish &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fish || true
+            if [ -f "$fisher_state" ] || pacman -Q fisher &>/dev/null; then
+                if confirm "Fisher detectado. Desinstalar também?"; then
+                    pacman -Qq fisher &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fisher || true
+                    cleanup_files "$fisher_state"
+                fi
+            fi
+            sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
+            cleanup_files "$fish_state" "$HOME/.config/fish"
+            echo "Fish Shell desinstalado."
         fi
-    else
-        if confirm "Instalar Fisher?"; then
-            echo "Instalando Fisher..."
+    elif confirm "Instalar Fish Shell?"; then
+        echo "Instalando Fish Shell..."
+        sudo pacman -S --noconfirm $pkg_fish
+        sudo chsh -s "$(which fish)" "$USER"
+        mkdir -p ~/.config/fish
+        echo "set fish_greeting" > ~/.config/fish/config.fish
+        touch "$fish_state"
+
+        if [ -f "$fisher_state" ] || pacman -Q fisher &>/dev/null; then
+            if confirm "Fisher detectado. Desinstalar?"; then
+                pacman -Qq fisher &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fisher || true
+                cleanup_files "$fisher_state"
+            fi
+        elif confirm "Instalar Fisher (plugin manager)?"; then
             sudo pacman -S --noconfirm $pkg_fisher
             fish -c "fisher install jorgebucaran/fisher" 2>/dev/null || true
-            touch "$state_file"
-            echo "Fisher instalado."
+            touch "$fisher_state"
         fi
+        echo "Fish Shell instalado."
     fi
 }
 
@@ -5671,27 +5642,6 @@ xdg_base_installer() {
     fi
 }
 
-xpadneo_installer() {
-    local state_file="$STATE_DIR/xpadneo"
-    local pkg_xpadneo="xpadneo-dkms"
-
-    if [ -f "$state_file" ] || pacman -Q xpadneo-dkms &>/dev/null; then
-        if confirm "Xpadneo detectado. Desinstalar?"; then
-            echo "Desinstalando Xpadneo..."
-            pacman -Qq xpadneo-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_xpadneo || true
-            cleanup_files "$state_file"
-            echo "Xpadneo desinstalado."
-        fi
-    else
-        if confirm "Instalar Xpadneo?"; then
-            echo "Instalando Xpadneo..."
-            sudo pacman -S --noconfirm $pkg_xpadneo
-            touch "$state_file"
-            echo "Xpadneo instalado."
-        fi
-    fi
-}
-
 yay_installer() {
     local state_file="$STATE_DIR/yay"
     local pkg_yay="yay"
@@ -5736,9 +5686,9 @@ yt_dlp_installer() {
 
 zapzap_installer() {
     local state_file="$STATE_DIR/zapzap"
-    local pkg_zapzap="com.rtosta.zapzap"
+    local pkg_zapzap="io.github.rtm516.zapzap"
 
-    if [ -f "$state_file" ] || flatpak list --app | grep -q com.rtosta.zapzap 2>/dev/null; then
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.rtm516.zapzap 2>/dev/null; then
         if confirm "ZapZap detectado. Desinstalar?"; then
             echo "Desinstalando ZapZap..."
             flatpak uninstall --user -y $pkg_zapzap 2>/dev/null || true
@@ -5799,9 +5749,9 @@ zellij_installer() {
 
 zen_browser_installer() {
     local state_file="$STATE_DIR/zen_browser"
-    local pkg_zen="org.gnome.Browser"
+    local pkg_zen="org.gnome.Zen"
 
-    if [ -f "$state_file" ] || flatpak list --app | grep -q org.gnome.Browser 2>/dev/null; then
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.gnome.Zen 2>/dev/null; then
         if confirm "Zen Browser detectado. Desinstalar?"; then
             echo "Desinstalando Zen Browser..."
             flatpak uninstall --user -y $pkg_zen 2>/dev/null || true
@@ -5846,32 +5796,76 @@ zsh_ohmyzsh_installer() {
     local zsh_state="$STATE_DIR/zsh"
     local ohmyzsh_state="$STATE_DIR/ohmyzsh"
     local pkg_zsh="zsh"
+    local ohmyzsh_dir="$HOME/.oh-my-zsh"
 
     if [ -f "$zsh_state" ] || pacman -Q zsh &>/dev/null; then
-        if confirm "Zsh detectado. Desinstalar?"; then
+        if confirm "Zsh Shell detectado. Desinstalar?"; then
             pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zsh
-            if [ -f "$ohmyzsh_state" ]; then
+            if [ -f "$ohmyzsh_state" ] || [ -d "$ohmyzsh_dir" ]; then
                 if confirm "Oh My Zsh detectado. Desinstalar também?"; then
-                    [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
+                    rm -rf "$ohmyzsh_dir"
                     cleanup_files "$ohmyzsh_state"
                 fi
             fi
             sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
             cleanup_files "$zsh_state"
         fi
-    elif confirm "Instalar Zsh?"; then
+    elif confirm "Instalar Zsh Shell?"; then
         sudo pacman -S --noconfirm $pkg_zsh
         sudo chsh -s "$(which zsh)" "$USER"
         touch "$zsh_state"
 
-        if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
+        if [ -f "$ohmyzsh_state" ] || [ -d "$ohmyzsh_dir" ]; then
             if confirm "Oh My Zsh detectado. Desinstalar?"; then
-                [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
+                rm -rf "$ohmyzsh_dir"
                 cleanup_files "$ohmyzsh_state"
             fi
         elif confirm "Instalar Oh My Zsh?"; then
             sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
             touch "$ohmyzsh_state"
+        fi
+        echo "Zsh Shell instalado."
+    fi
+}
+
+xpadneo_installer() {
+    local state_file="$STATE_DIR/xpadneo"
+    local pkg_xpadneo="xpadneo-dkms"
+
+    if [ -f "$state_file" ] || pacman -Q xpadneo-dkms &>/dev/null; then
+        if confirm "Xpadneo detectado. Desinstalar?"; then
+            echo "Desinstalando Xpadneo..."
+            pacman -Qq xpadneo-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_xpadneo || true
+            cleanup_files "$state_file"
+            echo "Xpadneo desinstalado."
+        fi
+    else
+        if confirm "Instalar Xpadneo (driver Xbox One/Series)?"; then
+            echo "Instalando Xpadneo..."
+            sudo pacman -S --noconfirm $pkg_xpadneo
+            touch "$state_file"
+            echo "Xpadneo instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+distrobox_installer() {
+    local state_file="$STATE_DIR/distrobox"
+    local pkg_distrobox="distrobox"
+
+    if [ -f "$state_file" ] || pacman -Q distrobox &>/dev/null; then
+        if confirm "Distrobox detectado. Desinstalar?"; then
+            echo "Desinstalando Distrobox..."
+            pacman -Qq distrobox &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_distrobox || true
+            cleanup_files "$state_file"
+            echo "Distrobox desinstalado."
+        fi
+    else
+        if confirm "Instalar Distrobox?"; then
+            echo "Instalando Distrobox..."
+            sudo pacman -S --noconfirm $pkg_distrobox
+            touch "$state_file"
+            echo "Distrobox instalado."
         fi
     fi
 }
@@ -5879,7 +5873,7 @@ zsh_ohmyzsh_installer() {
 main_menu() {
     while true; do
         clear
-        echo "=== Menu Principal ==="
+        echo "=== Script de Instalação Arch Linux ==="
         echo "1) Admin"
         echo "2) Devs"
         echo "3) Drivers"
@@ -5899,20 +5893,20 @@ main_menu() {
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
-            1) admin_menu ;;
-            2) devs_menu ;;
-            3) drivers_menu ;;
-            4) educacao_menu ;;
-            5) extras_menu ;;
-            6) ides_menu ;;
-            7) jogos_menu ;;
-            8) office_menu ;;
-            9) perifericos_menu ;;
-            10) pessoal_menu ;;
-            11) privacidade_menu ;;
-            12) repositorios_menu ;;
-            13) social_menu ;;
-            14) utilidades_menu ;;
+            1) clear; admin_menu ;;
+            2) clear; devs_menu ;;
+            3) clear; drivers_menu ;;
+            4) clear; educacao_menu ;;
+            5) clear; extras_menu ;;
+            6) clear; ides_menu ;;
+            7) clear; jogos_menu ;;
+            8) clear; office_menu ;;
+            9) clear; perifericos_menu ;;
+            10) clear; pessoal_menu ;;
+            11) clear; privacidade_menu ;;
+            12) clear; repositorios_menu ;;
+            13) clear; social_menu ;;
+            14) clear; utilidades_menu ;;
             15) exit 0 ;;
             *) ;;
         esac
