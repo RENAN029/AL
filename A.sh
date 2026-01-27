@@ -2464,6 +2464,7 @@ heroic_games_launcher_installer() {
 
 homebrew_installer() {
     local state_file="$STATE_DIR/homebrew"
+    local brew_path="/home/linuxbrew/.linuxbrew/bin/brew"
     
     if [ -f "$state_file" ] || command -v brew &>/dev/null; then
         if confirm "Brew detectado. Desinstalar?"; then
@@ -2471,33 +2472,28 @@ homebrew_installer() {
                 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
                 sudo rm -rf /home/linuxbrew
             fi
+            [ -f ~/.bashrc ] && sed -i '/linuxbrew/d' ~/.bashrc
+            [ -f ~/.zshrc ] && sed -i '/linuxbrew/d' ~/.zshrc
+            [ -f ~/.config/fish/config.fish ] && sed -i '/linuxbrew/d' ~/.config/fish/config.fish
             cleanup_files "$state_file"
-            
-            if [[ "$SHELL" == *"zsh"* ]]; then
-                [ -f ~/.zshrc ] && sed -i '/brew shellenv/d' ~/.zshrc
-            elif [[ "$SHELL" == *"bash"* ]]; then
-                [ -f ~/.bashrc ] && sed -i '/brew shellenv/d' ~/.bashrc
-            elif [[ "$SHELL" == *"fish"* ]]; then
-                [ -f ~/.config/fish/config.fish ] && sed -i '/linuxbrew/d' ~/.config/fish/config.fish
-            fi
-            
             echo "Brew desinstalado."
         fi
     else
         if confirm "Instalar Brew?"; then
             NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             
+            local shell_config=""
             if [[ "$SHELL" == *"zsh"* ]]; then
-                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
+                shell_config="$HOME/.zshrc"
+                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$shell_config"
             elif [[ "$SHELL" == *"bash"* ]]; then
-                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
+                shell_config="$HOME/.bashrc"
+                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$shell_config"
             elif [[ "$SHELL" == *"fish"* ]]; then
-                echo 'set -gx PATH /home/linuxbrew/.linuxbrew/bin $PATH' >> ~/.config/fish/config.fish
+                fish -c 'echo "set -gx PATH /home/linuxbrew/.linuxbrew/bin \$PATH" >> ~/.config/fish/config.fish'
             fi
             
-            if [ -d "/home/linuxbrew/.linuxbrew/bin" ]; then
-                eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            fi
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
             touch "$state_file"
             echo "Brew instalado."
         fi
