@@ -1674,61 +1674,71 @@ ferramentas_menu() {
         clear
         echo "=== Ferramentas ==="
         echo "1) Modern Unix Tools"
-        echo "2) aria2"
-        echo "3) btop"
-        echo "4) curl"
-        echo "5) distrobox"
-        echo "6) fastfetch"
-        echo "7) Opencode"
-        echo "8) github-cli"
-        echo "9) git"
-        echo "10) lazygit"
-        echo "11) lazydocker"
-        echo "12) libqalculate"
-        echo "13) smartmontools"
-        echo "14) superfile"
-        echo "15) XDG Base"
-        echo "16) yt-dlp"
-        echo "17) fzf"
-        echo "18) gdu"
-        echo "19) croc"
-        echo "20) Podman"
-        echo "21) Ollama"
-        echo "22) Voxtype"
-        echo "23) Zellij"
-        echo "24) Voltar"
+        echo "2) Pacotes Base"
+        echo "3) Pacotes de Mídia"
+        echo "4) AMD ucode"
+        echo "5) Intel ucode"
+        echo "6) aria2"
+        echo "7) btop"
+        echo "8) curl"
+        echo "9) distrobox"
+        echo "10) fastfetch"
+        echo "11) Opencode"
+        echo "12) github-cli"
+        echo "13) git"
+        echo "14) lazygit"
+        echo "15) lazydocker"
+        echo "16) libqalculate"
+        echo "17) smartmontools"
+        echo "18) superfile"
+        echo "19) XDG Base"
+        echo "20) yt-dlp"
+        echo "21) fzf"
+        echo "22) gdu"
+        echo "23) croc"
+        echo "24) Podman"
+        echo "25) Ollama"
+        echo "26) Voxtype"
+        echo "27) Zellij"
+        echo "28) Lucidglyph"
+        echo "29) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
             1) clear; modern_unix_installer ;;
-            2) clear; aria2_installer ;;
-            3) clear; btop_installer ;;
-            4) clear; curl_installer ;;
-            5) clear; distrobox_installer ;;
-            6) clear; fastfetch_installer ;;
-            7) clear; opencode_installer ;;
-            8) clear; github_cli_installer ;;
-            9) clear; git_installer ;;
-            10) clear; lazygit_installer ;;
-            11) clear; lazydocker_installer ;;
-            12) clear; libqalculate_installer ;;
-            13) clear; smartmontools_installer ;;
-            14) clear; superfile_installer ;;
-            15) clear; xdg_base_installer ;;
-            16) clear; yt_dlp_installer ;;
-            17) clear; fzf_installer ;;
-            18) clear; gdu_installer ;;
-            19) clear; croc_installer ;;
-            20) clear; podman_installer ;;
-            21) clear; ollama_menu ;;
-            22) clear; voxtype_installer ;;
-            23) clear; zellij_installer ;;
-            24) return ;;
+            2) clear; pessoal_base_installer ;;
+            3) clear; pessoal_media_installer ;;
+            4) clear; intel_ucode_installer ;;
+            5) clear; amd_ucode_installer ;;
+            6) clear; aria2_installer ;;
+            7) clear; btop_installer ;;
+            8) clear; curl_installer ;;
+            9) clear; distrobox_installer ;;
+            10) clear; fastfetch_installer ;;
+            11) clear; opencode_installer ;;
+            12) clear; github_cli_installer ;;
+            13) clear; git_installer ;;
+            14) clear; lazygit_installer ;;
+            15) clear; lazydocker_installer ;;
+            16) clear; libqalculate_installer ;;
+            17) clear; smartmontools_installer ;;
+            18) clear; superfile_installer ;;
+            19) clear; xdg_base_installer ;;
+            20) clear; yt_dlp_installer ;;
+            21) clear; fzf_installer ;;
+            22) clear; gdu_installer ;;
+            23) clear; croc_installer ;;
+            24) clear; podman_installer ;;
+            25) clear; ollama_menu ;;
+            26) clear; voxtype_installer ;;
+            27) clear; zellij_installer ;;
+            28) clear; lucidglyph_installer ;;
+            29) return ;;
             *) ;;
         esac
 
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 23 ] && read -p "Pressione Enter para continuar..."
+        [ "$opcao" -ge 1 ] && [ "$opcao" -le 28 ] && read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -4037,42 +4047,32 @@ pessoal_menu() {
     while true; do
         clear
         echo "=== Pessoal ==="
-        echo "1) Pacotes Base"
-        echo "2) Pacotes de Mídia"
-        echo "2) AMD ucode"
-        echo "4) Intel ucode"
-        echo "3) Ambientes Desktop"
-        echo "4) Ferramentas"
-        echo "5) Fjord Launcher"
-        echo "6) Gnome Boxes"
-        echo "7) Hydra Launcher"
-        echo "8) CachyOS Kernel"
-        echo "9) Stirling PDF"
-        echo "10) Waydroid"
-        echo "11) Lucidglyph"
-        echo "12) Voltar"
+        echo "1) Ambientes Desktop"
+        echo "2) Ferramentas"
+        echo "3) Fjord Launcher"
+        echo "4) Gnome Boxes"
+        echo "5) Hydra Launcher"
+        echo "6) CachyOS Kernel"
+        echo "7) Stirling PDF"
+        echo "8) Waydroid"
+        echo "9) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
-            1) clear; pessoal_base_installer ;;
-            2) clear; pessoal_media_installer ;;
-            3) clear; intel_ucode_installer ;;
-            4) clear; amd_ucode_installer ;;
-            5) clear; de_installer ;;
-            6) clear; ferramentas_menu ;;
-            7) clear; unmojang_installer ;;
-            6) clear; gnome_boxes_installer ;;
-            8) clear; hydra_launcher_installer ;;
-            9) clear; cachyos_installer ;;
-            10) clear; stirlingpdf_installer ;;
-            10) clear; waydroid_installer ;;
-            11) clear; lucidglyph_installer ;;
-            12) return ;;
+            1) clear; de_installer ;;
+            2) clear; ferramentas_menu ;;
+            3) clear; unmojang_installer ;;
+            4) clear; gnome_boxes_installer ;;
+            5) clear; hydra_launcher_installer ;;
+            6) clear; cachyos_installer ;;
+            7) clear; stirlingpdf_installer ;;
+            8) clear; waydroid_installer ;;
+            9) return ;;
             *) ;;
         esac
 
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 11 ] && read -p "Pressione Enter para continuar..."
+        [ "$opcao" -ge 1 ] && [ "$opcao" -le 8 ] && read -p "Pressione Enter para continuar..."
     done
 }
 
