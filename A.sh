@@ -1611,7 +1611,7 @@ expressvpn_installer() {
         if confirm "Instalar Expressvpn?"; then
             echo "Instalando Expressvpn..."
             sudo pacman -S --noconfirm $pkg_expressvpn
-            sudo systemctl enable --now expressvpn
+            sudo systemctl enable --now expressvpn-service
             touch "$state_file"
             echo "Expressvpn instalado."
         fi
