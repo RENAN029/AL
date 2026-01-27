@@ -5762,37 +5762,28 @@ zerotier_installer() {
 zsh_ohmyzsh_installer() {
     local zsh_state="$STATE_DIR/zsh"
     local ohmyzsh_state="$STATE_DIR/oh_my_zsh"
-    local pkg_zsh="zsh"
-    local ohmyzsh_dir="$HOME/.oh-my-zsh"
-
+    local_pkg="zsh curl git"
+    
     if [ -f "$zsh_state" ] || pacman -Q zsh &>/dev/null; then
         if confirm "Zsh detectado. Desinstalar?"; then
-            echo "Desinstalando Zsh..."
-            pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zsh || true
-            sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
+            pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $local_pkg
+            sudo chsh -s "$(which bash)" "$USER"
             cleanup_files "$zsh_state" "$ohmyzsh_state"
-            echo "Zsh desinstalado."
         fi
     elif confirm "Instalar Zsh?"; then
-        echo "Instalando Zsh..."
-        sudo pacman -S --noconfirm $pkg_zsh
+        sudo pacman -S --noconfirm $local_pkg
         sudo chsh -s "$(which zsh)" "$USER"
         touch "$zsh_state"
-        echo "Zsh instalado."
-    fi
-
-    if [ -f "$ohmyzsh_state" ] || [ -d "$ohmyzsh_dir" ]; then
-        if confirm "Oh My Zsh detectado. Desinstalar?"; then
-            echo "Desinstalando Oh My Zsh..."
-            [ -d "$ohmyzsh_dir" ] && yes | "$ohmyzsh_dir"/tools/uninstall.sh 2>/dev/null || true
-            cleanup_files "$ohmyzsh_state"
-            echo "Oh My Zsh desinstalado."
+        
+        if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
+            if confirm "Oh My Zsh detectado. Desinstalar?"; then
+                [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
+                cleanup_files "$ohmyzsh_state"
+            fi
+        elif confirm "Instalar Oh My Zsh?"; then
+            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+            touch "$ohmyzsh_state"
         fi
-    elif confirm "Instalar Oh My Zsh?"; then
-        echo "Instalando Oh My Zsh..."
-        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-        touch "$ohmyzsh_state"
-        echo "Oh My Zsh instalado."
     fi
 }
 
