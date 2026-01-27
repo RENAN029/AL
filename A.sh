@@ -2467,21 +2467,21 @@ homebrew_installer() {
     
     if [ -f "$state_file" ] || command -v brew &>/dev/null; then
         if confirm "Brew detectado. Desinstalar?"; then
-            command -v brew &>/dev/null && /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)" || true
+            if command -v brew &>/dev/null; then
+                NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
+                sudo rm -rf /home/linuxbrew
+            fi
             cleanup_files "$state_file"
             echo "Brew desinstalado."
         fi
     else
         if confirm "Instalar Brew?"; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             
-            local shell_config=""
             if [[ "$SHELL" == *"zsh"* ]]; then
-                shell_config="$HOME/.zshrc"
-                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$shell_config"
+                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
             elif [[ "$SHELL" == *"bash"* ]]; then
-                shell_config="$HOME/.bashrc"
-                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$shell_config"
+                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
             elif [[ "$SHELL" == *"fish"* ]]; then
                 fish -c 'echo "set -gx PATH /home/linuxbrew/.linuxbrew/bin $PATH" >> ~/.config/fish/config.fish'
             fi
