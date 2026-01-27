@@ -2255,38 +2255,30 @@ gimp_photogimp_installer() {
     local photogimp_state="$STATE_DIR/photogimp"
     local gimp_config="$HOME/.config/GIMP"
     local gimp_share="$HOME/.local/share/GIMP"
-
+    
     if [ -f "$gimp_state" ] || flatpak list --app | grep -q org.gimp.GIMP 2>/dev/null; then
         if confirm "GIMP detectado. Desinstalar?"; then
-            echo "Desinstalando GIMP..."
-            flatpak uninstall --user -y org.gimp.GIMP 2>/dev/null || true
-            rm -rf "$gimp_config" "$gimp_share" 2>/dev/null || true
-            cleanup_files "$gimp_state"
-            echo "GIMP desinstalado."
+            flatpak uninstall --user -y org.gimp.GIMP
+            rm -rf "$gimp_config" "$gimp_share"
+            cleanup_files "$gimp_state" "$photogimp_state"
         fi
     elif confirm "Instalar GIMP?"; then
-        echo "Instalando GIMP..."
         flatpak install --or-update --user --noninteractive flathub org.gimp.GIMP
         touch "$gimp_state"
-        echo "GIMP instalado."
-    fi
-
-    if [ -f "$photogimp_state" ] || [ -d "$gimp_config" ]; then
-        if confirm "PhotoGIMP detectado. Desinstalar?"; then
-            echo "Desinstalando PhotoGIMP..."
-            rm -rf "$gimp_config" "$gimp_share" 2>/dev/null || true
-            cleanup_files "$photogimp_state"
-            echo "PhotoGIMP desinstalado."
+        
+        if [ -f "$photogimp_state" ] || [ -d "$gimp_config" ]; then
+            if confirm "PhotoGIMP detectado. Desinstalar?"; then
+                rm -rf "$gimp_config" "$gimp_share"
+                cleanup_files "$photogimp_state"
+            fi
+        elif confirm "Instalar PhotoGIMP (temas e configurações extras)?"; then
+            rm -rf "$gimp_config" "$gimp_share"
+            git clone --depth=1 https://github.com/Diolinux/PhotoGIMP.git /tmp/photogimp
+            cp -rvf /tmp/photogimp/.config/* ~/.config/
+            cp -rvf /tmp/photogimp/.local/* ~/.local/
+            rm -rf /tmp/photogimp
+            touch "$photogimp_state"
         fi
-    elif confirm "Instalar PhotoGIMP (temas e configurações extras)?"; then
-        echo "Instalando PhotoGIMP..."
-        rm -rf "$gimp_config" "$gimp_share" 2>/dev/null || true
-        git clone --depth=1 https://github.com/Diolinux/PhotoGIMP.git /tmp/photogimp
-        cp -rvf /tmp/photogimp/.config/* ~/.config/ 2>/dev/null || true
-        cp -rvf /tmp/photogimp/.local/* ~/.local/ 2>/dev/null || true
-        rm -rf /tmp/photogimp
-        touch "$photogimp_state"
-        echo "PhotoGIMP instalado."
     fi
 }
 
