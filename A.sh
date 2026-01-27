@@ -1121,9 +1121,21 @@ de_gnome_installer() {
 }
 
 de_hyprland_installer() {
-    curl -fsSL https://install.danklinux.com | sh
-    sudo pacman -S --noconfirm sddm
-    sudo systemctl enable sddm
+    local state_file="$STATE_DIR/de_hyprland"
+    local_pkg="sddm"
+    
+    if [ -f "$state_file" ]; then
+        if confirm "Dank Linux Hyprland detectado. Desinstalar?"; then
+            cleanup_files "$state_file"
+        fi
+    else
+        if confirm "Instalar Dank Linux Hyprland?"; then
+            curl -fsSL https://install.danklinux.com | sh
+            sudo pacman -S --noconfirm $local_pkg
+            sudo systemctl enable sddm
+            touch "$state_file"
+        fi
+    fi
 }
 
 de_installer() {
