@@ -2464,19 +2464,31 @@ heroic_games_launcher_installer() {
 
 homebrew_installer() {
     local state_file="$STATE_DIR/homebrew"
-    local pkg_brew="brew-git"
+    local brew_url="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 
-    if [ -f "$state_file" ] || pacman -Q brew-git &>/dev/null; then
+    if [ -f "$state_file" ] || command -v brew &>/dev/null; then
         if confirm "Brew detectado. Desinstalar?"; then
             echo "Desinstalando Brew..."
-            pacman -Qq brew-git &>/dev/null && yay -Rsnu --noconfirm $pkg_brew || true
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
             cleanup_files "$state_file"
             echo "Brew desinstalado."
         fi
     else
         if confirm "Instalar Brew?"; then
             echo "Instalando Brew..."
-            yay -S --noconfirm $pkg_brew
+            /bin/bash -c "$(curl -fsSL $brew_url)"
+            
+            if [[ -n "$BASH_VERSION" ]]; then
+                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
+                eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            elif [[ -n "$ZSH_VERSION" ]]; then
+                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
+                eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            elif command -v fish &>/dev/null; then
+                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.config/fish/config.fish
+                eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            fi
+            
             touch "$state_file"
             echo "Brew instalado."
         fi
