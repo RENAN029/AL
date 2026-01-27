@@ -2464,36 +2464,31 @@ heroic_games_launcher_installer() {
 
 homebrew_installer() {
     local state_file="$STATE_DIR/homebrew"
-    local brew_path="$HOME/.linuxbrew"
-    
+    local brew_path="/home/linuxbrew/.linuxbrew/bin"
+
     if [ -f "$state_file" ] || command -v brew &>/dev/null; then
-        if confirm "Brew detectado. Desinstalar?"; then
-            if command -v brew &>/dev/null; then
-                NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
-                rm -rf ~/.linuxbrew
-            fi
-            [ -f ~/.bashrc ] && sed -i '/linuxbrew/d' ~/.bashrc
-            [ -f ~/.zshrc ] && sed -i '/linuxbrew/d' ~/.zshrc
-            [ -f ~/.config/fish/config.fish ] && sed -i '/linuxbrew/d' ~/.config/fish/config.fish
+        if confirm "Homebrew detectado. Desinstalar?"; then
+            echo "Desinstalando Homebrew..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)" </dev/null
             cleanup_files "$state_file"
-            echo "Brew desinstalado."
+            [ -d "$brew_path" ] && rm -rf "$brew_path"
+            echo "Homebrew desinstalado."
         fi
     else
-        if confirm "Instalar Brew?"; then
-            mkdir -p ~/.linuxbrew
-            NONINTERACTIVE=1 CI=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        if confirm "Instalar Homebrew?"; then
+            echo "Instalando Homebrew..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" </dev/null
+            echo "Homebrew instalado."
             
-            if [[ "$SHELL" == *"zsh"* ]]; then
-                echo 'eval "$(~/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
-            elif [[ "$SHELL" == *"bash"* ]]; then
-                echo 'eval "$(~/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
-            elif [[ "$SHELL" == *"fish"* ]]; then
-                fish -c 'echo "set -gx PATH ~/.linuxbrew/bin \$PATH" >> ~/.config/fish/config.fish'
+            if [[ "$SHELL" == *"bash"* ]] && ! grep -q "$brew_path" ~/.bashrc; then
+                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
+            elif [[ "$SHELL" == *"zsh"* ]] && ! grep -q "$brew_path" ~/.zshrc; then
+                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
+            elif [[ "$SHELL" == *"fish"* ]] && ! fish -c "contains $brew_path \$PATH" &>/dev/null; then
+                fish -c "set -U fish_user_paths $brew_path \$fish_user_paths"
             fi
             
-            eval "$(~/.linuxbrew/bin/brew shellenv)"
             touch "$state_file"
-            echo "Brew instalado."
         fi
     fi
 }
