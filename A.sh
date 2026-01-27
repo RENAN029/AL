@@ -3691,8 +3691,8 @@ obs_installer() {
                 sudo pacman -Rns --noconfirm $local_pkg
             fi
         fi
-    else
-        if confirm "Instalar OBS Studio?"; then
+    elif confirm "Instalar OBS Studio?"; then
+        if confirm "Instalar plugins recomendados (pipewire audio capture)?"; then
             sudo pacman -S --noconfirm $local_pkg
             flatpak install --user -y --noninteractive flathub com.obsproject.Studio
             
@@ -3707,8 +3707,10 @@ obs_installer() {
             flatpak override --user --socket=x11 --nosocket=wayland --env=QT_QPA_PLATFORM=xcb com.obsproject.Studio
             
             cd .. && rm -rf /tmp/obspipe
-            touch "$state_file"
+        else
+            flatpak install --user -y --noninteractive flathub com.obsproject.Studio
         fi
+        touch "$state_file"
     fi
 }
 
