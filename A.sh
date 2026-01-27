@@ -943,34 +943,29 @@ darktable_installer() {
 
 davinci_resolve_free_installer() {
     local state_file="$STATE_DIR/davinci_resolve_free"
-
+    local_pkg="unzip"
+    
     if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ]; then
         if confirm "DaVinci Resolve Free detectado. Desinstalar?"; then
-            echo "Desinstalando DaVinci Resolve Free..."
-            sudo rm -rf /opt/resolve 2>/dev/null || true
-            sudo rm -f /usr/share/applications/davinci-resolve.desktop 2>/dev/null || true
+            sudo rm -rf /opt/resolve
+            sudo rm -f /usr/share/applications/davinci-resolve.desktop
+            if confirm "Desinstalar também unzip?"; then
+                sudo pacman -Rns --noconfirm $local_pkg
+            fi
             cleanup_files "$state_file"
-            echo "DaVinci Resolve Free desinstalado."
         fi
     else
         if confirm "Instalar DaVinci Resolve Free?"; then
-            echo "Instalando DaVinci Resolve Free..."
-            local siteurl="https://www.blackmagicdesign.com/api/support/latest-stable-version/davinci-resolve/linux"
+            sudo pacman -S --noconfirm $local_pkg
             local useragent="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-            local releaseinfo=$(curl -s -H "$useragent" "$siteurl")
+            local releaseinfo=$(curl -s -H "$useragent" "https://www.blackmagicdesign.com/api/support/latest-stable-version/davinci-resolve/linux")
             local major=$(echo "$releaseinfo" | grep -o '"major":[0-9]*' | cut -d: -f2)
             local minor=$(echo "$releaseinfo" | grep -o '"minor":[0-9]*' | cut -d: -f2)
             local releaseNum=$(echo "$releaseinfo" | grep -o '"releaseNum":[0-9]*' | cut -d: -f2)
             local downloadId=$(echo "$releaseinfo" | grep -o '"downloadId":"[^"]*"' | cut -d'"' -f4)
-            if [ "$releaseNum" == "0" ]; then
-                local filever="${major}.${minor}"
-            else
-                local filever="${major}.${minor}.${releaseNum}"
-            fi
+            [ "$releaseNum" == "0" ] && filever="${major}.${minor}" || filever="${major}.${minor}.${releaseNum}"
             local archive_name="DaVinci_Resolve_${filever}_Linux"
-            local archive_run_name="DaVinci_Resolve_${filever}_Linux"
             local reqjson='{"firstname": "Arch", "lastname": "Linux", "email": "someone@archlinux.org", "phone": "202-555-0194", "country": "us", "street": "Bowery 146", "state": "New York", "city": "AUR", "product": "DaVinci Resolve"}'
-            local siteurl="https://www.blackmagicdesign.com/api/register/us/download/${downloadId}"
             local srcurl=$(curl -s \
                 -H 'Host: www.blackmagicdesign.com' \
                 -H 'Accept: application/json, text/plain, */*' \
@@ -984,49 +979,43 @@ davinci_resolve_free_installer() {
                 -H 'Cookie: _ga=GA1.2.1849503966.1518103294; _gid=GA1.2.953840595.1518103294' \
                 --data-ascii "$reqjson" \
                 --compressed \
-                "$siteurl")
+                "https://www.blackmagicdesign.com/api/register/us/download/${downloadId}")
             curl -L -o "/tmp/${archive_name}.zip" "$srcurl"
             cd /tmp
             unzip "${archive_name}.zip"
-            chmod +x "${archive_run_name}.run"
-            sudo ./"${archive_run_name}.run" --appimage-extract-and-run
-            cleanup_files "/tmp/${archive_name}.zip" "/tmp/${archive_run_name}.run"
+            chmod +x "${archive_name}.run"
+            sudo ./"${archive_name}.run" --appimage-extract-and-run
+            cleanup_files "/tmp/${archive_name}.zip" "/tmp/${archive_name}.run"
             touch "$state_file"
-            echo "DaVinci Resolve Free instalado."
         fi
     fi
 }
 
 davinci_resolve_studio_installer() {
     local state_file="$STATE_DIR/davinci_resolve_studio"
-
+    local_pkg="unzip"
+    
     if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ]; then
         if confirm "DaVinci Resolve Studio detectado. Desinstalar?"; then
-            echo "Desinstalando DaVinci Resolve Studio..."
-            sudo rm -rf /opt/resolve 2>/dev/null || true
-            sudo rm -f /usr/share/applications/davinci-resolve.desktop 2>/dev/null || true
+            sudo rm -rf /opt/resolve
+            sudo rm -f /usr/share/applications/davinci-resolve.desktop
+            if confirm "Desinstalar também unzip?"; then
+                sudo pacman -Rns --noconfirm $local_pkg
+            fi
             cleanup_files "$state_file"
-            echo "DaVinci Resolve Studio desinstalado."
         fi
     else
         if confirm "Instalar DaVinci Resolve Studio?"; then
-            echo "Instalando DaVinci Resolve Studio..."
-            local siteurl="https://www.blackmagicdesign.com/api/support/latest-stable-version/davinci-resolve-studio/linux"
+            sudo pacman -S --noconfirm $local_pkg
             local useragent="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-            local releaseinfo=$(curl -s -H "$useragent" "$siteurl")
+            local releaseinfo=$(curl -s -H "$useragent" "https://www.blackmagicdesign.com/api/support/latest-stable-version/davinci-resolve-studio/linux")
             local major=$(echo "$releaseinfo" | grep -o '"major":[0-9]*' | cut -d: -f2)
             local minor=$(echo "$releaseinfo" | grep -o '"minor":[0-9]*' | cut -d: -f2)
             local releaseNum=$(echo "$releaseinfo" | grep -o '"releaseNum":[0-9]*' | cut -d: -f2)
             local downloadId=$(echo "$releaseinfo" | grep -o '"downloadId":"[^"]*"' | cut -d'"' -f4)
-            if [ "$releaseNum" == "0" ]; then
-                local filever="${major}.${minor}"
-            else
-                local filever="${major}.${minor}.${releaseNum}"
-            fi
+            [ "$releaseNum" == "0" ] && filever="${major}.${minor}" || filever="${major}.${minor}.${releaseNum}"
             local archive_name="DaVinci_Resolve_Studio_${filever}_Linux"
-            local archive_run_name="DaVinci_Resolve_Studio_${filever}_Linux"
             local reqjson='{"firstname": "Arch", "lastname": "Linux", "email": "someone@archlinux.org", "phone": "202-555-0194", "country": "us", "street": "Bowery 146", "state": "New York", "city": "AUR", "product": "DaVinci Resolve Studio"}'
-            local siteurl="https://www.blackmagicdesign.com/api/register/us/download/${downloadId}"
             local srcurl=$(curl -s \
                 -H 'Host: www.blackmagicdesign.com' \
                 -H 'Accept: application/json, text/plain, */*' \
@@ -1040,15 +1029,14 @@ davinci_resolve_studio_installer() {
                 -H 'Cookie: _ga=GA1.2.1849503966.1518103294; _gid=GA1.2.953840595.1518103294' \
                 --data-ascii "$reqjson" \
                 --compressed \
-                "$siteurl")
+                "https://www.blackmagicdesign.com/api/register/us/download/${downloadId}")
             curl -L -o "/tmp/${archive_name}.zip" "$srcurl"
             cd /tmp
             unzip "${archive_name}.zip"
-            chmod +x "${archive_run_name}.run"
-            sudo ./"${archive_run_name}.run" --appimage-extract-and-run
-            cleanup_files "/tmp/${archive_name}.zip" "/tmp/${archive_run_name}.run"
+            chmod +x "${archive_name}.run"
+            sudo ./"${archive_name}.run" --appimage-extract-and-run
+            cleanup_files "/tmp/${archive_name}.zip" "/tmp/${archive_name}.run"
             touch "$state_file"
-            echo "DaVinci Resolve Studio instalado."
         fi
     fi
 }
