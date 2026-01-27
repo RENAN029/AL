@@ -1361,35 +1361,31 @@ drivers_menu() {
         clear
         echo "=== Drivers ==="
         echo "1) Acer Manager"
-        echo "2) AMD ucode"
-        echo "3) Broadcom WiFi"
-        echo "4) Intel ucode"
-        echo "5) Nvidia (Open Modules)"
-        echo "6) Nvidia (Proprietário)"
-        echo "7) Nvidia Drivers (v470)"
-        echo "8) OptimusUI"
-        echo "9) Realtek WiFi 8821CE"
-        echo "10) Xpadneo"
-        echo "11) Voltar"
+        echo "2) Broadcom WiFi"
+        echo "3) Nvidia (Open Modules)"
+        echo "4) Nvidia (Proprietário)"
+        echo "5) Nvidia Drivers (v470)"
+        echo "6) OptimusUI"
+        echo "7) Realtek WiFi 8821CE"
+        echo "8) Xpadneo"
+        echo "9) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
             1) clear; acer_manager_installer ;;
-            2) clear; amd_ucode_installer ;;
-            3) clear; broadcom_wifi_menu ;;
-            4) clear; intel_ucode_installer ;;
-            5) clear; nvidia_open_menu ;;
-            6) clear; nvidia_proprietary_menu ;;
-            7) clear; nvidia_v470_installer ;;
-            8) clear; optimusui_installer ;;
-            9) clear; realtek_wifi_installer ;;
-            10) clear; xpadneo_installer ;;
-            11) return ;;
+            2) clear; broadcom_wifi_menu ;;
+            3) clear; nvidia_open_menu ;;
+            4) clear; nvidia_proprietary_menu ;;
+            5) clear; nvidia_v470_installer ;;
+            6) clear; optimusui_installer ;;
+            7) clear; realtek_wifi_installer ;;
+            8) clear; xpadneo_installer ;;
+            9) return ;;
             *) ;;
         esac
 
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 10 ] && read -p "Pressione Enter para continuar..."
+        [ "$opcao" -ge 1 ] && [ "$opcao" -le 8 ] && read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -1572,8 +1568,7 @@ extras_menu() {
         echo "20) Thumbnailer"
         echo "21) UFW"
         echo "22) WinBoat"
-        echo "23) Lucidglyph"
-        echo "24) Voltar"
+        echo "23) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -1600,12 +1595,11 @@ extras_menu() {
             20) clear; thumbnailer_installer ;;
             21) clear; ufw_installer ;;
             22) clear; winboat_installer ;;
-            23) clear; lucidglyph_installer ;;
-            24) return ;;
+            23) return ;;
             *) ;;
         esac
 
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 23 ] && read -p "Pressione Enter para continuar..."
+        [ "$opcao" -ge 1 ] && [ "$opcao" -le 22 ] && read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -4045,6 +4039,8 @@ pessoal_menu() {
         echo "=== Pessoal ==="
         echo "1) Pacotes Base"
         echo "2) Pacotes de Mídia"
+        echo "2) AMD ucode"
+        echo "4) Intel ucode"
         echo "3) Ambientes Desktop"
         echo "4) Ferramentas"
         echo "5) Fjord Launcher"
@@ -4052,25 +4048,31 @@ pessoal_menu() {
         echo "7) Hydra Launcher"
         echo "8) CachyOS Kernel"
         echo "9) Stirling PDF"
-        echo "10) Voltar"
+        echo "10) Waydroid"
+        echo "11) Lucidglyph"
+        echo "12) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
             1) clear; pessoal_base_installer ;;
             2) clear; pessoal_media_installer ;;
-            3) clear; de_installer ;;
-            4) clear; ferramentas_menu ;;
-            5) clear; unmojang_installer ;;
+            3) clear; intel_ucode_installer ;;
+            4) clear; amd_ucode_installer ;;
+            5) clear; de_installer ;;
+            6) clear; ferramentas_menu ;;
+            7) clear; unmojang_installer ;;
             6) clear; gnome_boxes_installer ;;
-            7) clear; hydra_launcher_installer ;;
-            8) clear; cachyos_installer ;;
-            9) clear; stirlingpdf_installer ;;
-            10) return ;;
+            8) clear; hydra_launcher_installer ;;
+            9) clear; cachyos_installer ;;
+            10) clear; stirlingpdf_installer ;;
+            10) clear; waydroid_installer ;;
+            11) clear; lucidglyph_installer ;;
+            12) return ;;
             *) ;;
         esac
 
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 9 ] && read -p "Pressione Enter para continuar..."
+        [ "$opcao" -ge 1 ] && [ "$opcao" -le 11 ] && read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -5376,8 +5378,7 @@ utilidades_menu() {
         echo "19) S3Drive"
         echo "20) VLC"
         echo "21) Warehouse"
-        echo "22) Waydroid"
-        echo "23) Voltar"
+        echo "22) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -5403,12 +5404,11 @@ utilidades_menu() {
             19) clear; s3drive_installer ;;
             20) clear; vlc_installer ;;
             21) clear; warehouse_installer ;;
-            22) clear; waydroid_installer ;;
-            23) return ;;
+            22) return ;;
             *) ;;
         esac
 
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 22 ] && read -p "Pressione Enter para continuar..."
+        [ "$opcao" -ge 1 ] && [ "$opcao" -le 21 ] && read -p "Pressione Enter para continuar..."
     done
 }
 
