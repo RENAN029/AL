@@ -2466,30 +2466,30 @@ homebrew_installer() {
     local state_file="$STATE_DIR/homebrew"
     
     if [ -f "$state_file" ] || command -v brew &>/dev/null; then
-        if confirm "Homebrew detectado. Desinstalar?"; then
-            echo "Desinstalando Homebrew..."
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)" < /dev/null
+        if confirm "Brew detectado. Desinstalar?"; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
             cleanup_files "$state_file"
-            echo "Homebrew desinstalado."
-        fi
-    else
-        if confirm "Instalar Homebrew?"; then
-            echo "Instalando Homebrew..."
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
             
             for shell_file in ~/.bashrc ~/.zshrc ~/.config/fish/config.fish; do
-                if [[ -f "$shell_file" ]]; then
-                    if [[ "$shell_file" == *fish* ]]; then
-                        echo 'fish_add_path /home/linuxbrew/.linuxbrew/bin' >> "$shell_file"
-                    else
-                        echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"' >> "$shell_file"
-                    fi
-                fi
+                [ -f "$shell_file" ] && sed -i '/brew shellenv/d' "$shell_file"
             done
+        fi
+    else
+        if confirm "Instalar Brew?"; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             
-            export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
+            local shell_rc
+            case "$SHELL" in
+                */bash) shell_rc=~/.bashrc ;;
+                */zsh) shell_rc=~/.zshrc ;;
+                */fish) shell_rc=~/.config/fish/config.fish ;;
+                *) shell_rc=~/.bashrc ;;
+            esac
+            
+            [ -f "$shell_rc" ] && echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$shell_rc"
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            
             touch "$state_file"
-            echo "Homebrew instalado."
         fi
     fi
 }
