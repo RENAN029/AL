@@ -640,23 +640,19 @@ btop_installer() {
 
 cachyconfs_installer() {
     local state_file="$STATE_DIR/cachyconfs"
-
+    
     if [ -f "$state_file" ] || [ -f "/usr/lib/sysctl.d/99-cachyos-settings.conf" ]; then
         if confirm "CachyOS Configs detectado. Desinstalar?"; then
-            echo "Desinstalando CachyOS Configs..."
-            sudo rm -f /usr/lib/sysctl.d/99-cachyos-settings.conf 2>/dev/null || true
-            sudo sysctl --system 2>/dev/null || true
+            sudo rm -f /usr/lib/sysctl.d/99-cachyos-settings.conf
+            sudo sysctl --system
             cleanup_files "$state_file"
-            echo "CachyOS Configs desinstalado. Reinicie para aplicar."
         fi
     else
         if confirm "Instalar CachyOS Configs?"; then
-            echo "Instalando CachyOS Configs..."
             sudo mkdir -p /usr/lib/sysctl.d
             curl -s https://raw.githubusercontent.com/CachyOS/CachyOS-Settings/main/sysctl/99-cachyos-settings.conf | sudo tee /usr/lib/sysctl.d/99-cachyos-settings.conf > /dev/null
             sudo sysctl --system
             touch "$state_file"
-            echo "CachyOS Configs instalado. Reinicie para aplicar."
         fi
     fi
 }
