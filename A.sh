@@ -3640,23 +3640,21 @@ nvidia_proprietary_menu() {
 
 nvidia_v470_installer() {
     local state_file="$STATE_DIR/nvidia_v470"
-    local pkg_nvidia="nvidia-470xx-dkms nvidia-470xx-utils nvidia-470xx-settings"
-
+    local_pkg="nvidia-470xx-dkms nvidia-470xx-utils nvidia-470xx-settings"
+    
     if [ -f "$state_file" ] || pacman -Q nvidia-470xx-dkms &>/dev/null; then
         if confirm "Nvidia Drivers v470 detectado. Desinstalar?"; then
-            echo "Desinstalando Nvidia Drivers v470..."
-            pacman -Qq nvidia-470xx-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_nvidia || true
-            sudo rm -f /etc/modprobe.d/10-nvidia.conf 2>/dev/null || true
+            pacman -Qq nvidia-470xx-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $local_pkg
+            sudo rm -f /etc/modprobe.d/10-nvidia.conf
             cleanup_files "$state_file"
-            echo "Nvidia Drivers v470 desinstalado."
         fi
     else
-        echo "Instalando Nvidia Drivers v470..."
-        sudo pacman -S --noconfirm $pkg_nvidia
-        curl -s https://raw.githubusercontent.com/psygreg/linuxtoys/master/resources/10-nvidia.conf | sudo tee /etc/modprobe.d/10-nvidia.conf > /dev/null
-        sudo mkinitcpio -P
-        touch "$state_file"
-        echo "Nvidia Drivers v470 instalado. Reinicie para aplicar."
+        if confirm "Instalar Nvidia Drivers v470?"; then
+            sudo pacman -S --noconfirm $local_pkg
+            curl -s https://raw.githubusercontent.com/psygreg/linuxtoys/master/resources/10-nvidia.conf | sudo tee /etc/modprobe.d/10-nvidia.conf > /dev/null
+            sudo mkinitcpio -P
+            touch "$state_file"
+        fi
     fi
 }
 
