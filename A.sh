@@ -2472,6 +2472,15 @@ homebrew_installer() {
                 sudo rm -rf /home/linuxbrew
             fi
             cleanup_files "$state_file"
+            
+            if [[ "$SHELL" == *"zsh"* ]]; then
+                [ -f ~/.zshrc ] && sed -i '/brew shellenv/d' ~/.zshrc
+            elif [[ "$SHELL" == *"bash"* ]]; then
+                [ -f ~/.bashrc ] && sed -i '/brew shellenv/d' ~/.bashrc
+            elif [[ "$SHELL" == *"fish"* ]]; then
+                [ -f ~/.config/fish/config.fish ] && sed -i '/linuxbrew/d' ~/.config/fish/config.fish
+            fi
+            
             echo "Brew desinstalado."
         fi
     else
@@ -2483,15 +2492,18 @@ homebrew_installer() {
             elif [[ "$SHELL" == *"bash"* ]]; then
                 echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
             elif [[ "$SHELL" == *"fish"* ]]; then
-                fish -c 'echo "set -gx PATH /home/linuxbrew/.linuxbrew/bin $PATH" >> ~/.config/fish/config.fish'
+                echo 'set -gx PATH /home/linuxbrew/.linuxbrew/bin $PATH' >> ~/.config/fish/config.fish
             fi
             
-            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            if [ -d "/home/linuxbrew/.linuxbrew/bin" ]; then
+                eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            fi
             touch "$state_file"
             echo "Brew instalado."
         fi
     fi
 }
+
 
 httpie_installer() {
     local state_file="$STATE_DIR/httpie"
