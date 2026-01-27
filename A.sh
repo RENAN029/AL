@@ -3681,17 +3681,19 @@ nvm_installer() {
 
 obs_installer() {
     local state_file="$STATE_DIR/obs"
-
+    local_pkg="wireplumber xorg-xwayland"
+    
     if [ -f "$state_file" ] || flatpak list --app --columns=application | grep -q "com.obsproject.Studio"; then
         if confirm "OBS Studio detectado. Desinstalar?"; then
-            echo "Desinstalando OBS Studio..."
-            flatpak remove --user -y --noninteractive com.obsproject.Studio 2>/dev/null || true
+            flatpak remove --user -y --noninteractive com.obsproject.Studio
             cleanup_files "$state_file" "$HOME/.var/app/com.obsproject.Studio"
-            echo "OBS Studio desinstalado."
+            if confirm "Desinstalar também wireplumber e xorg-xwayland?"; then
+                sudo pacman -Rns --noconfirm $local_pkg
+            fi
         fi
     else
         if confirm "Instalar OBS Studio?"; then
-            echo "Instalando OBS Studio..."
+            sudo pacman -S --noconfirm $local_pkg
             flatpak install --user -y --noninteractive flathub com.obsproject.Studio
             
             local ver=$(curl -s "https://api.github.com/repos/dimtpap/obs-pipewire-audio-capture/releases/latest" | grep -oP '"tag_name": "\K(.*)(?=")')
@@ -3706,7 +3708,6 @@ obs_installer() {
             
             cd .. && rm -rf /tmp/obspipe
             touch "$state_file"
-            echo "OBS Studio instalado."
         fi
     fi
 }
