@@ -4976,27 +4976,21 @@ streamcontroller_installer() {
 
 sublime_text_installer() {
     local state_file="$STATE_DIR/sublime_text"
-    local pkg_sublime="sublime-text"
-
+    local_pkg="sublime-text"
+    
     if [ -f "$state_file" ] || pacman -Q sublime-text &>/dev/null; then
         if confirm "Sublime Text detectado. Desinstalar?"; then
-            echo "Desinstalando Sublime Text..."
-            pacman -Qq sublime-text &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_sublime || true
-            sudo sed -i '/\[sublime-text\]/,+3d' /etc/pacman.conf 2>/dev/null || true
-            sudo pacman-key --delete 8A8F901A 2>/dev/null || true
-            sudo pacman -Syu 2>/dev/null || true
+            pacman -Qq sublime-text &>/dev/null && sudo pacman -Rsnu --noconfirm $local_pkg
+            sudo sed -i '/\[sublime-text\]/,+3d' /etc/pacman.conf
+            sudo pacman-key --delete 8A8F901A
             cleanup_files "$state_file"
-            echo "Sublime Text desinstalado."
         fi
     else
         if confirm "Instalar Sublime Text?"; then
-            echo "Instalando Sublime Text..."
             curl -O https://download.sublimetext.com/sublimehq-pub.gpg && sudo pacman-key --add sublimehq-pub.gpg && sudo pacman-key --lsign-key 8A8F901A && rm sublimehq-pub.gpg
             echo -e "\n[sublime-text]\nServer = https://download.sublimetext.com/arch/stable/x86_64" | sudo tee -a /etc/pacman.conf
-            sudo pacman -Syu
-            sudo pacman -S --noconfirm $pkg_sublime
+            sudo pacman -S --noconfirm $local_pkg
             touch "$state_file"
-            echo "Sublime Text instalado."
         fi
     fi
 }
