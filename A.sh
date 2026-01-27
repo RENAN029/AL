@@ -2465,18 +2465,26 @@ heroic_games_launcher_installer() {
 homebrew_installer() {
     local state_file="$STATE_DIR/homebrew"
     local brew_url="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
+    
+    local brew_installed=false
+    command -v brew &>/dev/null && brew_installed=true
 
-    if [ -f "$state_file" ] || command -v brew &>/dev/null; then
+    if [ -f "$state_file" ] || [ "$brew_installed" = true ]; then
         if confirm "Brew detectado. Desinstalar?"; then
             echo "Desinstalando Brew..."
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
+            command -v brew &>/dev/null && /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
+            rm -rf /home/linuxbrew/.linuxbrew
+            rm -rf ~/.linuxbrew
             cleanup_files "$state_file"
+            [ -f ~/.bashrc ] && sed -i '/brew shellenv/d' ~/.bashrc
+            [ -f ~/.zshrc ] && sed -i '/brew shellenv/d' ~/.zshrc
+            [ -f ~/.config/fish/config.fish ] && sed -i '/brew shellenv/d' ~/.config/fish/config.fish
             echo "Brew desinstalado."
         fi
     else
         if confirm "Instalar Brew?"; then
             echo "Instalando Brew..."
-            /bin/bash -c "$(curl -fsSL $brew_url)"
+            NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL $brew_url)"
             
             if [[ -n "$BASH_VERSION" ]]; then
                 echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
@@ -2485,8 +2493,10 @@ homebrew_installer() {
                 echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
                 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
             elif command -v fish &>/dev/null; then
-                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.config/fish/config.fish
-                eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+                echo 'fish_add_path /home/linuxbrew/.linuxbrew/bin' >> ~/.config/fish/config.fish
+                echo 'set -gx HOMEBREW_PREFIX /home/linuxbrew/.linuxbrew' >> ~/.config/fish/config.fish
+                fish_add_path /home/linuxbrew/.linuxbrew/bin
+                set -gx HOMEBREW_PREFIX /home/linuxbrew/.linuxbrew
             fi
             
             touch "$state_file"
