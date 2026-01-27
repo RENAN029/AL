@@ -2462,30 +2462,33 @@ heroic_games_launcher_installer() {
     fi
 }
 
-sdkman_installer() {
-    local sdkman_dir="$HOME/.sdkman"
-    local packages="unzip zip"
+homebrew_installer() {
+    local state_file="$STATE_DIR/homebrew"
     
-    if [ -d "$sdkman_dir" ]; then
-        if confirm "Sdkman detectado. Desinstalar?"; then
-            echo "Desinstalando Sdkman..."
-            rm -rf "$sdkman_dir"
-            [ -f ~/.bashrc ] && sed -i '/SDKMAN/d' ~/.bashrc
-            [ -f ~/.zshrc ] && sed -i '/SDKMAN/d' ~/.zshrc
-            [ -f ~/.config/fish/config.fish ] && sed -i '/SDKMAN/d' ~/.config/fish/config.fish
-            if confirm "Desinstalar também unzip e zip?"; then
-                sudo pacman -Rns --noconfirm $packages
-                echo "Dependências removidas."
+    if [ -f "$state_file" ] || command -v brew &>/dev/null; then
+        if confirm "Brew detectado. Desinstalar?"; then
+            if command -v brew &>/dev/null; then
+                NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
+                sudo rm -rf /home/linuxbrew
             fi
-            echo "Sdkman desinstalado."
+            cleanup_files "$state_file"
+            echo "Brew desinstalado."
         fi
     else
-        if confirm "Instalar Sdkman?"; then
-            echo "Instalando dependências..."
-            sudo pacman -S --noconfirm $packages
-            echo "Instalando Sdkman..."
-            curl -s "https://get.sdkman.io" | bash
-            echo "Sdkman instalado."
+        if confirm "Instalar Brew?"; then
+            NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            
+            if [[ "$SHELL" == *"zsh"* ]]; then
+                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
+            elif [[ "$SHELL" == *"bash"* ]]; then
+                echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
+            elif [[ "$SHELL" == *"fish"* ]]; then
+                fish -c 'echo "set -gx PATH /home/linuxbrew/.linuxbrew/bin $PATH" >> ~/.config/fish/config.fish'
+            fi
+            
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            touch "$state_file"
+            echo "Brew instalado."
         fi
     fi
 }
