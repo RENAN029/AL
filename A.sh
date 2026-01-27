@@ -3474,37 +3474,29 @@ nordvpn_installer() {
 nvim_lazyvim_installer() {
     local nvim_state="$STATE_DIR/nvim"
     local lazyvim_state="$STATE_DIR/nvim_lazyvim"
-    local pkg_neovim="neovim"
+    local_pkg="neovim"
     local nvim_dir="$HOME/.config/nvim"
-
+    
     if [ -f "$nvim_state" ] || pacman -Q neovim &>/dev/null; then
         if confirm "NeoVim detectado. Desinstalar?"; then
-            echo "Desinstalando NeoVim..."
-            pacman -Qq neovim &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_neovim || true
-            cleanup_files "$nvim_state"
-            echo "NeoVim desinstalado."
+            pacman -Qq neovim &>/dev/null && sudo pacman -Rsnu --noconfirm $local_pkg
+            cleanup_files "$nvim_state" "$lazyvim_state"
         fi
-    elif confirm "Instalar NeoVim ?"; then
-        echo "Instalando NeoVim..."
-        sudo pacman -S --noconfirm $pkg_neovim
+    elif confirm "Instalar NeoVim?"; then
+        sudo pacman -S --noconfirm $local_pkg
         touch "$nvim_state"
-        echo "NeoVim instalado."
-    fi
-
-    if [ -f "$lazyvim_state" ] || [ -d "$nvim_dir" ]; then
-        if confirm "LazyVim detectado. Desinstalar?"; then
-            echo "Desinstalando LazyVim..."
+        
+        if [ -f "$lazyvim_state" ] || [ -d "$nvim_dir" ]; then
+            if confirm "LazyVim detectado. Desinstalar?"; then
+                rm -rf "$nvim_dir"
+                cleanup_files "$lazyvim_state"
+            fi
+        elif confirm "Instalar LazyVim?"; then
             rm -rf "$nvim_dir"
-            cleanup_files "$lazyvim_state"
-            echo "LazyVim desinstalado."
+            git clone https://github.com/LazyVim/starter "$nvim_dir"
+            rm -rf "$nvim_dir/.git"
+            touch "$lazyvim_state"
         fi
-    elif confirm "Instalar LazyVim?"; then
-        echo "Instalando LazyVim..."
-        rm -rf "$nvim_dir"
-        git clone https://github.com/LazyVim/starter "$nvim_dir"
-        rm -rf "$nvim_dir/.git"
-        touch "$lazyvim_state"
-        echo "LazyVim instalado."
     fi
 }
 
