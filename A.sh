@@ -22,20 +22,20 @@ cleanup_files() {
 
 acer_manager_installer() {
     local state_file="$STATE_DIR/acer_manager"
-    local_pkg="base-devel linux-headers"
+    local pkg_acer="base-devel linux-headers"
     
     if [ -f "$state_file" ] || [ -d "/tmp/damx" ] || [ -f "/usr/local/bin/damx" ]; then
         if confirm "Acer Manager detectado. Desinstalar?"; then
             [ -d "/tmp/damx" ] && cd /tmp/damx/ && echo -e "2\nq\nq\n" | sudo bash setup.sh
             sudo rm -rf /tmp/damx /usr/local/bin/damx
             if confirm "Desinstalar também base-devel e linux-headers?"; then
-                sudo pacman -Rns --noconfirm $local_pkg
+                sudo pacman -Rns --noconfirm $pkg_acer
             fi
             cleanup_files "$state_file"
         fi
     else
         if confirm "Instalar Acer Manager?"; then
-            sudo pacman -S --noconfirm $local_pkg
+            sudo pacman -S --noconfirm $pkg_acer
             local vers=$(curl -s https://api.github.com/repos/PXDiv/Div-Acer-Manager-Max/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
             curl -L "https://github.com/PXDiv/Div-Acer-Manager-Max/archive/refs/tags/$vers.tar.gz" -o /tmp/damx.tar.gz
             mkdir -p /tmp/damx
@@ -74,94 +74,6 @@ admin_menu() {
     done
 }
 
-ollama_menu() {
-    while true; do
-        clear
-        echo "=== Ollama ==="
-        echo "1) Instalar Ollama"
-        echo "2) Instalar Ollama Cuda"
-        echo "3) Instalar Ollama Rocm"
-        echo "4) Instalar Ollama Vulkan"
-        echo "5) Voltar"
-        echo
-        read -p "Selecione uma opção: " opcao
-
-        case $opcao in
-            1) clear; ollama_installer ;;
-            2) clear; ollama_cuda_installer ;;
-            3) clear; ollama_rocm_installer ;;
-            4) clear; ollama_vulkan_installer ;;
-            5) return ;;
-            *) ;;
-        esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 4 ] && read -p "Pressione Enter para continuar..."
-    done
-}
-
-ollama_cuda_installer() {
-    local state_file="$STATE_DIR/ollama_cuda"
-    local pkg_ollamac="ollama-cuda"
-
-    if [ -f "$state_file" ] || pacman -Q ollama-cuda &>/dev/null; then
-        if confirm "Ollama Cuda detectado. Desinstalar?"; then
-            echo "Desinstalando Ollama Cuda..."
-            pacman -Qq ollama-cuda &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ollamac || true
-            cleanup_files "$state_file"
-            echo "Ollama Cuda desinstalado."
-        fi
-    else
-        if confirm "Instalar Ollama Cuda?"; then
-            echo "Instalando Ollama Cuda..."
-            sudo pacman -S --noconfirm $pkg_ollamac
-            touch "$state_file"
-            echo "Ollama Cuda instalado."
-        fi
-    fi
-}
-
-ollama_rocm_installer() {
-    local state_file="$STATE_DIR/ollama_rocm"
-    local pkg_ollamar="ollama-rocm"
-
-    if [ -f "$state_file" ] || pacman -Q ollama-rocm &>/dev/null; then
-        if confirm "Ollama Rocm detectado. Desinstalar?"; then
-            echo "Desinstalando Ollama Rocm..."
-            pacman -Qq ollama-rocm &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ollamar || true
-            cleanup_files "$state_file"
-            echo "Ollama Rocm desinstalado."
-        fi
-    else
-        if confirm "Instalar Ollama Rocm?"; then
-            echo "Instalando Ollama Rocm..."
-            sudo pacman -S --noconfirm $pkg_ollamar
-            touch "$state_file"
-            echo "Ollama Rocm instalado."
-        fi
-    fi
-}
-
-ollama_vulkan_installer() {
-    local state_file="$STATE_DIR/ollama_vulkan"
-    local pkg_ollamav="ollama-vulkan"
-
-    if [ -f "$state_file" ] || pacman -Q ollama-vulkan &>/dev/null; then
-        if confirm "Ollama Vulkan detectado. Desinstalar?"; then
-            echo "Desinstalando Ollama Vulkan..."
-            pacman -Qq ollama-vulkan &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ollamav || true
-            cleanup_files "$state_file"
-            echo "Ollama Vulkan desinstalado."
-        fi
-    else
-        if confirm "Instalar Ollama Vulkan?"; then
-            echo "Instalando Ollama Vulkan..."
-            sudo pacman -S --noconfirm $pkg_ollamav
-            touch "$state_file"
-            echo "Ollama Vulkan instalado."
-        fi
-    fi
-}
-
 amd_ucode_installer() {
     local state_file="$STATE_DIR/amd_ucode"
     local pkg_amd="amd-ucode"
@@ -179,30 +91,6 @@ amd_ucode_installer() {
             sudo pacman -S --noconfirm $pkg_amd
             touch "$state_file"
             echo "AMD Ucode instalado."
-        fi
-    fi
-}
-
-ollama_installer() {
-    local state_file="$STATE_DIR/ollama"
-    local pkg_ollama="ollama"
-
-    if [ -f "$state_file" ] || pacman -Q ollama &>/dev/null; then
-        if confirm "Ollama detectado. Desinstalar?"; then
-            echo "Desinstalando Ollama..."
-            sudo systemctl stop ollama.service 2>/dev/null || true
-            sudo systemctl disable ollama.service 2>/dev/null || true
-            pacman -Qq ollama &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ollama || true
-            cleanup_files "$state_file"
-            echo "Ollama desinstalado."
-        fi
-    else
-        if confirm "Instalar Ollama?"; then
-            echo "Instalando Ollama..."
-            sudo pacman -S --noconfirm $pkg_ollama
-            sudo systemctl enable --now ollama.service
-            touch "$state_file"
-            echo "Ollama instalado."
         fi
     fi
 }
@@ -233,6 +121,7 @@ ananicy_cpp_installer() {
 
 android_studio_installer() {
     local state_file="$STATE_DIR/android_studio"
+    local pkg_android="com.google.AndroidStudio"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.google.AndroidStudio 2>/dev/null; then
         if confirm "Android Studio detectado. Desinstalar?"; then
@@ -253,6 +142,7 @@ android_studio_installer() {
 
 anydesk_installer() {
     local state_file="$STATE_DIR/anydesk"
+    local pkg_anydesk="com.anydesk.Anydesk"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.anydesk.Anydesk 2>/dev/null; then
         if confirm "AnyDesk detectado. Desinstalar?"; then
@@ -418,6 +308,7 @@ aria2_installer() {
 
 audacity_installer() {
     local state_file="$STATE_DIR/audacity"
+    local pkg_audacity="org.audacityteam.Audacity"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.audacityteam.Audacity 2>/dev/null; then
         if confirm "Audacity detectado. Desinstalar?"; then
@@ -438,6 +329,7 @@ audacity_installer() {
 
 bazaar_installer() {
     local state_file="$STATE_DIR/bazaar"
+    local pkg_bazaar="io.github.kolunmi.Bazaar"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.kolunmi.Bazaar 2>/dev/null; then
         if confirm "Bazaar detectado. Desinstalar?"; then
@@ -458,6 +350,7 @@ bazaar_installer() {
 
 bitwarden_installer() {
     local state_file="$STATE_DIR/bitwarden"
+    local pkg_bitwarden="com.bitwarden.desktop"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.bitwarden.desktop 2>/dev/null; then
         if confirm "Bitwarden detectado. Desinstalar?"; then
@@ -478,6 +371,7 @@ bitwarden_installer() {
 
 blender_installer() {
     local state_file="$STATE_DIR/blender"
+    local pkg_blender="org.blender.Blender"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.blender.Blender 2>/dev/null; then
         if confirm "Blender detectado. Desinstalar?"; then
@@ -498,6 +392,7 @@ blender_installer() {
 
 bottles_installer() {
     local state_file="$STATE_DIR/bottles"
+    local pkg_bottles="com.usebottles.bottles"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.usebottles.bottles 2>/dev/null; then
         if confirm "Bottles detectado. Desinstalar?"; then
@@ -518,6 +413,7 @@ bottles_installer() {
 
 brave_browser_installer() {
     local state_file="$STATE_DIR/brave_browser"
+    local pkg_brave="com.brave.Browser"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.brave.Browser 2>/dev/null; then
         if confirm "Brave Browser detectado. Desinstalar?"; then
@@ -736,6 +632,7 @@ chaotic_aur_installer() {
 
 chrome_installer() {
     local state_file="$STATE_DIR/chrome"
+    local pkg_chrome="com.google.Chrome"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.google.Chrome 2>/dev/null; then
         if confirm "Google Chrome detectado. Desinstalar?"; then
@@ -756,6 +653,7 @@ chrome_installer() {
 
 cockpit_client_installer() {
     local state_file="$STATE_DIR/cockpit_client"
+    local pkg_cockpitc="org.cockpit_project.CockpitClient"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.cockpit_project.CockpitClient 2>/dev/null; then
         if confirm "Cockpit Client detectado. Desinstalar?"; then
@@ -800,6 +698,7 @@ cockpit_server_installer() {
 
 cohesion_installer() {
     local state_file="$STATE_DIR/cohesion"
+    local pkg_cohesion="io.github.brunofin.Cohesion"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.brunofin.Cohesion 2>/dev/null; then
         if confirm "Cohesion detectado. Desinstalar?"; then
@@ -862,6 +761,7 @@ WantedBy=multi-user.target' | sudo tee /etc/systemd/system/set-ondemand-governor
 
 cpux_installer() {
     local state_file="$STATE_DIR/cpux"
+    local pkg_cpux="io.github.thetumultuousunicornofdarkness.cpu-x"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.thetumultuousunicornofdarkness.cpu-x 2>/dev/null; then
         if confirm "CPU-X detectado. Desinstalar?"; then
@@ -880,8 +780,30 @@ cpux_installer() {
     fi
 }
 
+croc_installer() {
+    local state_file="$STATE_DIR/croc"
+    local pkg_croc="croc"
+
+    if [ -f "$state_file" ] || pacman -Q croc &>/dev/null; then
+        if confirm "Croc detectado. Desinstalar?"; then
+            echo "Desinstalando Croc..."
+            pacman -Qq croc &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_croc || true
+            cleanup_files "$state_file"
+            echo "Croc desinstalado."
+        fi
+    else
+        if confirm "Instalar Croc?"; then
+            echo "Instalando Croc..."
+            sudo pacman -S --noconfirm $pkg_croc
+            touch "$state_file"
+            echo "Croc instalado."
+        fi
+    fi
+}
+
 cryptomator_installer() {
     local state_file="$STATE_DIR/cryptomator"
+    local pkg_cryptomator="org.cryptomator.Cryptomator"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.cryptomator.Cryptomator 2>/dev/null; then
         if confirm "Cryptomator detectado. Desinstalar?"; then
@@ -923,6 +845,7 @@ curl_installer() {
 
 darktable_installer() {
     local state_file="$STATE_DIR/darktable"
+    local pkg_darktable="org.darktable.Darktable"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.darktable.Darktable 2>/dev/null; then
         if confirm "Darktable detectado. Desinstalar?"; then
@@ -943,20 +866,20 @@ darktable_installer() {
 
 davinci_resolve_free_installer() {
     local state_file="$STATE_DIR/davinci_resolve_free"
-    local_pkg="unzip"
+    local pkg_unzip="unzip"
     
     if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ]; then
         if confirm "DaVinci Resolve Free detectado. Desinstalar?"; then
             sudo rm -rf /opt/resolve
             sudo rm -f /usr/share/applications/davinci-resolve.desktop
             if confirm "Desinstalar também unzip?"; then
-                sudo pacman -Rns --noconfirm $local_pkg
+                sudo pacman -Rns --noconfirm $pkg_unzip
             fi
             cleanup_files "$state_file"
         fi
     else
         if confirm "Instalar DaVinci Resolve Free?"; then
-            sudo pacman -S --noconfirm $local_pkg
+            sudo pacman -S --noconfirm $pkg_unzip
             local useragent="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
             local releaseinfo=$(curl -s -H "$useragent" "https://www.blackmagicdesign.com/api/support/latest-stable-version/davinci-resolve/linux")
             local major=$(echo "$releaseinfo" | grep -o '"major":[0-9]*' | cut -d: -f2)
@@ -993,20 +916,20 @@ davinci_resolve_free_installer() {
 
 davinci_resolve_studio_installer() {
     local state_file="$STATE_DIR/davinci_resolve_studio"
-    local_pkg="unzip"
+    local pkg_unzip="unzip"
     
     if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ]; then
         if confirm "DaVinci Resolve Studio detectado. Desinstalar?"; then
             sudo rm -rf /opt/resolve
             sudo rm -f /usr/share/applications/davinci-resolve.desktop
             if confirm "Desinstalar também unzip?"; then
-                sudo pacman -Rns --noconfirm $local_pkg
+                sudo pacman -Rns --noconfirm $pkg_unzip
             fi
             cleanup_files "$state_file"
         fi
     else
         if confirm "Instalar DaVinci Resolve Studio?"; then
-            sudo pacman -S --noconfirm $local_pkg
+            sudo pacman -S --noconfirm $pkg_unzip
             local useragent="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
             local releaseinfo=$(curl -s -H "$useragent" "https://www.blackmagicdesign.com/api/support/latest-stable-version/davinci-resolve-studio/linux")
             local major=$(echo "$releaseinfo" | grep -o '"major":[0-9]*' | cut -d: -f2)
@@ -1110,7 +1033,7 @@ de_gnome_installer() {
 
 de_hyprland_installer() {
     local state_file="$STATE_DIR/de_hyprland"
-    local_pkg="sddm"
+    local pkg_sddm="sddm"
     
     if [ -f "$state_file" ]; then
         if confirm "Dank Linux Hyprland detectado. Desinstalar?"; then
@@ -1119,7 +1042,7 @@ de_hyprland_installer() {
     else
         if confirm "Instalar Dank Linux Hyprland?"; then
             curl -fsSL https://install.danklinux.com | sh
-            sudo pacman -S --noconfirm $local_pkg
+            sudo pacman -S --noconfirm $pkg_sddm
             sudo systemctl enable sddm
             touch "$state_file"
         fi
@@ -1231,6 +1154,7 @@ devs_menu() {
 
 discord_installer() {
     local state_file="$STATE_DIR/discord"
+    local pkg_discord="com.discordapp.Discord"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.discordapp.Discord 2>/dev/null; then
         if confirm "Discord detectado. Desinstalar?"; then
@@ -1251,6 +1175,7 @@ discord_installer() {
 
 distroshelf_installer() {
     local state_file="$STATE_DIR/distroshelf"
+    local pkg_distroshelf="com.ranfdev.DistroShelf"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.ranfdev.DistroShelf 2>/dev/null; then
         if confirm "Distroshelf detectado. Desinstalar?"; then
@@ -1272,6 +1197,7 @@ distroshelf_installer() {
 distrobox_adv_installer() {
     local state_file="$STATE_DIR/distrobox_adv"
     local pkg_distrobox="pcsc-lite ccid"
+    local pkg_distroshelf="com.ranfdev.DistroShelf"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.ranfdev.DistroShelf 2>/dev/null; then
         if confirm "Distrobox-Adv detectado. Desinstalar?"; then
@@ -1527,6 +1453,7 @@ earlyoom_installer() {
 
 easyeffects_installer() {
     local state_file="$STATE_DIR/easyeffects"
+    local pkg_easyeffects="com.github.wwmm.easyeffects"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.wwmm.easyeffects 2>/dev/null; then
         if confirm "EasyEffects detectado. Desinstalar?"; then
@@ -1576,6 +1503,7 @@ educacao_menu() {
 
 endlesskey_installer() {
     local state_file="$STATE_DIR/endlesskey"
+    local pkg_endlesskey="org.endlessos.Key"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.endlessos.Key 2>/dev/null; then
         if confirm "Endless Key detectado. Desinstalar?"; then
@@ -1704,6 +1632,7 @@ f3_installer() {
 
 faugus_launcher_installer() {
     local state_file="$STATE_DIR/faugus_launcher"
+    local pkg_faugus="io.github.Faugus.faugus-launcher"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.Faugus.faugus-launcher 2>/dev/null; then
         if confirm "Faugus Launcher detectado. Desinstalar?"; then
@@ -1746,28 +1675,6 @@ fastfetch_installer() {
     fi
 }
 
-
-zellij_installer() {
-    local state_file="$STATE_DIR/zellij"
-    local pkg_zellij="zellij"
-
-    if [ -f "$state_file" ] || pacman -Q zellij &>/dev/null; then
-        if confirm "Zellij detectado. Desinstalar?"; then
-            echo "Desinstalando Zellij..."
-            pacman -Qq zellij &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zellij || true
-            cleanup_files "$state_file"
-            echo "Zellij desinstalado."
-        fi
-    else
-        if confirm "Instalar Zellij?"; then
-            echo "Instalando Zellij..."
-            sudo pacman -S --noconfirm $pkg_zellij
-            touch "$state_file"
-            echo "Zellij instalado."
-        fi
-    fi
-}
-
 ferramentas_menu() {
     while true; do
         clear
@@ -1784,19 +1691,18 @@ ferramentas_menu() {
         echo "10) lazygit"
         echo "11) lazydocker"
         echo "12) libqalculate"
-        echo "13) ly"
-        echo "14) smartmontools"
-        echo "15) superfile"
-        echo "16) XDG Base"
-        echo "17) yt-dlp"
-        echo "18) fzf"
-        echo "19) gdu"
-        echo "20) croc"
-        echo "21) Podman"
-        echo "22) Ollama"
-        echo "23) Voxtype"
-        echo "24) Zellij"
-        echo "25) Voltar"
+        echo "13) smartmontools"
+        echo "14) superfile"
+        echo "15) XDG Base"
+        echo "16) yt-dlp"
+        echo "17) fzf"
+        echo "18) gdu"
+        echo "19) croc"
+        echo "20) Podman"
+        echo "21) Ollama"
+        echo "22) Voxtype"
+        echo "23) Zellij"
+        echo "24) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -1828,7 +1734,7 @@ ferramentas_menu() {
             *) ;;
         esac
 
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 25 ] && read -p "Pressione Enter para continuar..."
+        [ "$opcao" -ge 1 ] && [ "$opcao" -le 23 ] && read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -1849,48 +1755,6 @@ figma_installer() {
             yay -S --noconfirm $pkg_figma
             touch "$state_file"
             echo "Figma instalado."
-        fi
-    fi
-}
-
-opencode_installer() {
-    local state_file="$STATE_DIR/opencode"
-    local pkg_opencode="opencode-bin"
-
-    if [ -f "$state_file" ] || pacman -Q opencode-bin &>/dev/null; then
-        if confirm "Opencode detectado. Desinstalar?"; then
-            echo "Desinstalando Opencode..."
-            pacman -Qq opencode-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_opencode || true
-            cleanup_files "$state_file"
-            echo "Opencode desinstalado."
-        fi
-    else
-        if confirm "Instalar Opencode?"; then
-            echo "Instalando Opencode..."
-            yay -S --noconfirm $pkg_opencode
-            touch "$state_file"
-            echo "Opencode instalado."
-        fi
-    fi
-}
-
-voxtype_installer() {
-    local state_file="$STATE_DIR/voxtype"
-    local pkg_voxtype="voxtype-bin"
-
-    if [ -f "$state_file" ] || pacman -Q voxtype-bin &>/dev/null; then
-        if confirm "Voxtype detectado. Desinstalar?"; then
-            echo "Desinstalando Voxtype..."
-            pacman -Qq voxtype-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_voxtype || true
-            cleanup_files "$state_file"
-            echo "Voxtype desinstalado."
-        fi
-    else
-        if confirm "Instalar Voxtype?"; then
-            echo "Instalando Voxtype..."
-            yay -S --noconfirm $pkg_voxtype
-            touch "$state_file"
-            echo "Voxtype instalado."
         fi
     fi
 }
@@ -2001,6 +1865,7 @@ flatpak_flathub_installer() {
 
 flatseal_installer() {
     local state_file="$STATE_DIR/flatseal"
+    local pkg_flatseal="com.github.tchx84.Flatseal"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.tchx84.Flatseal 2>/dev/null; then
         if confirm "Flatseal detectado. Desinstalar?"; then
@@ -2021,6 +1886,7 @@ flatseal_installer() {
 
 foliate_installer() {
     local state_file="$STATE_DIR/foliate"
+    local pkg_foliate="com.github.johnfactotum.Foliate"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.johnfactotum.Foliate 2>/dev/null; then
         if confirm "Foliate detectado. Desinstalar?"; then
@@ -2041,6 +1907,7 @@ foliate_installer() {
 
 freecad_installer() {
     local state_file="$STATE_DIR/freecad"
+    local pkg_freecad="org.freecad.FreeCAD"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.freecad.FreeCAD 2>/dev/null; then
         if confirm "FreeCAD detectado. Desinstalar?"; then
@@ -2076,6 +1943,27 @@ fwupd_installer() {
             sudo pacman -S --noconfirm $pkg_fwupd
             touch "$state_file"
             echo "Fwupd instalado."
+        fi
+    fi
+}
+
+fzf_installer() {
+    local state_file="$STATE_DIR/fzf"
+    local pkg_fzf="fzf"
+
+    if [ -f "$state_file" ] || pacman -Q fzf &>/dev/null; then
+        if confirm "Fzf detectado. Desinstalar?"; then
+            echo "Desinstalando Fzf..."
+            pacman -Qq fzf &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fzf || true
+            cleanup_files "$state_file"
+            echo "Fzf desinstalado."
+        fi
+    else
+        if confirm "Instalar Fzf?"; then
+            echo "Instalando Fzf..."
+            sudo pacman -S --noconfirm $pkg_fzf
+            touch "$state_file"
+            echo "Fzf instalado."
         fi
     fi
 }
@@ -2126,6 +2014,7 @@ gamescope_installer() {
 
 gcompris_installer() {
     local state_file="$STATE_DIR/gcompris"
+    local pkg_gcompris="org.kde.gcompris"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.kde.gcompris 2>/dev/null; then
         if confirm "GCompris detectado. Desinstalar?"; then
@@ -2144,8 +2033,30 @@ gcompris_installer() {
     fi
 }
 
+gdu_installer() {
+    local state_file="$STATE_DIR/gdu"
+    local pkg_gdu="gdu"
+
+    if [ -f "$state_file" ] || pacman -Q gdu &>/dev/null; then
+        if confirm "Gdu detectado. Desinstalar?"; then
+            echo "Desinstalando Gdu..."
+            pacman -Qq gdu &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_gdu || true
+            cleanup_files "$state_file"
+            echo "Gdu desinstalado."
+        fi
+    else
+        if confirm "Instalar Gdu?"; then
+            echo "Instalando Gdu..."
+            sudo pacman -S --noconfirm $pkg_gdu
+            touch "$state_file"
+            echo "Gdu instalado."
+        fi
+    fi
+}
+
 gearlever_installer() {
     local state_file="$STATE_DIR/gearlever"
+    local pkg_gearlever="it.mijorus.gearlever"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q it.mijorus.gearlever 2>/dev/null; then
         if confirm "Gear Lever detectado. Desinstalar?"; then
@@ -2166,6 +2077,7 @@ gearlever_installer() {
 
 geforce_now_installer() {
     local state_file="$STATE_DIR/geforce_now"
+    local pkg_geforcenow="com.nvidia.geforcenow"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.nvidia.geforcenow 2>/dev/null; then
         if confirm "GeForce NOW detectado. Desinstalar?"; then
@@ -2190,6 +2102,7 @@ geforce_now_installer() {
 
 geogebra_installer() {
     local state_file="$STATE_DIR/geogebra"
+    local pkg_geogebra="org.geogebra.GeoGebra"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.geogebra.GeoGebra 2>/dev/null; then
         if confirm "GeoGebra detectado. Desinstalar?"; then
@@ -2253,6 +2166,7 @@ git_installer() {
 gimp_photogimp_installer() {
     local gimp_state="$STATE_DIR/gimp"
     local photogimp_state="$STATE_DIR/photogimp"
+    local pkg_gimp="org.gimp.GIMP"
     local gimp_config="$HOME/.config/GIMP"
     local gimp_share="$HOME/.local/share/GIMP"
     
@@ -2284,6 +2198,7 @@ gimp_photogimp_installer() {
 
 gnome_boxes_installer() {
     local state_file="$STATE_DIR/gnome_boxes"
+    local pkg_boxes="org.gnome.Boxes"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.gnome.Boxes 2>/dev/null; then
         if confirm "GNOME Boxes detectado. Desinstalar?"; then
@@ -2407,6 +2322,7 @@ grub_btrfs_installer() {
 
 handbrake_installer() {
     local state_file="$STATE_DIR/handbrake"
+    local pkg_handbrake="fr.handbrake.ghb"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q fr.handbrake.ghb 2>/dev/null; then
         if confirm "HandBrake detectado. Desinstalar?"; then
@@ -2427,6 +2343,7 @@ handbrake_installer() {
 
 heroic_games_launcher_installer() {
     local state_file="$STATE_DIR/heroic_games_launcher"
+    local pkg_heroic="com.heroicgameslauncher.hgl"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.heroicgameslauncher.hgl 2>/dev/null; then
         if confirm "Heroic Launcher detectado. Desinstalar?"; then
@@ -2472,6 +2389,7 @@ homebrew_installer() {
 
 httpie_installer() {
     local state_file="$STATE_DIR/httpie"
+    local pkg_httpie="io.httpie.Httpie"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.httpie.Httpie 2>/dev/null; then
         if confirm "HTTPie detectado. Desinstalar?"; then
@@ -2567,6 +2485,7 @@ ides_menu() {
 
 inkscape_installer() {
     local state_file="$STATE_DIR/inkscape"
+    local pkg_inkscape="org.inkscape.Inkscape"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.inkscape.Inkscape 2>/dev/null; then
         if confirm "Inkscape detectado. Desinstalar?"; then
@@ -2608,6 +2527,7 @@ input_remapper_installer() {
 
 insomnia_installer() {
     local state_file="$STATE_DIR/insomnia"
+    local pkg_insomnia="rest.insomnia.Insomnia"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q rest.insomnia.Insomnia 2>/dev/null; then
         if confirm "Insomnia detectado. Desinstalar?"; then
@@ -2783,6 +2703,7 @@ jogos_menu() {
 
 kalzium_installer() {
     local state_file="$STATE_DIR/kalzium"
+    local pkg_kalzium="org.kde.kalzium"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.kde.kalzium 2>/dev/null; then
         if confirm "Kalzium detectado. Desinstalar?"; then
@@ -2803,6 +2724,7 @@ kalzium_installer() {
 
 keepassxc_installer() {
     local state_file="$STATE_DIR/keepassxc"
+    local pkg_keepassxc="org.keepassxc.KeePassXC"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.keepassxc.KeePassXC 2>/dev/null; then
         if confirm "KeePassXC detectado. Desinstalar?"; then
@@ -2823,6 +2745,7 @@ keepassxc_installer() {
 
 kdenlive_installer() {
     local state_file="$STATE_DIR/kdenlive"
+    local pkg_kdenlive="org.kde.kdenlive"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.kde.kdenlive 2>/dev/null; then
         if confirm "Kdenlive detectado. Desinstalar?"; then
@@ -2843,6 +2766,7 @@ kdenlive_installer() {
 
 kicad_installer() {
     local state_file="$STATE_DIR/kicad"
+    local pkg_kicad="org.kicad.KiCad"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.kicad.KiCad 2>/dev/null; then
         if confirm "KiCad detectado. Desinstalar?"; then
@@ -2863,6 +2787,7 @@ kicad_installer() {
 
 kolibri_installer() {
     local state_file="$STATE_DIR/kolibri"
+    local pkg_kolibri="org.learningequality.Kolibri"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.learningequality.Kolibri 2>/dev/null; then
         if confirm "Kolibri detectado. Desinstalar?"; then
@@ -2883,6 +2808,7 @@ kolibri_installer() {
 
 krita_installer() {
     local state_file="$STATE_DIR/krita"
+    local pkg_krita="org.kde.krita"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.kde.krita 2>/dev/null; then
         if confirm "Krita detectado. Desinstalar?"; then
@@ -2903,6 +2829,7 @@ krita_installer() {
 
 lact_installer() {
     local state_file="$STATE_DIR/lact"
+    local pkg_lact="io.github.ilya_zlobintsev.LACT"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.ilya_zlobintsev.LACT 2>/dev/null; then
         if confirm "LACT detectado. Desinstalar?"; then
@@ -2986,6 +2913,7 @@ libqalculate_installer() {
 
 libreoffice_installer() {
     local state_file="$STATE_DIR/libreoffice"
+    local pkg_libreoffice="org.libreoffice.LibreOffice"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.libreoffice.LibreOffice 2>/dev/null; then
         if confirm "LibreOffice detectado. Desinstalar?"; then
@@ -3006,6 +2934,7 @@ libreoffice_installer() {
 
 librewolf_installer() {
     local state_file="$STATE_DIR/librewolf"
+    local pkg_librewolf="io.gitlab.librewolf-community"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.gitlab.librewolf-community 2>/dev/null; then
         if confirm "LibreWolf detectado. Desinstalar?"; then
@@ -3026,6 +2955,7 @@ librewolf_installer() {
 
 logseq_installer() {
     local state_file="$STATE_DIR/logseq"
+    local pkg_logseq="com.logseq.Logseq"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.logseq.Logseq 2>/dev/null; then
         if confirm "LogSEQ detectado. Desinstalar?"; then
@@ -3088,6 +3018,7 @@ lucidglyph_installer() {
 
 lutris_installer() {
     local state_file="$STATE_DIR/lutris"
+    local pkg_lutris="net.lutris.Lutris"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q net.lutris.Lutris 2>/dev/null; then
         if confirm "Lutris detectado. Desinstalar?"; then
@@ -3109,6 +3040,7 @@ lutris_installer() {
 mangojuice_installer() {
     local state_file="$STATE_DIR/mangojuice"
     local pkg_mangohud="mangohud"
+    local pkg_mangojuice="io.github.radiolamp.mangojuice"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.radiolamp.mangojuice 2>/dev/null; then
         if confirm "MangoJuice detectado. Desinstalar?"; then
@@ -3153,6 +3085,7 @@ maven_installer() {
 
 microsoft_teams_installer() {
     local state_file="$STATE_DIR/microsoft_teams"
+    local pkg_teams="com.github.IsmaelMartinez.teams_for_linux"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.IsmaelMartinez.teams_for_linux 2>/dev/null; then
         if confirm "Microsoft Teams detectado. Desinstalar?"; then
@@ -3173,6 +3106,7 @@ microsoft_teams_installer() {
 
 minecraft_bedrock_launcher_installer() {
     local state_file="$STATE_DIR/minecraft_bedrock_launcher"
+    local pkg_minecraft="io.mrarm.mcpelauncher"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.mrarm.mcpelauncher 2>/dev/null; then
         if confirm "Minecraft Bedrock Launcher detectado. Desinstalar?"; then
@@ -3239,6 +3173,7 @@ mise_installer() {
 
 missioncenter_installer() {
     local state_file="$STATE_DIR/missioncenter"
+    local pkg_missioncenter="io.missioncenter.MissionCenter"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.missioncenter.MissionCenter 2>/dev/null; then
         if confirm "Mission Center detectado. Desinstalar?"; then
@@ -3284,71 +3219,9 @@ modern_unix_installer() {
     fi
 }
 
-croc_installer() {
-    local state_file="$STATE_DIR/croc"
-    local pkg_croc="croc"
-
-    if [ -f "$state_file" ] || pacman -Q croc &>/dev/null; then
-        if confirm "Croc detectado. Desinstalar?"; then
-            echo "Desinstalando Croc..."
-            pacman -Qq croc &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_croc || true
-            cleanup_files "$state_file"
-            echo "Croc desinstalado."
-        fi
-    else
-        if confirm "Instalar Croc?"; then
-            echo "Instalando Croc..."
-            sudo pacman -S --noconfirm $pkg_croc
-            touch "$state_file"
-            echo "Croc instalado."
-        fi
-    fi
-}
-
-gdu_installer() {
-    local state_file="$STATE_DIR/gdu"
-    local pkg_gdu="gdu"
-
-    if [ -f "$state_file" ] || pacman -Q gdu &>/dev/null; then
-        if confirm "Gdu detectado. Desinstalar?"; then
-            echo "Desinstalando Gdu..."
-            pacman -Qq gdu &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_gdu || true
-            cleanup_files "$state_file"
-            echo "Gdu desinstalado."
-        fi
-    else
-        if confirm "Instalar Gdu?"; then
-            echo "Instalando Gdu..."
-            sudo pacman -S --noconfirm $pkg_gdu
-            touch "$state_file"
-            echo "Gdu instalado."
-        fi
-    fi
-}
-
-fzf_installer() {
-    local state_file="$STATE_DIR/fzf"
-    local pkg_fzf="fzf"
-
-    if [ -f "$state_file" ] || pacman -Q fzf &>/dev/null; then
-        if confirm "Fzf detectado. Desinstalar?"; then
-            echo "Desinstalando Fzf..."
-            pacman -Qq fzf &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fzf || true
-            cleanup_files "$state_file"
-            echo "Fzf desinstalado."
-        fi
-    else
-        if confirm "Instalar Fzf?"; then
-            echo "Instalando Fzf..."
-            sudo pacman -S --noconfirm $pkg_fzf
-            touch "$state_file"
-            echo "Fzf instalado."
-        fi
-    fi
-}
-
 moonlight_installer() {
     local state_file="$STATE_DIR/moonlight"
+    local pkg_moonlight="com.moonlight_stream.Moonlight"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.moonlight_stream.Moonlight 2>/dev/null; then
         if confirm "Moonlight detectado. Desinstalar?"; then
@@ -3368,7 +3241,7 @@ moonlight_installer() {
 }
 
 mscorefonts_installer() {
-    local state_file="$STATE_DIR/fzf"
+    local state_file="$STATE_DIR/mscorefonts"
     local pkg_mscorefonts="ttf-ms-fonts"
 
     if [ -f "$state_file" ] || pacman -Q ttf-ms-fonts &>/dev/null; then
@@ -3390,6 +3263,7 @@ mscorefonts_installer() {
 
 mullvad_browser_installer() {
     local state_file="$STATE_DIR/mullvad_browser"
+    local pkg_mullvad="net.mullvad.MullvadBrowser"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q net.mullvad.MullvadBrowser 2>/dev/null; then
         if confirm "Mullvad Browser detectado. Desinstalar?"; then
@@ -3474,16 +3348,16 @@ nordvpn_installer() {
 nvim_lazyvim_installer() {
     local nvim_state="$STATE_DIR/nvim"
     local lazyvim_state="$STATE_DIR/nvim_lazyvim"
-    local_pkg="neovim"
+    local pkg_neovim="neovim"
     local nvim_dir="$HOME/.config/nvim"
     
     if [ -f "$nvim_state" ] || pacman -Q neovim &>/dev/null; then
         if confirm "NeoVim detectado. Desinstalar?"; then
-            pacman -Qq neovim &>/dev/null && sudo pacman -Rsnu --noconfirm $local_pkg
+            pacman -Qq neovim &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_neovim
             cleanup_files "$nvim_state" "$lazyvim_state"
         fi
     elif confirm "Instalar NeoVim?"; then
-        sudo pacman -S --noconfirm $local_pkg
+        sudo pacman -S --noconfirm $pkg_neovim
         touch "$nvim_state"
         
         if [ -f "$lazyvim_state" ] || [ -d "$nvim_dir" ]; then
@@ -3624,17 +3498,17 @@ nvidia_proprietary_menu() {
 
 nvidia_v470_installer() {
     local state_file="$STATE_DIR/nvidia_v470"
-    local_pkg="nvidia-470xx-dkms nvidia-470xx-utils nvidia-470xx-settings"
+    local pkg_nvidia="nvidia-470xx-dkms nvidia-470xx-utils nvidia-470xx-settings"
     
     if [ -f "$state_file" ] || pacman -Q nvidia-470xx-dkms &>/dev/null; then
         if confirm "Nvidia Drivers v470 detectado. Desinstalar?"; then
-            pacman -Qq nvidia-470xx-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $local_pkg
+            pacman -Qq nvidia-470xx-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_nvidia
             sudo rm -f /etc/modprobe.d/10-nvidia.conf
             cleanup_files "$state_file"
         fi
     else
         if confirm "Instalar Nvidia Drivers v470?"; then
-            sudo pacman -S --noconfirm $local_pkg
+            sudo pacman -S --noconfirm $pkg_nvidia
             curl -s https://raw.githubusercontent.com/psygreg/linuxtoys/master/resources/10-nvidia.conf | sudo tee /etc/modprobe.d/10-nvidia.conf > /dev/null
             sudo mkinitcpio -P
             touch "$state_file"
@@ -3665,19 +3539,20 @@ nvm_installer() {
 
 obs_installer() {
     local state_file="$STATE_DIR/obs"
-    local_pkg="wireplumber xorg-xwayland"
+    local pkg_wireplumber="wireplumber xorg-xwayland"
+    local pkg_obs="com.obsproject.Studio"
     
     if [ -f "$state_file" ] || flatpak list --app --columns=application | grep -q "com.obsproject.Studio"; then
         if confirm "OBS Studio detectado. Desinstalar?"; then
             flatpak remove --user -y --noninteractive com.obsproject.Studio
             cleanup_files "$state_file" "$HOME/.var/app/com.obsproject.Studio"
             if confirm "Desinstalar também wireplumber e xorg-xwayland?"; then
-                sudo pacman -Rns --noconfirm $local_pkg
+                sudo pacman -Rns --noconfirm $pkg_wireplumber
             fi
         fi
     elif confirm "Instalar OBS Studio?"; then
         if confirm "Instalar plugins recomendados (pipewire audio capture)?"; then
-            sudo pacman -S --noconfirm $local_pkg
+            sudo pacman -S --noconfirm $pkg_wireplumber
             flatpak install --user -y --noninteractive flathub com.obsproject.Studio
             
             local ver=$(curl -s "https://api.github.com/repos/dimtpap/obs-pipewire-audio-capture/releases/latest" | grep -oP '"tag_name": "\K(.*)(?=")')
@@ -3700,6 +3575,7 @@ obs_installer() {
 
 obsidian_installer() {
     local state_file="$STATE_DIR/obsidian"
+    local pkg_obsidian="md.obsidian.Obsidian"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q md.obsidian.Obsidian 2>/dev/null; then
         if confirm "Obsidian detectado. Desinstalar?"; then
@@ -3791,8 +3667,121 @@ oh_my_bash_installer() {
     fi
 }
 
+ollama_cuda_installer() {
+    local state_file="$STATE_DIR/ollama_cuda"
+    local pkg_ollamac="ollama-cuda"
+
+    if [ -f "$state_file" ] || pacman -Q ollama-cuda &>/dev/null; then
+        if confirm "Ollama Cuda detectado. Desinstalar?"; then
+            echo "Desinstalando Ollama Cuda..."
+            pacman -Qq ollama-cuda &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ollamac || true
+            cleanup_files "$state_file"
+            echo "Ollama Cuda desinstalado."
+        fi
+    else
+        if confirm "Instalar Ollama Cuda?"; then
+            echo "Instalando Ollama Cuda..."
+            sudo pacman -S --noconfirm $pkg_ollamac
+            touch "$state_file"
+            echo "Ollama Cuda instalado."
+        fi
+    fi
+}
+
+ollama_installer() {
+    local state_file="$STATE_DIR/ollama"
+    local pkg_ollama="ollama"
+
+    if [ -f "$state_file" ] || pacman -Q ollama &>/dev/null; then
+        if confirm "Ollama detectado. Desinstalar?"; then
+            echo "Desinstalando Ollama..."
+            sudo systemctl stop ollama.service 2>/dev/null || true
+            sudo systemctl disable ollama.service 2>/dev/null || true
+            pacman -Qq ollama &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ollama || true
+            cleanup_files "$state_file"
+            echo "Ollama desinstalado."
+        fi
+    else
+        if confirm "Instalar Ollama?"; then
+            echo "Instalando Ollama..."
+            sudo pacman -S --noconfirm $pkg_ollama
+            sudo systemctl enable --now ollama.service
+            touch "$state_file"
+            echo "Ollama instalado."
+        fi
+    fi
+}
+
+ollama_menu() {
+    while true; do
+        clear
+        echo "=== Ollama ==="
+        echo "1) Instalar Ollama"
+        echo "2) Instalar Ollama Cuda"
+        echo "3) Instalar Ollama Rocm"
+        echo "4) Instalar Ollama Vulkan"
+        echo "5) Voltar"
+        echo
+        read -p "Selecione uma opção: " opcao
+
+        case $opcao in
+            1) clear; ollama_installer ;;
+            2) clear; ollama_cuda_installer ;;
+            3) clear; ollama_rocm_installer ;;
+            4) clear; ollama_vulkan_installer ;;
+            5) return ;;
+            *) ;;
+        esac
+
+        [ "$opcao" -ge 1 ] && [ "$opcao" -le 4 ] && read -p "Pressione Enter para continuar..."
+    done
+}
+
+ollama_rocm_installer() {
+    local state_file="$STATE_DIR/ollama_rocm"
+    local pkg_ollamar="ollama-rocm"
+
+    if [ -f "$state_file" ] || pacman -Q ollama-rocm &>/dev/null; then
+        if confirm "Ollama Rocm detectado. Desinstalar?"; then
+            echo "Desinstalando Ollama Rocm..."
+            pacman -Qq ollama-rocm &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ollamar || true
+            cleanup_files "$state_file"
+            echo "Ollama Rocm desinstalado."
+        fi
+    else
+        if confirm "Instalar Ollama Rocm?"; then
+            echo "Instalando Ollama Rocm..."
+            sudo pacman -S --noconfirm $pkg_ollamar
+            touch "$state_file"
+            echo "Ollama Rocm instalado."
+        fi
+    fi
+}
+
+ollama_vulkan_installer() {
+    local state_file="$STATE_DIR/ollama_vulkan"
+    local pkg_ollamav="ollama-vulkan"
+
+    if [ -f "$state_file" ] || pacman -Q ollama-vulkan &>/dev/null; then
+        if confirm "Ollama Vulkan detectado. Desinstalar?"; then
+            echo "Desinstalando Ollama Vulkan..."
+            pacman -Qq ollama-vulkan &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ollamav || true
+            cleanup_files "$state_file"
+            echo "Ollama Vulkan desinstalado."
+        fi
+    else
+        if confirm "Instalar Ollama Vulkan?"; then
+            echo "Instalando Ollama Vulkan..."
+            sudo pacman -S --noconfirm $pkg_ollamav
+            touch "$state_file"
+            echo "Ollama Vulkan instalado."
+        fi
+    fi
+}
+
 onlyoffice_installer() {
     local state_file="$STATE_DIR/onlyoffice"
+    local pkg_onlyoffice="org.onlyoffice.desktopeditors"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.onlyoffice.desktopeditors 2>/dev/null; then
         if confirm "OnlyOffice detectado. Desinstalar?"; then
@@ -3807,6 +3796,27 @@ onlyoffice_installer() {
             flatpak install --or-update --user --noninteractive flathub org.onlyoffice.desktopeditors
             touch "$state_file"
             echo "OnlyOffice instalado."
+        fi
+    fi
+}
+
+opencode_installer() {
+    local state_file="$STATE_DIR/opencode"
+    local pkg_opencode="opencode-bin"
+
+    if [ -f "$state_file" ] || pacman -Q opencode-bin &>/dev/null; then
+        if confirm "Opencode detectado. Desinstalar?"; then
+            echo "Desinstalando Opencode..."
+            pacman -Qq opencode-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_opencode || true
+            cleanup_files "$state_file"
+            echo "Opencode desinstalado."
+        fi
+    else
+        if confirm "Instalar Opencode?"; then
+            echo "Instalando Opencode..."
+            yay -S --noconfirm $pkg_opencode
+            touch "$state_file"
+            echo "Opencode instalado."
         fi
     fi
 }
@@ -3837,6 +3847,7 @@ openlinkhub_installer() {
 
 openrgb_installer() {
     local state_file="$STATE_DIR/openrgb"
+    local pkg_openrgb="org.openrgb.OpenRGB"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.openrgb.OpenRGB 2>/dev/null; then
         if confirm "OpenRGB detectado. Desinstalar?"; then
@@ -3879,6 +3890,7 @@ openrazer_installer() {
 
 optimusui_installer() {
     local state_file="$STATE_DIR/optimusui"
+    local pkg_optimusui="de.z_ray.OptimusUI"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q de.z_ray.OptimusUI 2>/dev/null; then
         if confirm "OptimusUI detectado. Desinstalar?"; then
@@ -3899,6 +3911,7 @@ optimusui_installer() {
 
 osu_installer() {
     local state_file="$STATE_DIR/osu"
+    local pkg_osu="sh.ppy.osu"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q sh.ppy.osu 2>/dev/null; then
         if confirm "Osu! detectado. Desinstalar?"; then
@@ -3919,6 +3932,7 @@ osu_installer() {
 
 oversteer_installer() {
     local state_file="$STATE_DIR/oversteer"
+    local pkg_oversteer="io.github.berarma.Oversteer"
     
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.berarma.Oversteer 2>/dev/null; then
         if confirm "Oversteer detectado. Desinstalar?"; then
@@ -3962,6 +3976,7 @@ paru_installer() {
 
 peazip_installer() {
     local state_file="$STATE_DIR/peazip"
+    local pkg_peazip="io.github.peazip.PeaZip"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.peazip.PeaZip 2>/dev/null; then
         if confirm "PeaZip detectado. Desinstalar?"; then
@@ -4092,6 +4107,7 @@ pessoal_media_installer() {
 
 pika_backup_installer() {
     local state_file="$STATE_DIR/pika_backup"
+    local pkg_pika="org.gnome.World.PikaBackup"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.gnome.World.PikaBackup 2>/dev/null; then
         if confirm "Pika Backup detectado. Desinstalar?"; then
@@ -4112,6 +4128,7 @@ pika_backup_installer() {
 
 pinta_installer() {
     local state_file="$STATE_DIR/pinta"
+    local pkg_pinta="com.github.PintaProject.Pinta"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.PintaProject.Pinta 2>/dev/null; then
         if confirm "Pinta detectado. Desinstalar?"; then
@@ -4132,6 +4149,7 @@ pinta_installer() {
 
 piper_installer() {
     local state_file="$STATE_DIR/piper"
+    local pkg_piper="org.freedesktop.Piper"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.freedesktop.Piper 2>/dev/null; then
         if confirm "Piper detectado. Desinstalar?"; then
@@ -4239,6 +4257,7 @@ portainer_installer() {
 
 postman_installer() {
     local state_file="$STATE_DIR/postman"
+    local pkg_postman="com.getpostman.Postman"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.getpostman.Postman 2>/dev/null; then
         if confirm "Postman detectado. Desinstalar?"; then
@@ -4286,6 +4305,7 @@ preload_installer() {
 
 prism_launcher_installer() {
     local state_file="$STATE_DIR/prism_launcher"
+    local pkg_prism="org.prismlauncher.PrismLauncher"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.prismlauncher.PrismLauncher 2>/dev/null; then
         if confirm "Prism Launcher detectado. Desinstalar?"; then
@@ -4355,6 +4375,7 @@ privacidade_menu() {
 
 protonplus_installer() {
     local state_file="$STATE_DIR/protonplus"
+    local pkg_protonplus="com.vysp3r.ProtonPlus"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.vysp3r.ProtonPlus 2>/dev/null; then
         if confirm "ProtonPlus detectado. Desinstalar?"; then
@@ -4375,6 +4396,7 @@ protonplus_installer() {
 
 protonvpn_installer() {
     local state_file="$STATE_DIR/protonvpn"
+    local pkg_protonvpn="com.protonvpn.www"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.protonvpn.www 2>/dev/null; then
         if confirm "ProtonVPN detectado. Desinstalar?"; then
@@ -4395,6 +4417,7 @@ protonvpn_installer() {
 
 protontricks_installer() {
     local state_file="$STATE_DIR/protontricks"
+    local pkg_protontricks="com.github.Matoking.protontricks"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.Matoking.protontricks 2>/dev/null; then
         if confirm "Protontricks detectado. Desinstalar?"; then
@@ -4415,6 +4438,7 @@ protontricks_installer() {
 
 protonup_installer() {
     local state_file="$STATE_DIR/protonup"
+    local pkg_protonup="net.davidotek.pupgui2"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q net.davidotek.pupgui2 2>/dev/null; then
         if confirm "ProtonUp detectado. Desinstalar?"; then
@@ -4503,6 +4527,7 @@ WantedBy=multi-user.target' | sudo tee /etc/systemd/system/powersave.service >/d
 
 pwgraph_installer() {
     local state_file="$STATE_DIR/pwgraph"
+    local pkg_pwgraph="org.rncbc.qpwgraph"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.rncbc.qpwgraph 2>/dev/null; then
         if confirm "QPWGraph detectado. Desinstalar?"; then
@@ -4544,6 +4569,7 @@ pyenv_installer() {
 
 rcloneui_installer() {
     local state_file="$STATE_DIR/rcloneui"
+    local pkg_rcloneui="com.rcloneui.RcloneUI"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.rcloneui.RcloneUI 2>/dev/null; then
         if confirm "Rclone UI detectado. Desinstalar?"; then
@@ -4562,7 +4588,7 @@ rcloneui_installer() {
     fi
 }
 
-realtek_8821ce_installer() {
+realtek_wifi_installer() {
     local state_file="$STATE_DIR/rtl8821ce"
     local pkg_rtl8821ce="rtl8821ce-dkms-git"
 
@@ -4620,6 +4646,7 @@ repositorios_menu() {
 
 s3drive_installer() {
     local state_file="$STATE_DIR/s3drive"
+    local pkg_s3drive="io.kapsa.drive"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.kapsa.drive 2>/dev/null; then
         if confirm "S3Drive detectado. Desinstalar?"; then
@@ -4640,7 +4667,7 @@ s3drive_installer() {
 
 sdkman_installer() {
     local state_file="$STATE_DIR/sdkman"
-    local_pkg="unzip zip"
+    local pkg_unzip="unzip zip"
     
     if [ -f "$state_file" ] || [ -d "$HOME/.sdkman" ]; then
         if confirm "Sdkman detectado. Desinstalar?"; then
@@ -4649,13 +4676,13 @@ sdkman_installer() {
             [ -f ~/.zshrc ] && sed -i '/SDKMAN/d' ~/.zshrc
             [ -f ~/.config/fish/config.fish ] && sed -i '/SDKMAN/d' ~/.config/fish/config.fish
             if confirm "Desinstalar também unzip e zip?"; then
-                sudo pacman -Rns --noconfirm $local_pkg
+                sudo pacman -Rns --noconfirm $pkg_unzip
             fi
             cleanup_files "$state_file"
         fi
     else
         if confirm "Instalar Sdkman?"; then
-            sudo pacman -S --noconfirm $local_pkg
+            sudo pacman -S --noconfirm $pkg_unzip
             curl -s "https://get.sdkman.io" | bash
             touch "$state_file"
         fi
@@ -4697,6 +4724,7 @@ shader_booster_installer() {
 
 signal_installer() {
     local state_file="$STATE_DIR/signal"
+    local pkg_signal="org.signal.Signal"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.signal.Signal 2>/dev/null; then
         if confirm "Signal detectado. Desinstalar?"; then
@@ -4717,6 +4745,7 @@ signal_installer() {
 
 sirikali_installer() {
     local state_file="$STATE_DIR/sirikali"
+    local pkg_sirikali="io.github.mhogomchungu.sirikali"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.mhogomchungu.sirikali 2>/dev/null; then
         if confirm "SiriKali detectado. Desinstalar?"; then
@@ -4737,6 +4766,7 @@ sirikali_installer() {
 
 slack_installer() {
     local state_file="$STATE_DIR/slack"
+    local pkg_slack="com.slack.Slack"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.slack.Slack 2>/dev/null; then
         if confirm "Slack detectado. Desinstalar?"; then
@@ -4778,6 +4808,7 @@ smartmontools_installer() {
 
 sober_installer() {
     local state_file="$STATE_DIR/sober"
+    local pkg_sober="org.vinegarhq.Sober"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.vinegarhq.Sober 2>/dev/null; then
         if confirm "Sober detectado. Desinstalar?"; then
@@ -4896,6 +4927,7 @@ steam_installer() {
 
 stellarium_installer() {
     local state_file="$STATE_DIR/stellarium"
+    local pkg_stellarium="org.stellarium.Stellarium"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.stellarium.Stellarium 2>/dev/null; then
         if confirm "Stellarium detectado. Desinstalar?"; then
@@ -4940,6 +4972,7 @@ stirlingpdf_installer() {
 
 streamcontroller_installer() {
     local state_file="$STATE_DIR/streamcontroller"
+    local pkg_streamcontroller="com.core447.StreamController"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.core447.StreamController 2>/dev/null; then
         if confirm "StreamController detectado. Desinstalar?"; then
@@ -4960,11 +4993,11 @@ streamcontroller_installer() {
 
 sublime_text_installer() {
     local state_file="$STATE_DIR/sublime_text"
-    local_pkg="sublime-text"
+    local pkg_sublime="sublime-text"
     
     if [ -f "$state_file" ] || pacman -Q sublime-text &>/dev/null; then
         if confirm "Sublime Text detectado. Desinstalar?"; then
-            pacman -Qq sublime-text &>/dev/null && sudo pacman -Rsnu --noconfirm $local_pkg
+            pacman -Qq sublime-text &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_sublime
             sudo sed -i '/\[sublime-text\]/,+3d' /etc/pacman.conf
             sudo pacman-key --delete 8A8F901A
             cleanup_files "$state_file"
@@ -4973,7 +5006,7 @@ sublime_text_installer() {
         if confirm "Instalar Sublime Text?"; then
             curl -O https://download.sublimetext.com/sublimehq-pub.gpg && sudo pacman-key --add sublimehq-pub.gpg && sudo pacman-key --lsign-key 8A8F901A && rm sublimehq-pub.gpg
             echo -e "\n[sublime-text]\nServer = https://download.sublimetext.com/arch/stable/x86_64" | sudo tee -a /etc/pacman.conf
-            sudo pacman -S --noconfirm $local_pkg
+            sudo pacman -S --noconfirm $pkg_sublime
             touch "$state_file"
         fi
     fi
@@ -4981,6 +5014,7 @@ sublime_text_installer() {
 
 sunshine_installer() {
     local state_file="$STATE_DIR/sunshine"
+    local pkg_sunshine="dev.lizardbyte.app.Sunshine"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q dev.lizardbyte.app.Sunshine 2>/dev/null; then
         if confirm "Sunshine detectado. Desinstalar?"; then
@@ -5023,6 +5057,7 @@ superfile_installer() {
 
 surfsharkvpn_installer() {
     local state_file="$STATE_DIR/surfsharkvpn"
+    local pkg_surfshark="com.surfshark.Surfshark"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.surfshark.Surfshark 2>/dev/null; then
         if confirm "Surfshark VPN detectado. Desinstalar?"; then
@@ -5146,6 +5181,7 @@ tailscale_installer() {
 
 telegram_installer() {
     local state_file="$STATE_DIR/telegram"
+    local pkg_telegram="org.telegram.desktop"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.telegram.desktop 2>/dev/null; then
         if confirm "Telegram detectado. Desinstalar?"; then
@@ -5166,6 +5202,7 @@ telegram_installer() {
 
 termius_installer() {
     local state_file="$STATE_DIR/termius"
+    local pkg_termius="com.termius.Termius"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.termius.Termius 2>/dev/null; then
         if confirm "Termius detectado. Desinstalar?"; then
@@ -5262,6 +5299,7 @@ ufw_installer() {
 
 ungoogled_chromium_installer() {
     local state_file="$STATE_DIR/ungoogled_chromium"
+    local pkg_chromium="io.github.ungoogled_software.ungoogled_chromium"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.ungoogled_software.ungoogled_chromium 2>/dev/null; then
         if confirm "Ungoogled Chromium detectado. Desinstalar?"; then
@@ -5282,6 +5320,7 @@ ungoogled_chromium_installer() {
 
 unmojang_installer() {
     local state_file="$STATE_DIR/unmojang"
+    local pkg_fjord="org.unmojang.FjordLauncher"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.unmojang.FjordLauncher 2>/dev/null; then
         if confirm "Fjord Launcher detectado. Desinstalar?"; then
@@ -5364,6 +5403,7 @@ utilidades_menu() {
 
 vinegar_installer() {
     local state_file="$STATE_DIR/vinegar"
+    local pkg_vinegar="org.vinegarhq.Vinegar"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.vinegarhq.Vinegar 2>/dev/null; then
         if confirm "Vinegar detectado. Desinstalar?"; then
@@ -5403,6 +5443,27 @@ vlc_installer() {
     fi
 }
 
+voxtype_installer() {
+    local state_file="$STATE_DIR/voxtype"
+    local pkg_voxtype="voxtype-bin"
+
+    if [ -f "$state_file" ] || pacman -Q voxtype-bin &>/dev/null; then
+        if confirm "Voxtype detectado. Desinstalar?"; then
+            echo "Desinstalando Voxtype..."
+            pacman -Qq voxtype-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_voxtype || true
+            cleanup_files "$state_file"
+            echo "Voxtype desinstalado."
+        fi
+    else
+        if confirm "Instalar Voxtype?"; then
+            echo "Instalando Voxtype..."
+            yay -S --noconfirm $pkg_voxtype
+            touch "$state_file"
+            echo "Voxtype instalado."
+        fi
+    fi
+}
+
 vscode_installer() {
     local state_file="$STATE_DIR/vscode"
     local pkg_vscode="visual-studio-code-bin"
@@ -5426,6 +5487,7 @@ vscode_installer() {
 
 vscodium_installer() {
     local state_file="$STATE_DIR/vscodium"
+    local pkg_vscodium="com.vscodium.codium"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.vscodium.codium 2>/dev/null; then
         if confirm "VSCodium detectado. Desinstalar?"; then
@@ -5446,6 +5508,7 @@ vscodium_installer() {
 
 warehouse_installer() {
     local state_file="$STATE_DIR/warehouse"
+    local pkg_warehouse="io.github.flattool.Warehouse"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.flattool.Warehouse 2>/dev/null; then
         if confirm "Warehouse detectado. Desinstalar?"; then
@@ -5557,6 +5620,7 @@ wireguard_installer() {
 
 wivrn_installer() {
     local state_file="$STATE_DIR/wivrn"
+    local pkg_wivrn="io.github.wivrn.wivrn"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.wivrn.wivrn 2>/dev/null; then
         if confirm "WiVRn detectado. Desinstalar?"; then
@@ -5661,6 +5725,7 @@ yt_dlp_installer() {
 
 zapzap_installer() {
     local state_file="$STATE_DIR/zapzap"
+    local pkg_zapzap="com.rtosta.zapzap"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.rtosta.zapzap 2>/dev/null; then
         if confirm "ZapZap detectado. Desinstalar?"; then
@@ -5681,6 +5746,7 @@ zapzap_installer() {
 
 zed_installer() {
     local state_file="$STATE_DIR/zed"
+    local pkg_zed="dev.zed.Zed"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q dev.zed.Zed 2>/dev/null; then
         if confirm "Zed detectado. Desinstalar?"; then
@@ -5699,8 +5765,30 @@ zed_installer() {
     fi
 }
 
+zellij_installer() {
+    local state_file="$STATE_DIR/zellij"
+    local pkg_zellij="zellij"
+
+    if [ -f "$state_file" ] || pacman -Q zellij &>/dev/null; then
+        if confirm "Zellij detectado. Desinstalar?"; then
+            echo "Desinstalando Zellij..."
+            pacman -Qq zellij &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zellij || true
+            cleanup_files "$state_file"
+            echo "Zellij desinstalado."
+        fi
+    else
+        if confirm "Instalar Zellij?"; then
+            echo "Instalando Zellij..."
+            sudo pacman -S --noconfirm $pkg_zellij
+            touch "$state_file"
+            echo "Zellij instalado."
+        fi
+    fi
+}
+
 zen_browser_installer() {
     local state_file="$STATE_DIR/zen_browser"
+    local pkg_zen="com.github.casualsnek.zenbrowser"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.casualsnek.zenbrowser 2>/dev/null; then
         if confirm "Zen Browser detectado. Desinstalar?"; then
@@ -5744,53 +5832,24 @@ zerotier_installer() {
 }
 
 zsh_ohmyzsh_installer() {
-    local zsh_state="$STATE_DIR/zsh"
-    local ohmyzsh_state="$STATE_DIR/oh_my_zsh"
-    local_pkg="zsh curl git"
-    
-    if [ -f "$zsh_state" ] || pacman -Q zsh &>/dev/null; then
+    local state_file="$STATE_DIR/zsh_ohmyzsh"
+    local pkg_zsh="zsh"
+    local pkg_ohmyzsh="oh-my-zsh-git"
+    local zsh_dir="$HOME/.oh-my-zsh"
+
+    if [ -f "$state_file" ] || pacman -Q zsh &>/dev/null; then
         if confirm "Zsh detectado. Desinstalar?"; then
-            pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $local_pkg
+            pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zsh $pkg_ohmyzsh || true
+            [ -d "$zsh_dir" ] && rm -rf "$zsh_dir"
             sudo chsh -s "$(which bash)" "$USER"
-            cleanup_files "$zsh_state" "$ohmyzsh_state"
-        fi
-    elif confirm "Instalar Zsh?"; then
-        sudo pacman -S --noconfirm $local_pkg
-        sudo chsh -s "$(which zsh)" "$USER"
-        touch "$zsh_state"
-        
-        if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
-            if confirm "Oh My Zsh detectado. Desinstalar?"; then
-                [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
-                cleanup_files "$ohmyzsh_state"
-            fi
-        elif confirm "Instalar Oh My Zsh?"; then
-            if [ -d "$HOME/.oh-my-zsh" ]; then
-                rm -rf "$HOME/.oh-my-zsh"
-            fi
-            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-            touch "$ohmyzsh_state"
-        fi
-    fi
-}
-
-distrobox_installer() {
-    local state_file="$STATE_DIR/distrobox"
-    local pkg_distrobox="distrobox"
-
-    if [ -f "$state_file" ] || pacman -Q distrobox &>/dev/null; then
-        if confirm "distrobox detectado. Desinstalar?"; then
-            echo "Desinstalando distrobox..."
-            pacman -Qq distrobox &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_distrobox || true
             cleanup_files "$state_file"
-            echo "distrobox desinstalado."
         fi
     else
-        if confirm "Instalar distrobox?"; then
-            echo "Instalando distrobox..."
-            sudo pacman -S --noconfirm $pkg_distrobox
+        if confirm "Instalar Zsh + Oh My Zsh?"; then
+            sudo pacman -S --noconfirm $pkg_zsh
+            yay -S --noconfirm $pkg_ohmyzsh
+            sudo chsh -s "$(which zsh)" "$USER"
             touch "$state_file"
-            echo "distrobox instalado."
         fi
     fi
 }
@@ -5832,9 +5891,11 @@ main_menu() {
             12) repositorios_menu ;;
             13) social_menu ;;
             14) utilidades_menu ;;
-            15) echo "Até logo!"; exit 0 ;;
+            15) exit 0 ;;
             *) ;;
         esac
+
+        [ "$opcao" -ge 1 ] && [ "$opcao" -le 14 ] && read -p "Pressione Enter para continuar..."
     done
 }
 
