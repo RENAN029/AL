@@ -5675,14 +5675,14 @@ zed_installer() {
     if [ -f "$state_file" ] || pacman -Q zed &>/dev/null; then
         if confirm "Zed detectado. Desinstalar?"; then
             echo "Desinstalando Zed..."
-            pacman -Qq zed &>/dev/null && yay -Rsnu --noconfirm $pkg_zed || true
+            pacman -Qq zed &>/dev/null && sudo pacman -S -Rsnu --noconfirm $pkg_zed || true
             cleanup_files "$state_file"
             echo "Zed desinstalado."
         fi
     else
         if confirm "Instalar Zed?"; then
             echo "Instalando Zed..."
-            yay -S --noconfirm $pkg_zed
+            sudo pacman -S --noconfirm $pkg_zed
             touch "$state_file"
             echo "Zed instalado."
         fi
