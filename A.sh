@@ -69,8 +69,7 @@ admin_menu() {
             6) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 5 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -486,8 +485,7 @@ broadcom_wifi_menu() {
             3) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 2 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -978,8 +976,7 @@ davinci_resolve_menu() {
             3) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 2 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -1067,8 +1064,7 @@ de_installer() {
             5) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 4 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -1145,8 +1141,7 @@ devs_menu() {
             20) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 19 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -1382,8 +1377,7 @@ drivers_menu() {
             9) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 8 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -1490,8 +1484,7 @@ educacao_menu() {
             7) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 6 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -1596,8 +1589,7 @@ extras_menu() {
             23) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 22 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -1735,8 +1727,7 @@ ferramentas_menu() {
             29) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 28 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -1766,16 +1757,17 @@ fish_fisher_installer() {
     local fisher_state="$STATE_DIR/fisher"
     local pkg_fish="fish"
     local pkg_fisher="fisher"
+    local fish_installed=0
 
     if [ -f "$fish_state" ] || pacman -Q fish &>/dev/null; then
+        fish_installed=1
         if confirm "Fish Shell detectado. Desinstalar?"; then
-            pacman -Qq fish &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fish || true
+            echo "Desinstalando Fish Shell..."
             if [ -f "$fisher_state" ] || pacman -Q fisher &>/dev/null; then
-                if confirm "Fisher detectado. Desinstalar também?"; then
-                    pacman -Qq fisher &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fisher || true
-                    cleanup_files "$fisher_state"
-                fi
+                pacman -Qq fisher &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fisher || true
+                cleanup_files "$fisher_state"
             fi
+            pacman -Qq fish &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fish || true
             sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
             cleanup_files "$fish_state" "$HOME/.config/fish"
             echo "Fish Shell desinstalado."
@@ -1787,18 +1779,24 @@ fish_fisher_installer() {
         mkdir -p ~/.config/fish
         echo "set fish_greeting" > ~/.config/fish/config.fish
         touch "$fish_state"
+        echo "Fish Shell instalado."
+    fi
 
+    if [ $fish_installed -eq 1 ] && [ -f "$fish_state" ]; then
         if [ -f "$fisher_state" ] || pacman -Q fisher &>/dev/null; then
             if confirm "Fisher detectado. Desinstalar?"; then
+                echo "Desinstalando Fisher..."
                 pacman -Qq fisher &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fisher || true
                 cleanup_files "$fisher_state"
+                echo "Fisher desinstalado."
             fi
         elif confirm "Instalar Fisher (plugin manager)?"; then
+            echo "Instalando Fisher..."
             sudo pacman -S --noconfirm $pkg_fisher
             fish -c "fisher install jorgebucaran/fisher" 2>/dev/null || true
             touch "$fisher_state"
+            echo "Fisher instalado."
         fi
-        echo "Fish Shell instalado."
     fi
 }
 
@@ -2144,34 +2142,44 @@ gimp_photogimp_installer() {
     local pkg_gimp="org.gimp.GIMP"
     local gimp_config="$HOME/.config/GIMP"
     local gimp_share="$HOME/.local/share/GIMP"
+    local gimp_installed=0
 
     if [ -f "$gimp_state" ] || flatpak list --app | grep -q org.gimp.GIMP 2>/dev/null; then
+        gimp_installed=1
         if confirm "GIMP detectado. Desinstalar?"; then
+            echo "Desinstalando GIMP..."
             flatpak uninstall --user -y $pkg_gimp
             rm -rf "$gimp_config" "$gimp_share"
             if [ -f "$photogimp_state" ]; then
-                if confirm "PhotoGIMP detectado. Desinstalar também?"; then
-                    cleanup_files "$photogimp_state"
-                fi
-            fi
-            cleanup_files "$gimp_state"
-        fi
-    elif confirm "Instalar GIMP?"; then
-        flatpak install --or-update --user --noninteractive flathub $pkg_gimp
-        touch "$gimp_state"
-
-        if [ -f "$photogimp_state" ] || [ -d "$gimp_config" ]; then
-            if confirm "PhotoGIMP detectado. Desinstalar?"; then
-                rm -rf "$gimp_config" "$gimp_share"
                 cleanup_files "$photogimp_state"
             fi
+            cleanup_files "$gimp_state"
+            echo "GIMP desinstalado."
+        fi
+    elif confirm "Instalar GIMP?"; then
+        echo "Instalando GIMP..."
+        flatpak install --or-update --user --noninteractive flathub $pkg_gimp
+        touch "$gimp_state"
+        echo "GIMP instalado."
+    fi
+
+    if [ $gimp_installed -eq 1 ] && [ -f "$gimp_state" ]; then
+        if [ -f "$photogimp_state" ] || [ -d "$gimp_config" ]; then
+            if confirm "PhotoGIMP detectado. Desinstalar?"; then
+                echo "Desinstalando PhotoGIMP..."
+                rm -rf "$gimp_config" "$gimp_share"
+                cleanup_files "$photogimp_state"
+                echo "PhotoGIMP desinstalado."
+            fi
         elif confirm "Instalar PhotoGIMP (temas e configurações extras)?"; then
+            echo "Instalando PhotoGIMP..."
             rm -rf "$gimp_config" "$gimp_share"
             git clone --depth=1 https://github.com/Diolinux/PhotoGIMP.git /tmp/photogimp
             cp -rvf /tmp/photogimp/.config/* ~/.config/
             cp -rvf /tmp/photogimp/.local/* ~/.local/
             rm -rf /tmp/photogimp
             touch "$photogimp_state"
+            echo "PhotoGIMP instalado."
         fi
     fi
 }
@@ -2458,8 +2466,7 @@ ides_menu() {
             8) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 7 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -2676,8 +2683,7 @@ jogos_menu() {
             23) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 22 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -3330,32 +3336,42 @@ nvim_lazyvim_installer() {
     local lazyvim_state="$STATE_DIR/nvim_lazyvim"
     local pkg_neovim="neovim"
     local nvim_dir="$HOME/.config/nvim"
+    local nvim_installed=0
 
     if [ -f "$nvim_state" ] || pacman -Q neovim &>/dev/null; then
+        nvim_installed=1
         if confirm "NeoVim detectado. Desinstalar?"; then
+            echo "Desinstalando NeoVim..."
             pacman -Qq neovim &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_neovim
             if [ -f "$lazyvim_state" ]; then
-                if confirm "LazyVim detectado. Desinstalar também?"; then
-                    rm -rf "$nvim_dir"
-                    cleanup_files "$lazyvim_state"
-                fi
-            fi
-            cleanup_files "$nvim_state"
-        fi
-    elif confirm "Instalar NeoVim?"; then
-        sudo pacman -S --noconfirm $pkg_neovim
-        touch "$nvim_state"
-
-        if [ -f "$lazyvim_state" ] || [ -d "$nvim_dir" ]; then
-            if confirm "LazyVim detectado. Desinstalar?"; then
                 rm -rf "$nvim_dir"
                 cleanup_files "$lazyvim_state"
             fi
+            cleanup_files "$nvim_state"
+            echo "NeoVim desinstalado."
+        fi
+    elif confirm "Instalar NeoVim?"; then
+        echo "Instalando NeoVim..."
+        sudo pacman -S --noconfirm $pkg_neovim
+        touch "$nvim_state"
+        echo "NeoVim instalado."
+    fi
+
+    if [ $nvim_installed -eq 1 ] && [ -f "$nvim_state" ]; then
+        if [ -f "$lazyvim_state" ] || [ -d "$nvim_dir" ]; then
+            if confirm "LazyVim detectado. Desinstalar?"; then
+                echo "Desinstalando LazyVim..."
+                rm -rf "$nvim_dir"
+                cleanup_files "$lazyvim_state"
+                echo "LazyVim desinstalado."
+            fi
         elif confirm "Instalar LazyVim?"; then
+            echo "Instalando LazyVim..."
             rm -rf "$nvim_dir"
             git clone https://github.com/LazyVim/starter "$nvim_dir"
             rm -rf "$nvim_dir/.git"
             touch "$lazyvim_state"
+            echo "LazyVim instalado."
         fi
     fi
 }
@@ -3416,8 +3432,7 @@ nvidia_open_menu() {
             3) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 2 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -3477,8 +3492,7 @@ nvidia_proprietary_menu() {
             3) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 2 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -3632,8 +3646,7 @@ office_menu() {
             21) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 20 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -3718,8 +3731,7 @@ ollama_menu() {
             5) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 4 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -4009,8 +4021,7 @@ perifericos_menu() {
             9) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 8 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -4042,8 +4053,7 @@ pessoal_menu() {
             9) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 8 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -4352,8 +4362,7 @@ privacidade_menu() {
             17) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 16 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -4623,8 +4632,7 @@ repositorios_menu() {
             10) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 9 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -4835,8 +4843,7 @@ social_menu() {
             7) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 6 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -5378,8 +5385,7 @@ utilidades_menu() {
             22) return ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 21 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
@@ -5663,63 +5669,21 @@ yay_installer() {
     fi
 }
 
-yt_dlp_installer() {
-    local state_file="$STATE_DIR/yt_dlp"
-    local pkg_ytdlp="yt-dlp"
-
-    if [ -f "$state_file" ] || pacman -Q yt-dlp &>/dev/null; then
-        if confirm "yt-dlp detectado. Desinstalar?"; then
-            echo "Desinstalando yt-dlp..."
-            pacman -Qq yt-dlp &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ytdlp || true
-            cleanup_files "$state_file"
-            echo "yt-dlp desinstalado."
-        fi
-    else
-        if confirm "Instalar yt-dlp?"; then
-            echo "Instalando yt-dlp..."
-            sudo pacman -S --noconfirm $pkg_ytdlp
-            touch "$state_file"
-            echo "yt-dlp instalado."
-        fi
-    fi
-}
-
-zapzap_installer() {
-    local state_file="$STATE_DIR/zapzap"
-    local pkg_zapzap="io.github.rtm516.zapzap"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.rtm516.zapzap 2>/dev/null; then
-        if confirm "ZapZap detectado. Desinstalar?"; then
-            echo "Desinstalando ZapZap..."
-            flatpak uninstall --user -y $pkg_zapzap 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "ZapZap desinstalado."
-        fi
-    else
-        if confirm "Instalar ZapZap?"; then
-            echo "Instalando ZapZap..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_zapzap
-            touch "$state_file"
-            echo "ZapZap instalado."
-        fi
-    fi
-}
-
 zed_installer() {
     local state_file="$STATE_DIR/zed"
-    local pkg_zed="zed-editor"
+    local pkg_zed="zed-editor-bin"
 
-    if [ -f "$state_file" ] || pacman -Q zed-editor &>/dev/null; then
+    if [ -f "$state_file" ] || pacman -Q zed-editor-bin &>/dev/null; then
         if confirm "Zed detectado. Desinstalar?"; then
             echo "Desinstalando Zed..."
-            pacman -Qq zed-editor &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zed || true
+            pacman -Qq zed-editor-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_zed || true
             cleanup_files "$state_file"
             echo "Zed desinstalado."
         fi
     else
         if confirm "Instalar Zed?"; then
             echo "Instalando Zed..."
-            sudo pacman -S --noconfirm $pkg_zed
+            yay -S --noconfirm $pkg_zed
             touch "$state_file"
             echo "Zed instalado."
         fi
@@ -5749,9 +5713,9 @@ zellij_installer() {
 
 zen_browser_installer() {
     local state_file="$STATE_DIR/zen_browser"
-    local pkg_zen="org.gnome.Zen"
+    local pkg_zen="org.gabmus.zen"
 
-    if [ -f "$state_file" ] || flatpak list --app | grep -q org.gnome.Zen 2>/dev/null; then
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.gabmus.zen 2>/dev/null; then
         if confirm "Zen Browser detectado. Desinstalar?"; then
             echo "Desinstalando Zen Browser..."
             flatpak uninstall --user -y $pkg_zen 2>/dev/null || true
@@ -5792,59 +5756,109 @@ zerotier_installer() {
     fi
 }
 
+zapzap_installer() {
+    local state_file="$STATE_DIR/zapzap"
+    local pkg_zapzap="io.uv.zapzap"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.uv.zapzap 2>/dev/null; then
+        if confirm "ZapZap detectado. Desinstalar?"; then
+            echo "Desinstalando ZapZap..."
+            flatpak uninstall --user -y $pkg_zapzap 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "ZapZap desinstalado."
+        fi
+    else
+        if confirm "Instalar ZapZap?"; then
+            echo "Instalando ZapZap..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_zapzap
+            touch "$state_file"
+            echo "ZapZap instalado."
+        fi
+    fi
+}
+
 zsh_ohmyzsh_installer() {
     local zsh_state="$STATE_DIR/zsh"
     local ohmyzsh_state="$STATE_DIR/ohmyzsh"
     local pkg_zsh="zsh"
-    local ohmyzsh_dir="$HOME/.oh-my-zsh"
+    local zsh_installed=0
 
     if [ -f "$zsh_state" ] || pacman -Q zsh &>/dev/null; then
-        if confirm "Zsh Shell detectado. Desinstalar?"; then
-            pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zsh
-            if [ -f "$ohmyzsh_state" ] || [ -d "$ohmyzsh_dir" ]; then
-                if confirm "Oh My Zsh detectado. Desinstalar também?"; then
-                    rm -rf "$ohmyzsh_dir"
-                    cleanup_files "$ohmyzsh_state"
-                fi
+        zsh_installed=1
+        if confirm "Zsh detectado. Desinstalar?"; then
+            echo "Desinstalando Zsh..."
+            if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
+                [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
+                cleanup_files "$ohmyzsh_state"
             fi
+            pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zsh || true
             sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
-            cleanup_files "$zsh_state"
+            cleanup_files "$zsh_state" "$HOME/.zshrc"
+            echo "Zsh desinstalado."
         fi
-    elif confirm "Instalar Zsh Shell?"; then
+    elif confirm "Instalar Zsh?"; then
+        echo "Instalando Zsh..."
         sudo pacman -S --noconfirm $pkg_zsh
         sudo chsh -s "$(which zsh)" "$USER"
         touch "$zsh_state"
+        echo "Zsh instalado."
+    fi
 
-        if [ -f "$ohmyzsh_state" ] || [ -d "$ohmyzsh_dir" ]; then
+    if [ $zsh_installed -eq 1 ] && [ -f "$zsh_state" ]; then
+        if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
             if confirm "Oh My Zsh detectado. Desinstalar?"; then
-                rm -rf "$ohmyzsh_dir"
+                echo "Desinstalando Oh My Zsh..."
+                [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
                 cleanup_files "$ohmyzsh_state"
+                echo "Oh My Zsh desinstalado."
             fi
         elif confirm "Instalar Oh My Zsh?"; then
-            sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+            echo "Instalando Oh My Zsh..."
+            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
             touch "$ohmyzsh_state"
+            echo "Oh My Zsh instalado."
         fi
-        echo "Zsh Shell instalado."
     fi
 }
 
 xpadneo_installer() {
     local state_file="$STATE_DIR/xpadneo"
-    local pkg_xpadneo="xpadneo-dkms"
+    local pkg_xpadneo="xpadneo-dkms-git"
 
-    if [ -f "$state_file" ] || pacman -Q xpadneo-dkms &>/dev/null; then
+    if [ -f "$state_file" ] || pacman -Q xpadneo-dkms-git &>/dev/null; then
         if confirm "Xpadneo detectado. Desinstalar?"; then
             echo "Desinstalando Xpadneo..."
-            pacman -Qq xpadneo-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_xpadneo || true
+            pacman -Qq xpadneo-dkms-git &>/dev/null && yay -Rsnu --noconfirm $pkg_xpadneo || true
             cleanup_files "$state_file"
             echo "Xpadneo desinstalado."
         fi
     else
-        if confirm "Instalar Xpadneo (driver Xbox One/Series)?"; then
+        if confirm "Instalar Xpadneo?"; then
             echo "Instalando Xpadneo..."
-            sudo pacman -S --noconfirm $pkg_xpadneo
+            yay -S --noconfirm $pkg_xpadneo
             touch "$state_file"
-            echo "Xpadneo instalado. Reinicie para aplicar."
+            echo "Xpadneo instalado."
+        fi
+    fi
+}
+
+yt_dlp_installer() {
+    local state_file="$STATE_DIR/yt_dlp"
+    local pkg_ytdlp="yt-dlp"
+
+    if [ -f "$state_file" ] || pacman -Q yt-dlp &>/dev/null; then
+        if confirm "yt-dlp detectado. Desinstalar?"; then
+            echo "Desinstalando yt-dlp..."
+            pacman -Qq yt-dlp &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ytdlp || true
+            cleanup_files "$state_file"
+            echo "yt-dlp desinstalado."
+        fi
+    else
+        if confirm "Instalar yt-dlp?"; then
+            echo "Instalando yt-dlp..."
+            sudo pacman -S --noconfirm $pkg_ytdlp
+            touch "$state_file"
+            echo "yt-dlp instalado."
         fi
     fi
 }
@@ -5854,18 +5868,18 @@ distrobox_installer() {
     local pkg_distrobox="distrobox"
 
     if [ -f "$state_file" ] || pacman -Q distrobox &>/dev/null; then
-        if confirm "Distrobox detectado. Desinstalar?"; then
-            echo "Desinstalando Distrobox..."
+        if confirm "distrobox detectado. Desinstalar?"; then
+            echo "Desinstalando distrobox..."
             pacman -Qq distrobox &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_distrobox || true
             cleanup_files "$state_file"
-            echo "Distrobox desinstalado."
+            echo "distrobox desinstalado."
         fi
     else
-        if confirm "Instalar Distrobox?"; then
-            echo "Instalando Distrobox..."
+        if confirm "Instalar distrobox?"; then
+            echo "Instalando distrobox..."
             sudo pacman -S --noconfirm $pkg_distrobox
             touch "$state_file"
-            echo "Distrobox instalado."
+            echo "distrobox instalado."
         fi
     fi
 }
@@ -5873,7 +5887,7 @@ distrobox_installer() {
 main_menu() {
     while true; do
         clear
-        echo "=== Script de Instalação Arch Linux ==="
+        echo "=== Arch Scripts ==="
         echo "1) Admin"
         echo "2) Devs"
         echo "3) Drivers"
@@ -5893,25 +5907,24 @@ main_menu() {
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
-            1) clear; admin_menu ;;
-            2) clear; devs_menu ;;
-            3) clear; drivers_menu ;;
-            4) clear; educacao_menu ;;
-            5) clear; extras_menu ;;
-            6) clear; ides_menu ;;
-            7) clear; jogos_menu ;;
-            8) clear; office_menu ;;
-            9) clear; perifericos_menu ;;
-            10) clear; pessoal_menu ;;
-            11) clear; privacidade_menu ;;
-            12) clear; repositorios_menu ;;
-            13) clear; social_menu ;;
-            14) clear; utilidades_menu ;;
+            1) admin_menu ;;
+            2) devs_menu ;;
+            3) drivers_menu ;;
+            4) educacao_menu ;;
+            5) extras_menu ;;
+            6) ides_menu ;;
+            7) jogos_menu ;;
+            8) office_menu ;;
+            9) perifericos_menu ;;
+            10) pessoal_menu ;;
+            11) privacidade_menu ;;
+            12) repositorios_menu ;;
+            13) social_menu ;;
+            14) utilidades_menu ;;
             15) exit 0 ;;
             *) ;;
         esac
-
-        [ "$opcao" -ge 1 ] && [ "$opcao" -le 14 ] && read -p "Pressione Enter para continuar..."
+        read -p "Pressione Enter para continuar..."
     done
 }
 
