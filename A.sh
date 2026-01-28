@@ -5670,12 +5670,12 @@ yay_installer() {
 
 zed_installer() {
     local state_file="$STATE_DIR/zed"
-    local pkg_zed="zed-editor-bin"
+    local pkg_zed="zed"
 
-    if [ -f "$state_file" ] || pacman -Q zed-editor-bin &>/dev/null; then
+    if [ -f "$state_file" ] || pacman -Q zed &>/dev/null; then
         if confirm "Zed detectado. Desinstalar?"; then
             echo "Desinstalando Zed..."
-            pacman -Qq zed-editor-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_zed || true
+            pacman -Qq zed &>/dev/null && yay -Rsnu --noconfirm $pkg_zed || true
             cleanup_files "$state_file"
             echo "Zed desinstalado."
         fi
