@@ -5235,20 +5235,19 @@ thumbnailer_installer() {
 
 topgrade_installer() {
     local state_file="$STATE_DIR/topgrade"
-    local pkg_pipx="python-pipx"
+    local pkg_topgrade="topgrade"
 
-    if [ -f "$state_file" ] || pipx list | grep -q topgrade 2>/dev/null; then
+    if [ -f "$state_file" ] || pacman -Q topgrade &>/dev/null; then
         if confirm "Topgrade detectado. Desinstalar?"; then
-            echo "Desinstalando Topgrade..."
-            pipx uninstall topgrade 2>/dev/null || true
+            echo "Desinstalando topgrade..."
+            pacman -Qq topgrade &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_topgrade || true
             cleanup_files "$state_file"
             echo "Topgrade desinstalado."
         fi
     else
         if confirm "Instalar Topgrade?"; then
             echo "Instalando Topgrade..."
-            sudo pacman -S --noconfirm $pkg_pipx
-            pipx install topgrade
+            sudo pacman -S --noconfirm $pkg_topgrade
             touch "$state_file"
             echo "Topgrade instalado."
         fi
