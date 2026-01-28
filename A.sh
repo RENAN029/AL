@@ -5822,19 +5822,19 @@ zsh_ohmyzsh_installer() {
 
 xpadneo_installer() {
     local state_file="$STATE_DIR/xpadneo"
-    local pkg_xpadneo="xpadneo-dkms-git"
+    local pkg_xpadneo="xpadneo-dkms"
 
-    if [ -f "$state_file" ] || pacman -Q xpadneo-dkms-git &>/dev/null; then
+    if [ -f "$state_file" ] || pacman -Q xpadneo-dkms &>/dev/null; then
         if confirm "Xpadneo detectado. Desinstalar?"; then
             echo "Desinstalando Xpadneo..."
-            pacman -Qq xpadneo-dkms-git &>/dev/null && yay -Rsnu --noconfirm $pkg_xpadneo || true
+            pacman -Qq xpadneo-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_xpadneo || true
             cleanup_files "$state_file"
             echo "Xpadneo desinstalado."
         fi
     else
         if confirm "Instalar Xpadneo?"; then
             echo "Instalando Xpadneo..."
-            yay -S --noconfirm $pkg_xpadneo
+            sudo pacman -S --noconfirm $pkg_xpadneo
             touch "$state_file"
             echo "Xpadneo instalado."
         fi
