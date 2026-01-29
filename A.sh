@@ -2207,19 +2207,19 @@ gnome_boxes_installer() {
 
 godot_installer() {
     local state_file="$STATE_DIR/godot"
-    local pkg_godot="godot"
+    local pkg_godot="org.godotengine.Godot"
 
-    if [ -f "$state_file" ] || pacman -Q godot &>/dev/null; then
-        if confirm "Godot detectado. Desinstalar?"; then
-            echo "Desinstalando Godot..."
-            pacman -Qq godot &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_godot || true
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.godotengine.Godot 2>/dev/null; then
+        if confirm "Godot Engine detectado. Desinstalar?"; then
+            echo "Desinstalando Godot Engine..."
+            flatpak uninstall --user -y $pkg_godot 2>/dev/null || true
             cleanup_files "$state_file"
-            echo "Godot desinstalado."
+            echo "Godot Engine desinstalado."
         fi
     else
         if confirm "Instalar Godot Engine?"; then
             echo "Instalando Godot Engine..."
-            sudo pacman -S --noconfirm $pkg_godot
+            flatpak install --or-update --user --noninteractive flathub $pkg_godot
             touch "$state_file"
             echo "Godot Engine instalado."
         fi
@@ -2228,41 +2228,40 @@ godot_installer() {
 
 goverlay_installer() {
     local state_file="$STATE_DIR/goverlay"
-    local pkg_goverlay="mangohud goverlay"
+    local pkg_goverlay="org.godotengine.Godot"
 
-    if [ -f "$state_file" ] || pacman -Q goverlay &>/dev/null; then
-        if confirm "GOverlay detectado. Desinstalar?"; then
-            echo "Desinstalando GOverlay..."
-            pacman -Qq goverlay &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_goverlay || true
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.benjamimgois.goverlay 2>/dev/null; then
+        if confirm "Goverlay detectado. Desinstalar?"; then
+            echo "Desinstalando Goverlay..."
+            flatpak uninstall --user -y $pkg_goverlay 2>/dev/null || true
             cleanup_files "$state_file"
-            echo "GOverlay desinstalado."
+            echo "Goverlay desinstalado."
         fi
     else
-        if confirm "Instalar GOverlay?"; then
-            echo "Instalando GOverlay..."
-            sudo pacman -S --noconfirm $pkg_goverlay
-            command -v flatpak &>/dev/null && flatpak install --or-update --user --noninteractive flathub com.valvesoftware.Steam.VulkanLayer.MangoHud/x86_64/stable org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/23.08 org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/24.08
+        if confirm "Instalar Goverlay?"; then
+            echo "Instalando Goverlay..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_goverlay
             touch "$state_file"
-            echo "GOverlay instalado."
+            echo "Goverlay instalado."
         fi
     fi
 }
 
 gpu_screen_recorder_installer() {
-    local state_file="$STATE_DIR/gpu_screen_recorder"
-    local pkg_gsr="gpu-screen-recorder"
+    local state_file="$STATE_DIR/goverlay"
+    local pkg_gsr="com.dec05eba.gpu_screen_recorder"
 
-    if [ -f "$state_file" ] || pacman -Q gpu-screen-recorder &>/dev/null; then
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.dec05eba.gpu_screen_recorder 2>/dev/null; then
         if confirm "GPU Screen Recorder detectado. Desinstalar?"; then
             echo "Desinstalando GPU Screen Recorder..."
-            pacman -Qq gpu-screen-recorder &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_gsr || true
+            flatpak uninstall --user -y $pkg_gsr 2>/dev/null || true
             cleanup_files "$state_file"
             echo "GPU Screen Recorder desinstalado."
         fi
     else
         if confirm "Instalar GPU Screen Recorder?"; then
             echo "Instalando GPU Screen Recorder..."
-            sudo pacman -S --noconfirm $pkg_gsr
+            flatpak install --or-update --user --noninteractive flathub $pkg_gsr
             touch "$state_file"
             echo "GPU Screen Recorder instalado."
         fi
