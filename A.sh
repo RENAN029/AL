@@ -4896,19 +4896,19 @@ starship_installer() {
 
 steam_installer() {
     local state_file="$STATE_DIR/steam"
-    local pkg_steam="steam steam-devices"
+    local pkg_steam="com.valvesoftware.Steam"
 
-    if [ -f "$state_file" ] || pacman -Q steam &>/dev/null; then
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.valvesoftware.Steam 2>/dev/null; then
         if confirm "Steam detectado. Desinstalar?"; then
             echo "Desinstalando Steam..."
-            pacman -Qq steam &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_steam || true
+            flatpak uninstall --user -y $pkg_steam 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Steam desinstalado."
         fi
     else
         if confirm "Instalar Steam?"; then
             echo "Instalando Steam..."
-            sudo pacman -S --noconfirm $pkg_steam
+            flatpak install --or-update --user --noninteractive flathub $pkg_steam
             touch "$state_file"
             echo "Steam instalado."
         fi
@@ -4982,22 +4982,22 @@ streamcontroller_installer() {
 }
 
 sublime_text_installer() {
-    local state_file="$STATE_DIR/sublime_text"
-    local pkg_sublime="sublime-text"
+    local state_file="$STATE_DIR/sublime"
+    local pkg_sublime="com.sublimehq.SublimeText"
 
-    if [ -f "$state_file" ] || pacman -Q sublime-text &>/dev/null; then
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.sublimehq.SublimeText 2>/dev/null; then
         if confirm "Sublime Text detectado. Desinstalar?"; then
-            pacman -Qq sublime-text &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_sublime
-            sudo sed -i '/\[sublime-text\]/,+3d' /etc/pacman.conf
-            sudo pacman-key --delete 8A8F901A
+            echo "Desinstalando Sublime Text..."
+            flatpak uninstall --user -y $pkg_sublime 2>/dev/null || true
             cleanup_files "$state_file"
+            echo "Sublime Text desinstalado."
         fi
     else
         if confirm "Instalar Sublime Text?"; then
-            curl -O https://download.sublimetext.com/sublimehq-pub.gpg && sudo pacman-key --add sublimehq-pub.gpg && sudo pacman-key --lsign-key 8A8F901A && rm sublimehq-pub.gpg
-            echo -e "\n[sublime-text]\nServer = https://download.sublimetext.com/arch/stable/x86_64" | sudo tee -a /etc/pacman.conf
-            sudo pacman -S --noconfirm $pkg_sublime
+            echo "Instalando Sublime Text..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_sublime
             touch "$state_file"
+            echo "Sublime Text instalado."
         fi
     fi
 }
@@ -5410,21 +5410,21 @@ vinegar_installer() {
 
 vlc_installer() {
     local state_file="$STATE_DIR/vlc"
-    local pkg_vlc="vlc"
+    local pkg_vlc="org.videolan.VLC"
 
-    if [ -f "$state_file" ] || pacman -Q vlc &>/dev/null; then
-        if confirm "VLC detectado. Desinstalar?"; then
-            echo "Desinstalando VLC..."
-            pacman -Qq vlc &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_vlc || true
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.videolan.VLC 2>/dev/null; then
+        if confirm "Vlc detectado. Desinstalar?"; then
+            echo "Desinstalando Vlc..."
+            flatpak uninstall --user -y $pkg_vlc 2>/dev/null || true
             cleanup_files "$state_file"
-            echo "VLC desinstalado."
+            echo "Vinegar desinstalado."
         fi
     else
-        if confirm "Instalar VLC?"; then
-            echo "Instalando VLC..."
-            sudo pacman -S --noconfirm $pkg_vlc
+        if confirm "Instalar Vlc?"; then
+            echo "Instalando Vlc..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_vlc
             touch "$state_file"
-            echo "VLC instalado."
+            echo "Vlc instalado."
         fi
     fi
 }
@@ -5451,22 +5451,22 @@ voxtype_installer() {
 }
 
 vscode_installer() {
-    local state_file="$STATE_DIR/vscode"
-    local pkg_vscode="visual-studio-code-bin"
+       local state_file="$STATE_DIR/vscode"
+    local pkg_vscode="com.visualstudio.code"
 
-    if [ -f "$state_file" ] || pacman -Q visual-studio-code-bin &>/dev/null; then
-        if confirm "Visual Studio Code detectado. Desinstalar?"; then
-            echo "Desinstalando Visual Studio Code..."
-            pacman -Qq visual-studio-code-bin &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_vscode || true
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.visualstudio.code 2>/dev/null; then
+        if confirm "VSCode detectado. Desinstalar?"; then
+            echo "Desinstalando VSCode..."
+            flatpak uninstall --user -y $pkg_vscode 2>/dev/null || true
             cleanup_files "$state_file"
-            echo "Visual Studio Code desinstalado."
+            echo "VSCode desinstalado."
         fi
     else
-        if confirm "Instalar Visual Studio Code?"; then
-            echo "Instalando Visual Studio Code..."
-            sudo pacman -S --noconfirm $pkg_vscode
+        if confirm "Instalar VSCode?"; then
+            echo "Instalando VSCode..."
+            flatpak install --user --or-update --noninteractive flathub $pkg_vscode
             touch "$state_file"
-            echo "Visual Studio Code instalado."
+            echo "VSCode instalado."
         fi
     fi
 }
@@ -5669,19 +5669,19 @@ yay_installer() {
 
 zed_installer() {
     local state_file="$STATE_DIR/zed"
-    local pkg_zed="zed"
+    local pkg_zed="dev.zed.Zed"
 
-    if [ -f "$state_file" ] || pacman -Q zed &>/dev/null; then
+    if [ -f "$state_file" ] || flatpak list --app | grep -q dev.zed.Zed 2>/dev/null; then
         if confirm "Zed detectado. Desinstalar?"; then
             echo "Desinstalando Zed..."
-            pacman -Qq zed &>/dev/null && sudo pacman -S -Rsnu --noconfirm $pkg_zed || true
+            flatpak uninstall --user -y $pkg_zed 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Zed desinstalado."
         fi
     else
         if confirm "Instalar Zed?"; then
             echo "Instalando Zed..."
-            sudo pacman -S --noconfirm $pkg_zed
+            flatpak install --or-update --user --noninteractive flathub $pkg_zed
             touch "$state_file"
             echo "Zed instalado."
         fi
@@ -5711,9 +5711,9 @@ zellij_installer() {
 
 zen_browser_installer() {
     local state_file="$STATE_DIR/zen_browser"
-    local pkg_zen="org.gabmus.zen"
+    local pkg_zen="app.zen_browser.zen"
 
-    if [ -f "$state_file" ] || flatpak list --app | grep -q org.gabmus.zen 2>/dev/null; then
+    if [ -f "$state_file" ] || flatpak list --app | grep -q app.zen_browser.zen 2>/dev/null; then
         if confirm "Zen Browser detectado. Desinstalar?"; then
             echo "Desinstalando Zen Browser..."
             flatpak uninstall --user -y $pkg_zen 2>/dev/null || true
