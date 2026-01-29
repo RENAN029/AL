@@ -2228,7 +2228,7 @@ godot_installer() {
 
 goverlay_installer() {
     local state_file="$STATE_DIR/goverlay"
-    local pkg_goverlay="org.godotengine.Godot"
+    local pkg_goverlay="io.github.benjamimgois.goverlay"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.benjamimgois.goverlay 2>/dev/null; then
         if confirm "Goverlay detectado. Desinstalar?"; then
@@ -2248,7 +2248,7 @@ goverlay_installer() {
 }
 
 gpu_screen_recorder_installer() {
-    local state_file="$STATE_DIR/goverlay"
+    local state_file="$STATE_DIR/gsr"
     local pkg_gsr="com.dec05eba.gpu_screen_recorder"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.dec05eba.gpu_screen_recorder 2>/dev/null; then
