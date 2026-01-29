@@ -2241,6 +2241,7 @@ goverlay_installer() {
         if confirm "Instalar Goverlay?"; then
             echo "Instalando Goverlay..."
             flatpak install --or-update --user --noninteractive flathub $pkg_goverlay
+            command -v flatpak &>/dev/null && flatpak install --or-update --user --noninteractive flathub com.valvesoftware.Steam.VulkanLayer.MangoHud/x86_64/stable org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/23.08 org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/24.08
             touch "$state_file"
             echo "Goverlay instalado."
         fi
@@ -5451,7 +5452,7 @@ voxtype_installer() {
 }
 
 vscode_installer() {
-       local state_file="$STATE_DIR/vscode"
+    local state_file="$STATE_DIR/vscode"
     local pkg_vscode="com.visualstudio.code"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q com.visualstudio.code 2>/dev/null; then
