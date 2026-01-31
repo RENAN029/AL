@@ -1680,18 +1680,19 @@ ferramentas_menu() {
         echo "15) lazydocker"
         echo "16) libqalculate"
         echo "17) smartmontools"
-        echo "18) superfile"
-        echo "19) XDG Base"
-        echo "20) yt-dlp"
-        echo "21) fzf"
-        echo "22) gdu"
-        echo "23) croc"
-        echo "24) Podman"
-        echo "25) Ollama"
-        echo "26) Voxtype"
-        echo "27) Zellij"
-        echo "28) Lucidglyph"
-        echo "29) Voltar"
+        echo "18) snapd"
+        echo "19) superfile"
+        echo "20) XDG Base"
+        echo "21) yt-dlp"
+        echo "22) fzf"
+        echo "23) gdu"
+        echo "24) croc"
+        echo "25) Podman"
+        echo "26) Ollama"
+        echo "27) Voxtype"
+        echo "28) Zellij"
+        echo "29) Lucidglyph"
+        echo "30) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -1713,18 +1714,18 @@ ferramentas_menu() {
             15) clear; lazydocker_installer ;;
             16) clear; libqalculate_installer ;;
             17) clear; smartmontools_installer ;;
-            18) clear; superfile_installer ;;
-            19) clear; xdg_base_installer ;;
-            20) clear; yt_dlp_installer ;;
-            21) clear; fzf_installer ;;
-            22) clear; gdu_installer ;;
-            23) clear; croc_installer ;;
-            24) clear; podman_installer ;;
-            25) clear; ollama_menu ;;
-            26) clear; voxtype_installer ;;
-            27) clear; zellij_installer ;;
-            28) clear; lucidglyph_installer ;;
-            29) clear; snapd_installer ;;
+            18) clear; snapd_installer ;;
+            19) clear; superfile_installer ;;
+            20) clear; xdg_base_installer ;;
+            21) clear; yt_dlp_installer ;;
+            22) clear; fzf_installer ;;
+            23) clear; gdu_installer ;;
+            24) clear; croc_installer ;;
+            25) clear; podman_installer ;;
+            26) clear; ollama_menu ;;
+            27) clear; voxtype_installer ;;
+            28) clear; zellij_installer ;;
+            29) clear; lucidglyph_installer ;;
             30) return ;;
             *) ;;
         esac
