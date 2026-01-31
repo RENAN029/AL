@@ -1592,7 +1592,7 @@ extras_menu() {
             4) clear; btrfs_assistant_installer ;;
             5) clear; cachyconfs_installer ;;
             6) clear; cpu_ondemand_installer ;;
-            7) clear; davinci_ffmpeg_installer ''
+            7) clear; davinci_ffmpeg_installer ;;
             8) clear; distrobox_handler_installer ;;
             9) clear; dnsmasq_installer ;;
             10) clear; dsplitm_installer ;;
