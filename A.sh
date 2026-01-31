@@ -2448,23 +2448,25 @@ ides_menu() {
         echo "1) Android Studio"
         echo "2) JetBrains Toolbox"
         echo "3) NeoVim"
-        echo "4) Sublime Text"
-        echo "5) Visual Studio Code"
-        echo "6) VSCodium"
-        echo "7) Zed"
-        echo "8) Voltar"
+        echo "4) LazyVim"
+        echo "5) Sublime Text"
+        echo "6) Visual Studio Code"
+        echo "7) VSCodium"
+        echo "8) Zed"
+        echo "9) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
             1) clear; android_studio_installer ;;
             2) clear; jetbrains_toolbox_installer ;;
-            3) clear; nvim_lazyvim_installer ;;
-            4) clear; sublime_text_installer ;;
-            5) clear; vscode_installer ;;
-            6) clear; vscodium_installer ;;
-            7) clear; zed_installer ;;
-            8) return ;;
+            3) clear; install_neovim ;;
+            4) clear; install_lazyvim ;;
+            5) clear; sublime_text_installer ;;
+            6) clear; vscode_installer ;;
+            7) clear; vscodium_installer ;;
+            8) clear; zed_installer ;;
+            9) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -3332,46 +3334,45 @@ nordvpn_installer() {
     fi
 }
 
-nvim_lazyvim_installer() {
-    local nvim_state="$STATE_DIR/nvim"
-    local lazyvim_state="$STATE_DIR/nvim_lazyvim"
+install_neovim() {
+    local state_file="$STATE_DIR/nvim"
     local pkg_neovim="neovim"
-    local nvim_dir="$HOME/.config/nvim"
-    local nvim_installed=0
 
-    if [ -f "$nvim_state" ] || pacman -Q neovim &>/dev/null; then
-        nvim_installed=1
+    if [ -f "$state_file" ] || pacman -Q neovim &>/dev/null; then
         if confirm "NeoVim detectado. Desinstalar?"; then
             echo "Desinstalando NeoVim..."
-            pacman -Qq neovim &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_neovim
-            if [ -f "$lazyvim_state" ]; then
-                rm -rf "$nvim_dir"
-                cleanup_files "$lazyvim_state"
-            fi
-            cleanup_files "$nvim_state"
+            pacman -Qq neovim &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_neovim || true
+            cleanup_files "$state_file"
             echo "NeoVim desinstalado."
         fi
-    elif confirm "Instalar NeoVim?"; then
-        echo "Instalando NeoVim..."
-        sudo pacman -S --noconfirm $pkg_neovim
-        touch "$nvim_state"
-        echo "NeoVim instalado."
+    else
+        if confirm "Instalar NeoVim?"; then
+            echo "Instalando NeoVim..."
+            sudo pacman -S --noconfirm $pkg_neovim
+            touch "$state_file"
+            echo "NeoVim instalado."
+        fi
     fi
+}
 
-    if [ $nvim_installed -eq 1 ] && [ -f "$nvim_state" ]; then
-        if [ -f "$lazyvim_state" ] || [ -d "$nvim_dir" ]; then
-            if confirm "LazyVim detectado. Desinstalar?"; then
-                echo "Desinstalando LazyVim..."
-                rm -rf "$nvim_dir"
-                cleanup_files "$lazyvim_state"
-                echo "LazyVim desinstalado."
-            fi
-        elif confirm "Instalar LazyVim?"; then
+install_lazyvim() {
+    local state_file="$STATE_DIR/nvim_lazyvim"
+    local nvim_dir="$HOME/.config/nvim"
+
+    if [ -f "$state_file" ] || [ -d "$nvim_dir" ]; then
+        if confirm "LazyVim detectado. Desinstalar?"; then
+            echo "Desinstalando LazyVim..."
+            rm -rf "$nvim_dir"
+            cleanup_files "$state_file"
+            echo "LazyVim desinstalado."
+        fi
+    else
+        if confirm "Instalar LazyVim?"; then
             echo "Instalando LazyVim..."
             rm -rf "$nvim_dir"
             git clone https://github.com/LazyVim/starter "$nvim_dir"
             rm -rf "$nvim_dir/.git"
-            touch "$lazyvim_state"
+            touch "$state_file"
             echo "LazyVim instalado."
         fi
     fi
