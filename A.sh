@@ -2375,6 +2375,27 @@ heroic_games_launcher_installer() {
     fi
 }
 
+helium_browser_installer() {
+    local state_file="$STATE_DIR/helium"
+    local pkg_input="helium-browser-bin"
+
+    if [ -f "$state_file" ] || pacman -Q helium-browser-bin &>/dev/null; then
+        if confirm "Helium Browser detectado. Desinstalar?"; then
+            echo "Desinstalando Helium Browser..."
+            pacman -Qq helium-browser-bin &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_helium || true
+            cleanup_files "$state_file"
+            echo "Helium Browser desinstalado."
+        fi
+    else
+        if confirm "Instalar Helium Browser?"; then
+            echo "Instalando Helium Browser..."
+            sudo pacman -S --noconfirm $pkg_helium
+            touch "$state_file"
+            echo "Helium Browser instalado."
+        fi
+    fi
+}
+
 homebrew_installer() {
     local state_file="$STATE_DIR/homebrew"
 
@@ -4061,11 +4082,12 @@ pessoal_menu() {
         echo "2) Ferramentas"
         echo "3) Fjord Launcher"
         echo "4) Gnome Boxes"
-        echo "5) Hydra Launcher"
-        echo "6) CachyOS Kernel"
-        echo "7) Stirling PDF"
-        echo "8) Waydroid"
-        echo "9) Voltar"
+        echo "5) Helium Browser"
+        echo "6) Hydra Launcher"
+        echo "7) CachyOS Kernel"
+        echo "8) Stirling PDF"
+        echo "9) Waydroid"
+        echo "10) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4074,11 +4096,12 @@ pessoal_menu() {
             2) clear; ferramentas_menu ;;
             3) clear; unmojang_installer ;;
             4) clear; gnome_boxes_installer ;;
-            5) clear; hydra_launcher_installer ;;
-            6) clear; cachyos_installer ;;
-            7) clear; stirlingpdf_installer ;;
-            8) clear; waydroid_installer ;;
-            9) return ;;
+            5) clear; helium_browser_installer ;;
+            6) clear; hydra_launcher_installer ;;
+            7) clear; cachyos_installer ;;
+            8) clear; stirlingpdf_installer ;;
+            9) clear; waydroid_installer ;;
+            10) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
