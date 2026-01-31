@@ -1724,7 +1724,8 @@ ferramentas_menu() {
             26) clear; voxtype_installer ;;
             27) clear; zellij_installer ;;
             28) clear; lucidglyph_installer ;;
-            29) return ;;
+            29) clear; snapd_installer ;;
+            30) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -4948,17 +4949,41 @@ stirlingpdf_installer() {
             echo "Desinstalando Stirling Pdf..."
             sudo systemctl stop stirling-pdf 2>/dev/null || true
             sudo systemctl disable stirling-pdf 2>/dev/null || true
-            pacman -Qq stirling-pdf-bin &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_stirling || true
+            pacman -Qq stirling-pdf-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_stirling || true
             cleanup_files "$state_file"
             echo "Stirling Pdf desinstalado."
         fi
     else
         if confirm "Instalar Stirling Pdf?"; then
             echo "Instalando Stirling Pdf..."
-            sudo pacman -S --noconfirm $pkg_stirling
+            yay -S --noconfirm $pkg_stirling
             sudo systemctl enable --now stirling-pdf
             touch "$state_file"
             echo "Stirling Pdf instalado."
+        fi
+    fi
+}
+
+snapd_installer() {
+    local state_file="$STATE_DIR/snapd"
+    local pkg_snapd="snapd"
+
+    if [ -f "$state_file" ] || pacman -Q snapd &>/dev/null; then
+        if confirm "Snapd detectado. Desinstalar?"; then
+            echo "Desinstalando Snapd..."
+            sudo systemctl stop snapd.socket 2>/dev/null || true
+            sudo systemctl disable snapd.socket 2>/dev/null || true
+            pacman -Qq snapd &>/dev/null && yay -Rsnu --noconfirm $pkg_snapd || true
+            cleanup_files "$state_file"
+            echo "Snapd desinstalado."
+        fi
+    else
+        if confirm "Instalar Snapd?"; then
+            echo "Instalando Snapd..."
+            yay -S --noconfirm $pkg_snapd
+            sudo systemctl enable --now snapd.socket
+            touch "$state_file"
+            echo "Snapd instalado."
         fi
     fi
 }
