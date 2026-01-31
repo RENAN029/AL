@@ -980,6 +980,27 @@ davinci_resolve_menu() {
     done
 }
 
+davinci_ffmpeg_installer() {
+    local state_file="$STATE_DIR/figma"
+    local pkg_davinci="davinci-ffmpeg-encoder-plugin"
+
+    if [ -f "$state_file" ] || pacman -Q davinci-ffmpeg-encoder-plugin &>/dev/null; then
+        if confirm "Davinci FFmpeg detectado. Desinstalar?"; then
+            echo "Desinstalando Davinci FFmpeg..."
+            pacman -Qq davinci-ffmpeg-encoder-plugin &>/dev/null && yay -Rsnu --noconfirm $pkg_davinci || true
+            cleanup_files "$state_file"
+            echo "Davinci FFmpeg desinstalado."
+        fi
+    else
+        if confirm "Instalar Davinci FFmpeg?"; then
+            echo "Instalando Davinci FFmpeg..."
+            yay -S --noconfirm $pkg_davinci
+            touch "$state_file"
+            echo "Davinci FFmpeg instalado."
+        fi
+    fi
+}
+
 de_cosmic_installer() {
     local state_file="$STATE_DIR/de_cosmic"
     local pkg_cosmic="cosmic-session cosmic-terminal cosmic-files cosmic-store cosmic-wallpapers"
@@ -1543,23 +1564,24 @@ extras_menu() {
         echo "4) Btrfs Assistant"
         echo "5) CachyOS Configs"
         echo "6) CPU Ondemand"
-        echo "7) Distrobox Command Handler"
-        echo "8) DNSMasq"
-        echo "9) DsplitM"
-        echo "10) EarlyOOM"
-        echo "11) GRUB Btrfs"
-        echo "12) HW Acceleration Flatpak"
-        echo "13) IWD"
-        echo "14) Microsoft Core Fonts"
-        echo "15) MinFreeFix"
-        echo "16) Powersave"
-        echo "17) Preload"
-        echo "18) Shader Booster"
-        echo "19) Swapfile"
-        echo "20) Thumbnailer"
-        echo "21) UFW"
-        echo "22) WinBoat"
-        echo "23) Voltar"
+        echo "7) Davinci FFmpeg"
+        echo "8) Distrobox Command Handler"
+        echo "9) DNSMasq"
+        echo "10) DsplitM"
+        echo "11) EarlyOOM"
+        echo "12) GRUB Btrfs"
+        echo "13) HW Acceleration Flatpak"
+        echo "14) IWD"
+        echo "15) Microsoft Core Fonts"
+        echo "16) MinFreeFix"
+        echo "17) Powersave"
+        echo "18) Preload"
+        echo "19) Shader Booster"
+        echo "20) Swapfile"
+        echo "21) Thumbnailer"
+        echo "22) UFW"
+        echo "23) WinBoat"
+        echo "24) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -1570,23 +1592,24 @@ extras_menu() {
             4) clear; btrfs_assistant_installer ;;
             5) clear; cachyconfs_installer ;;
             6) clear; cpu_ondemand_installer ;;
-            7) clear; distrobox_handler_installer ;;
-            8) clear; dnsmasq_installer ;;
-            9) clear; dsplitm_installer ;;
-            10) clear; earlyoom_installer ;;
-            11) clear; grub_btrfs_installer ;;
-            12) clear; hwaccel_flatpak_installer ;;
-            13) clear; iwd_installer ;;
-            14) clear; mscorefonts_installer ;;
-            15) clear; minfreefix_installer ;;
-            16) clear; psaver_installer ;;
-            17) clear; preload_installer ;;
-            18) clear; shader_booster_installer ;;
-            19) clear; swapfile_installer ;;
-            20) clear; thumbnailer_installer ;;
-            21) clear; ufw_installer ;;
-            22) clear; winboat_installer ;;
-            23) return ;;
+            7) clear; davinci_ffmpeg_installer ''
+            8) clear; distrobox_handler_installer ;;
+            9) clear; dnsmasq_installer ;;
+            10) clear; dsplitm_installer ;;
+            11) clear; earlyoom_installer ;;
+            12) clear; grub_btrfs_installer ;;
+            13) clear; hwaccel_flatpak_installer ;;
+            14) clear; iwd_installer ;;
+            15) clear; mscorefonts_installer ;;
+            16) clear; minfreefix_installer ;;
+            17) clear; psaver_installer ;;
+            18) clear; preload_installer ;;
+            19) clear; shader_booster_installer ;;
+            20) clear; swapfile_installer ;;
+            21) clear; thumbnailer_installer ;;
+            22) clear; ufw_installer ;;
+            23) clear; winboat_installer ;;
+            24) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
