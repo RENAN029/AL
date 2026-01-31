@@ -3866,12 +3866,14 @@ openrgb_installer() {
 
 openrazer_installer() {
     local state_file="$STATE_DIR/openrazer"
-    local pkg_openrazer="polychromatic"
+    local pkg_openrazer="openrazer-daemon"
 
-    if [ -f "$state_file" ] || pacman -Q polychromatic &>/dev/null; then
+    if [ -f "$state_file" ] || pacman -Q openrazer-daemon &>/dev/null; then
         if confirm "OpenRazer detectado. Desinstalar?"; then
             echo "Desinstalando OpenRazer..."
-            pacman -Qq polychromatic &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_openrazer || true
+            sudo systemctl stop openrazer-daemon 2>/dev/null || true
+            sudo systemctl disable openrazer-daemon 2>/dev/null || true
+            pacman -Qq openrazer-daemon &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_openrazer || true
             cleanup_files "$state_file"
             echo "OpenRazer desinstalado."
         fi
@@ -3879,7 +3881,7 @@ openrazer_installer() {
         if confirm "Instalar OpenRazer?"; then
             echo "Instalando OpenRazer..."
             sudo pacman -S --noconfirm $pkg_openrazer
-            sudo gpasswd -a $USER plugdev
+            sudo systemctl enable --now portainer
             touch "$state_file"
             echo "OpenRazer instalado."
         fi
@@ -4849,19 +4851,19 @@ social_menu() {
 
 solaar_installer() {
     local state_file="$STATE_DIR/solaar"
-    local pkg_solaar="solaar"
+    local pkg_solaar="io.github.pwr_solaar.solaar"
 
-    if [ -f "$state_file" ] || pacman -Q solaar &>/dev/null; then
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.pwr_solaar.solaar 2>/dev/null; then
         if confirm "Solaar detectado. Desinstalar?"; then
             echo "Desinstalando Solaar..."
-            pacman -Qq solaar &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_solaar || true
+            flatpak uninstall --user -y $pkg_solaar 2>/dev/null || true
             cleanup_files "$state_file"
-            echo "Solaar desinstalado."
+            echo "solaar desinstalado."
         fi
     else
         if confirm "Instalar Solaar?"; then
             echo "Instalando Solaar..."
-            sudo pacman -S --noconfirm $pkg_solaar
+            flatpak install --or-update --user --noninteractive flathub $pkg_solaar
             touch "$state_file"
             echo "Solaar instalado."
         fi
