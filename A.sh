@@ -841,6 +841,30 @@ curl_installer() {
     fi
 }
 
+cups_installer() {
+    local state_file="$STATE_DIR/cups"
+    local pkg_cups="cups"
+
+    if [ -f "$state_file" ] || pacman -Q cups &>/dev/null; then
+        if confirm "cups detectado. Desinstalar?"; then
+            echo "Desinstalando cups..."
+            sudo systemctl stop cups 2>/dev/null || true
+            sudo systemctl disable cups 2>/dev/null || true
+            pacman -Qq cups &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_cups || true
+            cleanup_files "$state_file"
+            echo "cups desinstalado."
+        fi
+    else
+        if confirm "Instalar cups?"; then
+            echo "Instalando cups..."
+            sudo pacman -S --noconfirm $pkg_cups
+            sudo systemctl enable --now cups
+            touch "$state_file"
+            echo "cups instalado."
+        fi
+    fi
+}
+
 darktable_installer() {
     local state_file="$STATE_DIR/darktable"
     local pkg_darktable="org.darktable.Darktable"
@@ -4151,16 +4175,17 @@ pessoal_menu() {
         echo "1) Ambientes Desktop"
         echo "2) AppImage FUSE"
         echo "3) CachyOS Kernel"
-        echo "4) Ferramentas"
-        echo "5) Fjord Launcher"
-        echo "6) Gnome Boxes"
-        echo "7) Helium Browser"
-        echo "8) Hydra Launcher"
-        echo "9) LocalSend"
-        echo "10) n8n"
-        echo "11) Stirling PDF"
-        echo "12) Waydroid"
-        echo "13) Voltar"
+        echo "4) cups"
+        echo "5) Ferramentas"
+        echo "6) Fjord Launcher"
+        echo "7) Gnome Boxes"
+        echo "8) Helium Browser"
+        echo "9) Hydra Launcher"
+        echo "10) LocalSend"
+        echo "11) n8n"
+        echo "12) Stirling PDF"
+        echo "13) Waydroid"
+        echo "14) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4168,16 +4193,17 @@ pessoal_menu() {
             1) clear; de_installer ;;
             2) clear; appimage_fuse_installer ;;
             3) clear; cachyos_installer ;;
-            4) clear; ferramentas_menu ;;
-            5) clear; unmojang_installer ;;
-            6) clear; gnome_boxes_installer ;;
-            7) clear; helium_browser_installer ;;
-            8) clear; hydra_launcher_installer ;;
-            9) clear; localsend_installer ;;
-            10) clear; n8n_installer ;;
-            11) clear; stirlingpdf_installer ;;
-            12) clear; waydroid_installer ;;
-            13) return ;;
+            4) clear; cups_installer ;;
+            5) clear; ferramentas_menu ;;
+            6) clear; unmojang_installer ;;
+            7) clear; gnome_boxes_installer ;;
+            8) clear; helium_browser_installer ;;
+            9) clear; hydra_launcher_installer ;;
+            10) clear; localsend_installer ;;
+            11) clear; n8n_installer ;;
+            12) clear; stirlingpdf_installer ;;
+            13) clear; waydroid_installer ;;
+            14) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
