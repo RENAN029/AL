@@ -2528,8 +2528,8 @@ ides_menu() {
         case $opcao in
             1) clear; android_studio_installer ;;
             2) clear; jetbrains_toolbox_installer ;;
-            3) clear; install_neovim ;;
-            4) clear; install_lazyvim ;;
+            3) clear; neovim_installer ;;
+            4) clear; lazyvim_installer ;;
             5) clear; sublime_text_installer ;;
             6) clear; vscode_installer ;;
             7) clear; vscodium_installer ;;
@@ -3369,6 +3369,8 @@ n8n_installer() {
     if [ -f "$state_file" ] || pacman -Q n8n &>/dev/null; then
         if confirm "n8n detectado. Desinstalar?"; then
             echo "Desinstalando n8n..."
+            sudo systemctl stop n8n.service 2>/dev/null || true
+            sudo systemctl disable n8n.service 2>/dev/null || true
             pacman -Qq n8n &>/dev/null && yay -Rsnu --noconfirm $pkg_n8n || true
             cleanup_files "$state_file"
             echo "n8n desinstalado."
@@ -3377,6 +3379,7 @@ n8n_installer() {
         if confirm "Instalar n8n?"; then
             echo "Instalando n8n..."
             yay -S --noconfirm $pkg_n8n
+            sudo systemctl enable --now n8n.service
             touch "$state_file"
             echo "n8n instalado."
         fi
@@ -3974,7 +3977,7 @@ openrazer_installer() {
         if confirm "Instalar OpenRazer?"; then
             echo "Instalando OpenRazer..."
             sudo pacman -S --noconfirm $pkg_openrazer
-            sudo systemctl enable --now portainer
+            sudo systemctl enable --now openrazer-daemon
             touch "$state_file"
             echo "OpenRazer instalado."
         fi
