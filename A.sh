@@ -3054,6 +3054,27 @@ lossless_scaling_installer() {
     fi
 }
 
+localsend_installer() {
+    local state_file="$STATE_DIR/localsend"
+    local pkg_localsend="org.localsend.localsend_app"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.localsend.localsend_app 2>/dev/null; then
+        if confirm "LocalSend detectado. Desinstalar?"; then
+            echo "Desinstalando LocalSend..."
+            flatpak uninstall --user -y $pkg_localsend 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "LocalSend desinstalado."
+        fi
+    else
+        if confirm "Instalar LocalSend?"; then
+            echo "Instalando LocalSend..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_localsend
+            touch "$state_file"
+            echo "LocalSend instalado."
+        fi
+    fi
+}
+
 lucidglyph_installer() {
     local state_file="$STATE_DIR/lucidglyph"
     local pkg_lucidglyph="lucidglyph"
@@ -4135,10 +4156,11 @@ pessoal_menu() {
         echo "6) Gnome Boxes"
         echo "7) Helium Browser"
         echo "8) Hydra Launcher"
-        echo "9) n8n"
-        echo "10) Stirling PDF"
-        echo "11) Waydroid"
-        echo "12) Voltar"
+        echo "9) LocalSend"
+        echo "10) n8n"
+        echo "11) Stirling PDF"
+        echo "12) Waydroid"
+        echo "13) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4151,10 +4173,11 @@ pessoal_menu() {
             6) clear; gnome_boxes_installer ;;
             7) clear; helium_browser_installer ;;
             8) clear; hydra_launcher_installer ;;
-            9) clear; n8n_installer ;;
-            10) clear; stirlingpdf_installer ;;
-            11) clear; waydroid_installer ;;
-            12) return ;;
+            9) clear; localsend_installer ;;
+            10) clear; n8n_installer ;;
+            11) clear; stirlingpdf_installer ;;
+            12) clear; waydroid_installer ;;
+            13) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
