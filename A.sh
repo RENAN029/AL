@@ -101,8 +101,8 @@ ananicy_cpp_installer() {
     if [ -f "$state_file" ] || pacman -Q ananicy-cpp &>/dev/null; then
         if confirm "Ananicy-cpp detectado. Desinstalar?"; then
             echo "Desinstalando Ananicy-cpp..."
-            sudo systemctl stop ananicy-cpp.service 2>/dev/null || true
-            sudo systemctl disable ananicy-cpp.service 2>/dev/null || true
+            sudo systemctl stop ananicy-cpp 2>/dev/null || true
+            sudo systemctl disable ananicy-cpp 2>/dev/null || true
             pacman -Qq ananicy-cpp &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ananicy || true
             cleanup_files "$state_file"
             echo "Ananicy-cpp desinstalado."
@@ -111,7 +111,7 @@ ananicy_cpp_installer() {
         if confirm "Instalar Ananicy-cpp?"; then
             echo "Instalando Ananicy-cpp..."
             sudo pacman -S --noconfirm $pkg_ananicy
-            sudo systemctl enable --now ananicy-cpp.service
+            sudo systemctl enable --now ananicy-cpp
             touch "$state_file"
             echo "Ananicy-cpp instalado."
         fi
@@ -262,8 +262,8 @@ arch_update_installer() {
     if [ -f "$state_file" ] || pacman -Q arch-update &>/dev/null; then
         if confirm "Arch Update detectado. Desinstalar?"; then
             echo "Desinstalando Arch Update..."
-            systemctl --user stop arch-update-tray.service 2>/dev/null || true
-            systemctl --user disable arch-update-tray.service 2>/dev/null || true
+            systemctl --user stop arch-update-tray 2>/dev/null || true
+            systemctl --user disable arch-update-tray 2>/dev/null || true
             systemctl --user stop arch-update.timer 2>/dev/null || true
             systemctl --user disable arch-update.timer 2>/dev/null || true
             pacman -Qq arch-update &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_archupdate || true
@@ -274,7 +274,7 @@ arch_update_installer() {
         if confirm "Instalar Arch Update?"; then
             echo "Instalando Arch Update..."
             sudo pacman -S --noconfirm $pkg_archupdate
-            systemctl --user enable --now arch-update-tray.service
+            systemctl --user enable --now arch-update-tray
             systemctl --user enable --now arch-update.timer
             sleep 1
             arch-update --tray --enable
@@ -718,12 +718,12 @@ cohesion_installer() {
 cpu_ondemand_installer() {
     local state_file="$STATE_DIR/cpu_ondemand"
 
-    if [ -f "$state_file" ] || [ -f "/etc/systemd/system/set-ondemand-governor.service" ]; then
+    if [ -f "$state_file" ] || [ -f "/etc/systemd/system/set-ondemand-governor" ]; then
         if confirm "CPU Ondemand detectado. Desinstalar?"; then
             echo "Desinstalando CPU Ondemand..."
-            sudo systemctl stop set-ondemand-governor.service 2>/dev/null || true
-            sudo systemctl disable set-ondemand-governor.service 2>/dev/null || true
-            sudo rm -f /etc/systemd/system/set-ondemand-governor.service /etc/default/grub.d/01_intel_pstate_disable /etc/kernel/cmdline.d/10-intel-pstate-disable.conf /usr/local/bin/set-ondemand-governor.sh 2>/dev/null || true
+            sudo systemctl stop set-ondemand-governor 2>/dev/null || true
+            sudo systemctl disable set-ondemand-governor 2>/dev/null || true
+            sudo rm -f /etc/systemd/system/set-ondemand-governor /etc/default/grub.d/01_intel_pstate_disable /etc/kernel/cmdline.d/10-intel-pstate-disable.conf /usr/local/bin/set-ondemand-governor.sh 2>/dev/null || true
             sudo mkdir -p /boot/grub 2>/dev/null || true
             sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
             sudo bootctl update 2>/dev/null || true
@@ -745,8 +745,8 @@ Type=oneshot
 ExecStart=/usr/local/bin/set-ondemand-governor.sh
 
 [Install]
-WantedBy=multi-user.target' | sudo tee /etc/systemd/system/set-ondemand-governor.service
-            sudo systemctl enable set-ondemand-governor.service
+WantedBy=multi-user.target' | sudo tee /etc/systemd/system/set-ondemand-governor
+            sudo systemctl enable set-ondemand-governor
             sudo mkdir -p /etc/default/grub.d
             echo 'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} intel_pstate=disable"' | sudo tee /etc/default/grub.d/01_intel_pstate_disable
             sudo mkdir -p /boot/grub 2>/dev/null || true
@@ -1217,7 +1217,7 @@ distrobox_adv_installer() {
         if confirm "Distrobox-Adv detectado. Desinstalar?"; then
             echo "Desinstalando Distrobox-Adv..."
             pacman -Qq pcsc-lite &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_distrobox || true
-            sudo systemctl disable pcscd.service 2>/dev/null || true
+            sudo systemctl disable pcscd 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Distrobox-Adv desinstalado."
         fi
@@ -1225,7 +1225,7 @@ distrobox_adv_installer() {
         if confirm "Instalar Distrobox-Adv?"; then
             echo "Instalando Distrobox-Adv..."
             sudo pacman -S --noconfirm $pkg_distrobox
-            sudo systemctl enable --now pcscd.service
+            sudo systemctl enable --now pcscd
             distrobox-assemble create --file https://raw.githubusercontent.com/pedrohqb/distrobox-adv-br/refs/heads/main/distrobox-adv-br
             flatpak install --or-update --user --noninteractive flathub $pkg_distroshelf
             touch "$state_file"
@@ -1350,8 +1350,8 @@ docker_installer() {
     if [ -f "$state_file" ] || pacman -Q docker &>/dev/null; then
         if confirm "Docker detectado. Desinstalar?"; then
             echo "Desinstalando Docker..."
-            sudo systemctl stop docker.service docker.socket 2>/dev/null || true
-            sudo systemctl disable docker.service docker.socket 2>/dev/null || true
+            sudo systemctl stop docker docker.socket 2>/dev/null || true
+            sudo systemctl disable docker docker.socket 2>/dev/null || true
             pacman -Qq docker &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_docker || true
             sudo rm -rf /var/lib/docker 2>/dev/null || true
             sudo groupdel docker 2>/dev/null || true
@@ -1362,7 +1362,7 @@ docker_installer() {
         if confirm "Instalar Docker?"; then
             echo "Instalando Docker..."
             sudo pacman -S --noconfirm $pkg_docker
-            sudo systemctl enable --now docker.service docker.socket
+            sudo systemctl enable --now docker docker.socket
             sudo usermod -aG docker "$USER"
             touch "$state_file"
             echo "Docker instalado. Reinicie para aplicar."
@@ -1539,8 +1539,8 @@ expressvpn_installer() {
     if [ -f "$state_file" ] || pacman -Q expressvpn &>/dev/null; then
         if confirm "Expressvpn detectado. Desinstalar?"; then
             echo "Desinstalando Expressvpn..."
-            sudo systemctl stop expressvpn-service.service 2>/dev/null || true
-            sudo systemctl disable expressvpn-service.service 2>/dev/null || true
+            sudo systemctl stop expressvpn-service 2>/dev/null || true
+            sudo systemctl disable expressvpn-service 2>/dev/null || true
             pacman -Qq expressvpn &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_expressvpn || true
             cleanup_files "$state_file"
             echo "Expressvpn desinstalado."
@@ -3369,8 +3369,8 @@ n8n_installer() {
     if [ -f "$state_file" ] || pacman -Q n8n &>/dev/null; then
         if confirm "n8n detectado. Desinstalar?"; then
             echo "Desinstalando n8n..."
-            sudo systemctl stop n8n.service 2>/dev/null || true
-            sudo systemctl disable n8n.service 2>/dev/null || true
+            sudo systemctl stop n8n 2>/dev/null || true
+            sudo systemctl disable n8n 2>/dev/null || true
             pacman -Qq n8n &>/dev/null && yay -Rsnu --noconfirm $pkg_n8n || true
             cleanup_files "$state_file"
             echo "n8n desinstalado."
@@ -3379,7 +3379,7 @@ n8n_installer() {
         if confirm "Instalar n8n?"; then
             echo "Instalando n8n..."
             yay -S --noconfirm $pkg_n8n
-            sudo systemctl enable --now n8n.service
+            sudo systemctl enable --now n8n
             touch "$state_file"
             echo "n8n instalado."
         fi
@@ -3790,8 +3790,8 @@ ollama_installer() {
     if [ -f "$state_file" ] || pacman -Q ollama &>/dev/null; then
         if confirm "Ollama detectado. Desinstalar?"; then
             echo "Desinstalando Ollama..."
-            sudo systemctl stop ollama.service 2>/dev/null || true
-            sudo systemctl disable ollama.service 2>/dev/null || true
+            sudo systemctl stop ollama 2>/dev/null || true
+            sudo systemctl disable ollama 2>/dev/null || true
             pacman -Qq ollama &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ollama || true
             cleanup_files "$state_file"
             echo "Ollama desinstalado."
@@ -3800,7 +3800,7 @@ ollama_installer() {
         if confirm "Instalar Ollama?"; then
             echo "Instalando Ollama..."
             sudo pacman -S --noconfirm $pkg_ollama
-            sudo systemctl enable --now ollama.service
+            sudo systemctl enable --now ollama
             touch "$state_file"
             echo "Ollama instalado."
         fi
@@ -3923,8 +3923,8 @@ openlinkhub_installer() {
         if confirm "OpenLinkHub detectado. Desinstalar?"; then
             echo "Desinstalando OpenLinkHub..."
             pacman -Qq openlinkhub &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_openlink || true
-            sudo systemctl stop OpenLinkHub.service 2>/dev/null || true
-            sudo systemctl disable OpenLinkHub.service 2>/dev/null || true
+            sudo systemctl stop OpenLinkHub 2>/dev/null || true
+            sudo systemctl disable OpenLinkHub 2>/dev/null || true
             cleanup_files "$state_file"
             echo "OpenLinkHub desinstalado."
         fi
@@ -3932,7 +3932,7 @@ openlinkhub_installer() {
         if confirm "Instalar OpenLinkHub?"; then
             echo "Instalando OpenLinkHub..."
             sudo pacman -S --noconfirm $pkg_openlink
-            sudo systemctl enable --now OpenLinkHub.service
+            sudo systemctl enable --now OpenLinkHub
             touch "$state_file"
             echo "OpenLinkHub instalado."
         fi
@@ -4557,12 +4557,12 @@ protonup_installer() {
 psaver_installer() {
     local state_file="$STATE_DIR/psaver"
 
-    if [ -f "$state_file" ] || [ -f "/etc/systemd/system/powersave.service" ]; then
+    if [ -f "$state_file" ] || [ -f "/etc/systemd/system/powersave" ]; then
         if confirm "Powersave detectado. Desinstalar?"; then
             echo "Desinstalando Powersave..."
-            sudo systemctl stop powersave.service 2>/dev/null || true
-            sudo systemctl disable powersave.service 2>/dev/null || true
-            sudo rm -f /etc/systemd/system/powersave.service /usr/local/bin/powersave.sh 2>/dev/null || true
+            sudo systemctl stop powersave 2>/dev/null || true
+            sudo systemctl disable powersave 2>/dev/null || true
+            sudo rm -f /etc/systemd/system/powersave /usr/local/bin/powersave.sh 2>/dev/null || true
             sudo sed -i '/powersave/d' /etc/default/grub 2>/dev/null || true
             sudo rm -f /etc/default/grub.d/powersave.cfg 2>/dev/null || true
             sudo mkdir -p /boot/grub 2>/dev/null || true
@@ -4609,9 +4609,9 @@ ExecStart=/usr/local/bin/powersave.sh
 RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target' | sudo tee /etc/systemd/system/powersave.service >/dev/null
-            sudo systemctl enable powersave.service
-            sudo systemctl start powersave.service
+WantedBy=multi-user.target' | sudo tee /etc/systemd/system/powersave >/dev/null
+            sudo systemctl enable powersave
+            sudo systemctl start powersave
             sudo mkdir -p /etc/default/grub.d
             echo 'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} intel_pstate=passive"' | sudo tee /etc/default/grub.d/powersave.cfg >/dev/null
             sudo mkdir -p /boot/grub 2>/dev/null || true
