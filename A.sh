@@ -3695,7 +3695,7 @@ nvm_installer() {
         if confirm "NVM detectado. Desinstalar?"; then
             echo "Desinstalando NVM..."
             pacman -Qq nvm &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_nvm || true
-            cleanup_files "$state_file" "$HOME/.nvm"
+            cleanup_files "$state_file"
             echo "NVM desinstalado."
         fi
     else
@@ -3744,6 +3744,27 @@ obs_installer() {
     fi
 }
 
+observer_installer() {
+    local state_file="$STATE_DIR/observer"
+    local pkg_observer="observer-ai"
+
+    if [ -f "$state_file" ] || pacman -Q observer-ai &>/dev/null; then
+        if confirm "Observer detectado. Desinstalar?"; then
+            echo "Desinstalando Observer..."
+            pacman -Qq observer-ai &>/dev/null && yay -Rsnu --noconfirm $pkg_observer || true
+            cleanup_files "$state_file"
+            echo "Observer desinstalado."
+        fi
+    else
+        if confirm "Instalar Observer (Node Version Manager)?"; then
+            echo "Instalando Observer..."
+            yay -S --noconfirm $pkg_observer
+            touch "$state_file"
+            echo "Observer instalado."
+        fi
+    fi
+}
+
 obsidian_installer() {
     local state_file="$STATE_DIR/obsidian"
     local pkg_obsidian="md.obsidian.Obsidian"
@@ -3764,6 +3785,8 @@ obsidian_installer() {
         fi
     fi
 }
+
+
 
 office_menu() {
     while true; do
@@ -4214,9 +4237,10 @@ pessoal_menu() {
         echo "10) Hydra Launcher"
         echo "11) LocalSend"
         echo "12) n8n"
-        echo "13) Stirling PDF"
-        echo "14) Waydroid"
-        echo "15) Voltar"
+        echo "13) Observer"
+        echo "14) Stirling PDF"
+        echo "15) Waydroid"
+        echo "16) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4233,9 +4257,10 @@ pessoal_menu() {
             10) clear; hydra_launcher_installer ;;
             11) clear; localsend_installer ;;
             12) clear; n8n_installer ;;
-            13) clear; stirlingpdf_installer ;;
-            14) clear; waydroid_installer ;;
-            15) return ;;
+            13) clear; observer_installer ;;
+            14) clear; stirlingpdf_installer ;;
+            15) clear; waydroid_installer ;;
+            16) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
