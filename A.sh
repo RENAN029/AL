@@ -3756,7 +3756,7 @@ observer_installer() {
             echo "Observer desinstalado."
         fi
     else
-        if confirm "Instalar Observer (Node Version Manager)?"; then
+        if confirm "Instalar Observer?"; then
             echo "Instalando Observer..."
             yay -S --noconfirm $pkg_observer
             touch "$state_file"
@@ -4147,6 +4147,27 @@ oversteer_installer() {
     fi
 }
 
+paperless_installer() {
+    local state_file="$STATE_DIR/paperless"
+    local pkg_paperless="paperless-ngx-venv"
+
+    if [ -f "$state_file" ] || pacman -Q paperless-ngx-venv &>/dev/null; then
+        if confirm "Paperless detectado. Desinstalar?"; then
+            echo "Desinstalando Paperless..."
+            pacman -Qq paperless-ngx-venv &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_paperless || true
+            cleanup_files "$state_file"
+            echo "Paperless desinstalado."
+        fi
+    else
+        if confirm "Instalar Paperless?"; then
+            echo "Instalando Paperless..."
+            sudo pacman -S --noconfirm $pkg_paperless
+            touch "$state_file"
+            echo "Paperless instalado."
+        fi
+    fi
+}
+
 paru_installer() {
     local state_file="$STATE_DIR/paru"
     local pkg_paru="paru"
@@ -4238,9 +4259,10 @@ pessoal_menu() {
         echo "11) LocalSend"
         echo "12) n8n"
         echo "13) Observer"
-        echo "14) Stirling PDF"
-        echo "15) Waydroid"
-        echo "16) Voltar"
+        echo "14) Paperless"
+        echo "15) Stirling PDF"
+        echo "16) Waydroid"
+        echo "17) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4258,9 +4280,10 @@ pessoal_menu() {
             11) clear; localsend_installer ;;
             12) clear; n8n_installer ;;
             13) clear; observer_installer ;;
-            14) clear; stirlingpdf_installer ;;
-            15) clear; waydroid_installer ;;
-            16) return ;;
+            14) clear; paperless_installer ;;
+            15) clear; stirlingpdf_installer ;;
+            16) clear; waydroid_installer ;;
+            17) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
