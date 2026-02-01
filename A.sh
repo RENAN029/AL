@@ -3362,6 +3362,27 @@ mullvad_vpn_installer() {
     fi
 }
 
+n8n_installer() {
+    local state_file="$STATE_DIR/n8n"
+    local pkg_n8n="n8n"
+
+    if [ -f "$state_file" ] || pacman -Q n8n &>/dev/null; then
+        if confirm "n8n detectado. Desinstalar?"; then
+            echo "Desinstalando n8n..."
+            pacman -Qq n8n &>/dev/null && yay -Rsnu --noconfirm $pkg_n8n || true
+            cleanup_files "$state_file"
+            echo "n8n desinstalado."
+        fi
+    else
+        if confirm "Instalar n8n?"; then
+            echo "Instalando n8n..."
+            yay -S --noconfirm $pkg_n8n
+            touch "$state_file"
+            echo "n8n instalado."
+        fi
+    fi
+}
+
 nerd_fonts_installer() {
     local state_file="$STATE_DIR/nerd"
     local pkg_nerd="nerd-fonts"
@@ -3404,7 +3425,7 @@ nordvpn_installer() {
     fi
 }
 
-install_neovim() {
+neovim_installer() {
     local state_file="$STATE_DIR/nvim"
     local pkg_neovim="neovim"
 
@@ -3425,7 +3446,7 @@ install_neovim() {
     fi
 }
 
-install_lazyvim() {
+lazyvim_installer() {
     local state_file="$STATE_DIR/nvim_lazyvim"
     local nvim_dir="$HOME/.config/nvim"
 
@@ -4105,30 +4126,32 @@ pessoal_menu() {
         echo "=== Pessoal ==="
         echo "1) Ambientes Desktop"
         echo "2) AppImage FUSE"
-        echo "3) Ferramentas"
-        echo "4) Fjord Launcher"
-        echo "5) Gnome Boxes"
-        echo "6) Helium Browser"
-        echo "7) Hydra Launcher"
-        echo "8) CachyOS Kernel"
-        echo "9) Stirling PDF"
-        echo "10) Waydroid"
-        echo "11) Voltar"
+        echo "3) CachyOS Kernel"
+        echo "4) Ferramentas"
+        echo "5) Fjord Launcher"
+        echo "6) Gnome Boxes"
+        echo "7) Helium Browser"
+        echo "8) Hydra Launcher"
+        echo "9) n8n"
+        echo "10) Stirling PDF"
+        echo "11) Waydroid"
+        echo "12) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
             1) clear; de_installer ;;
             2) clear; appimage_fuse_installer ;;
-            3) clear; ferramentas_menu ;;
-            4) clear; unmojang_installer ;;
-            5) clear; gnome_boxes_installer ;;
-            6) clear; helium_browser_installer ;;
-            7) clear; hydra_launcher_installer ;;
-            8) clear; cachyos_installer ;;
-            9) clear; stirlingpdf_installer ;;
-            10) clear; waydroid_installer ;;
-            11) return ;;
+            3) clear; cachyos_installer ;;
+            4) clear; ferramentas_menu ;;
+            5) clear; unmojang_installer ;;
+            6) clear; gnome_boxes_installer ;;
+            7) clear; helium_browser_installer ;;
+            8) clear; hydra_launcher_installer ;;
+            9) clear; n8n_installer ;;
+            10) clear; stirlingpdf_installer ;;
+            11) clear; waydroid_installer ;;
+            12) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
