@@ -4079,29 +4079,31 @@ pessoal_menu() {
         clear
         echo "=== Pessoal ==="
         echo "1) Ambientes Desktop"
-        echo "2) Ferramentas"
-        echo "3) Fjord Launcher"
-        echo "4) Gnome Boxes"
-        echo "5) Helium Browser"
-        echo "6) Hydra Launcher"
-        echo "7) CachyOS Kernel"
-        echo "8) Stirling PDF"
-        echo "9) Waydroid"
-        echo "10) Voltar"
+        echo "2) AppImage FUSE"
+        echo "3) Ferramentas"
+        echo "4) Fjord Launcher"
+        echo "5) Gnome Boxes"
+        echo "6) Helium Browser"
+        echo "7) Hydra Launcher"
+        echo "8) CachyOS Kernel"
+        echo "9) Stirling PDF"
+        echo "10) Waydroid"
+        echo "11) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
             1) clear; de_installer ;;
-            2) clear; ferramentas_menu ;;
-            3) clear; unmojang_installer ;;
-            4) clear; gnome_boxes_installer ;;
-            5) clear; helium_browser_installer ;;
-            6) clear; hydra_launcher_installer ;;
-            7) clear; cachyos_installer ;;
-            8) clear; stirlingpdf_installer ;;
-            9) clear; waydroid_installer ;;
-            10) return ;;
+            2) clear; appimage_fuse_installer ;;
+            3) clear; ferramentas_menu ;;
+            4) clear; unmojang_installer ;;
+            5) clear; gnome_boxes_installer ;;
+            6) clear; helium_browser_installer ;;
+            7) clear; hydra_launcher_installer ;;
+            8) clear; cachyos_installer ;;
+            9) clear; stirlingpdf_installer ;;
+            10) clear; waydroid_installer ;;
+            11) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -4657,30 +4659,28 @@ repositorios_menu() {
     while true; do
         clear
         echo "=== Repositórios ==="
-        echo "1) AppImage FUSE"
-        echo "2) Cargo (Rustup)"
-        echo "3) Chaotic AUR"
-        echo "4) Flatpak"
-        echo "5) Fwupd"
-        echo "6) Homebrew"
-        echo "7) Paru"
-        echo "8) Pip"
-        echo "9) Yay"
-        echo "10) Voltar"
+        echo "1) Cargo (Rustup)"
+        echo "2) Chaotic AUR"
+        echo "3) Flatpak"
+        echo "4) Fwupd"
+        echo "5) Homebrew"
+        echo "6) Paru"
+        echo "7) Pip"
+        echo "8) Yay"
+        echo "9) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
-            1) clear; appimage_fuse_installer ;;
-            2) clear; cargo_installer ;;
-            3) clear; chaotic_aur_installer ;;
-            4) clear; flatpak_flathub_installer ;;
-            5) clear; fwupd_installer ;;
-            6) clear; homebrew_installer ;;
-            7) clear; paru_installer ;;
-            8) clear; pip_installer ;;
-            9) clear; yay_installer ;;
-            10) return ;;
+            1) clear; cargo_installer ;;
+            2) clear; chaotic_aur_installer ;;
+            3) clear; flatpak_flathub_installer ;;
+            4) clear; fwupd_installer ;;
+            5) clear; homebrew_installer ;;
+            6) clear; paru_installer ;;
+            7) clear; pip_installer ;;
+            8) clear; yay_installer ;;
+            9) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
