@@ -326,6 +326,36 @@ audacity_installer() {
     fi
 }
 
+affinity_installer() {
+    local state_file="$STATE_DIR/affinity"
+    local affinity_dir="$HOME/Affinity"
+    local appimage_path="$affinity_dir/Affinity.AppImage"
+
+    if [ -f "$state_file" ] || [ -f "$appimage_path" ]; then
+        if confirm "Affinity detectado. Desinstalar?"; then
+            echo "Desinstalando Affinity..."
+            [ -f "$appimage_path" ] && rm -f "$appimage_path"
+            [ -d "$affinity_dir" ] && rmdir "$affinity_dir" 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Affinity desinstalado."
+        fi
+    else
+        if confirm "Instalar Affinity Photo?"; then
+            echo "Instalando Affinity Photo..."
+            mkdir -p "$affinity_dir"
+            
+            local download_url=$(curl -s https://api.github.com/repos/ryzendew/Linux-Affinity-Installer/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'affinity.*appimage' | head -1 | cut -d'"' -f4)
+            [ -z "$download_url" ] && download_url="https://github.com/ryzendew/Linux-Affinity-Installer/releases/latest/download/Affinity.AppImage"
+            
+            curl -L -o "$appimage_path" "$download_url"
+            chmod +x "$appimage_path"
+            
+            touch "$state_file"
+            echo "Affinity Photo instalado."
+        fi
+    fi
+}
+
 bazaar_installer() {
     local state_file="$STATE_DIR/bazaar"
     local pkg_bazaar="io.github.kolunmi.Bazaar"
@@ -4174,36 +4204,38 @@ pessoal_menu() {
         echo "=== Pessoal ==="
         echo "1) Ambientes Desktop"
         echo "2) AppImage FUSE"
-        echo "3) CachyOS Kernel"
-        echo "4) cups"
-        echo "5) Ferramentas"
-        echo "6) Fjord Launcher"
-        echo "7) Gnome Boxes"
-        echo "8) Helium Browser"
-        echo "9) Hydra Launcher"
-        echo "10) LocalSend"
-        echo "11) n8n"
-        echo "12) Stirling PDF"
-        echo "13) Waydroid"
-        echo "14) Voltar"
+        echo "3) Affinity"
+        echo "4) CachyOS Kernel"
+        echo "5) cups"
+        echo "6) Ferramentas"
+        echo "7) Fjord Launcher"
+        echo "8) Gnome Boxes"
+        echo "9) Helium Browser"
+        echo "10) Hydra Launcher"
+        echo "11) LocalSend"
+        echo "12) n8n"
+        echo "13) Stirling PDF"
+        echo "14) Waydroid"
+        echo "15) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
             1) clear; de_installer ;;
             2) clear; appimage_fuse_installer ;;
-            3) clear; cachyos_installer ;;
-            4) clear; cups_installer ;;
-            5) clear; ferramentas_menu ;;
-            6) clear; unmojang_installer ;;
-            7) clear; gnome_boxes_installer ;;
-            8) clear; helium_browser_installer ;;
-            9) clear; hydra_launcher_installer ;;
-            10) clear; localsend_installer ;;
-            11) clear; n8n_installer ;;
-            12) clear; stirlingpdf_installer ;;
-            13) clear; waydroid_installer ;;
-            14) return ;;
+            3) clear; affinity_installer ;;
+            4) clear; cachyos_installer ;;
+            5) clear; cups_installer ;;
+            6) clear; ferramentas_menu ;;
+            7) clear; unmojang_installer ;;
+            8) clear; gnome_boxes_installer ;;
+            9) clear; helium_browser_installer ;;
+            10) clear; hydra_launcher_installer ;;
+            11) clear; localsend_installer ;;
+            12) clear; n8n_installer ;;
+            13) clear; stirlingpdf_installer ;;
+            14) clear; waydroid_installer ;;
+            15) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
