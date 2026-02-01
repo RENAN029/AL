@@ -1491,7 +1491,8 @@ educacao_menu() {
         echo "4) Kalzium"
         echo "5) Kolibri"
         echo "6) Stellarium"
-        echo "7) Voltar"
+        echo "7) Tac Writer"
+        echo "8) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -1502,7 +1503,8 @@ educacao_menu() {
             4) clear; kalzium_installer ;;
             5) clear; kolibri_installer ;;
             6) clear; stellarium_installer ;;
-            7) return ;;
+            7) clear; tac_installer ;;
+            8) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -2294,6 +2296,27 @@ gpu_screen_recorder_installer() {
     fi
 }
 
+greenlight_installer() {
+    local state_file="$STATE_DIR/greenlight"
+    local pkg_greenlight="io.github.unknownskl.greenlight"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.unknownskl.greenlight 2>/dev/null; then
+        if confirm "Greenlight detectado. Desinstalar?"; then
+            echo "Desinstalando Greenlight..."
+            flatpak uninstall --user -y $pkg_greenlight 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Greenlight desinstalado."
+        fi
+    else
+        if confirm "Instalar Greenlight?"; then
+            echo "Instalando Greenlight..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_greenlight
+            touch "$state_file"
+            echo "Greenlight instalado."
+        fi
+    fi
+}
+
 grub_btrfs_installer() {
     local state_file="$STATE_DIR/grub_btrfs"
     local pkg_grub_btrfs="grub-btrfs snapper"
@@ -2685,23 +2708,24 @@ jogos_menu() {
         echo "4) GeForce NOW"
         echo "5) GOverlay"
         echo "6) GPU Screen Recorder"
-        echo "7) Heroic Games Launcher"
-        echo "8) Lossless Scaling"
-        echo "9) Lutris"
-        echo "10) Minecraft Bedrock Launcher"
-        echo "11) MangoJuice"
-        echo "12) Moonlight"
-        echo "13) Osu!"
-        echo "14) Prism Launcher"
-        echo "15) ProtonPlus"
-        echo "16) Protontricks"
-        echo "17) ProtonUp"
-        echo "18) Sober"
-        echo "19) Steam"
-        echo "20) Sunshine"
-        echo "21) Vinegar"
-        echo "22) WiVRn"
-        echo "23) Voltar"
+        echo "7) Greenlight"
+        echo "8) Heroic Games Launcher"
+        echo "9) Lossless Scaling"
+        echo "10) Lutris"
+        echo "11) Minecraft Bedrock Launcher"
+        echo "12) MangoJuice"
+        echo "13) Moonlight"
+        echo "14) Osu!"
+        echo "15) Prism Launcher"
+        echo "16) ProtonPlus"
+        echo "17) Protontricks"
+        echo "18) ProtonUp"
+        echo "19) Sober"
+        echo "20) Steam"
+        echo "21) Sunshine"
+        echo "22) Vinegar"
+        echo "23) WiVRn"
+        echo "24) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -2712,23 +2736,24 @@ jogos_menu() {
             4) clear; geforce_now_installer ;;
             5) clear; goverlay_installer ;;
             6) clear; gpu_screen_recorder_installer ;;
-            7) clear; heroic_games_launcher_installer ;;
-            8) clear; lossless_scaling_installer ;;
-            9) clear; lutris_installer ;;
-            10) clear; minecraft_bedrock_launcher_installer ;;
-            11) clear; mangojuice_installer ;;
-            12) clear; moonlight_installer ;;
-            13) clear; osu_installer ;;
-            14) clear; prism_launcher_installer ;;
-            15) clear; protonplus_installer ;;
-            16) clear; protontricks_installer ;;
-            17) clear; protonup_installer ;;
-            18) clear; sober_installer ;;
-            19) clear; steam_installer ;;
-            20) clear; sunshine_installer ;;
-            21) clear; vinegar_installer ;;
-            22) clear; wivrn_installer ;;
-            23) return ;;
+            7) clear; greenlight_installer ;;
+            8) clear; heroic_games_launcher_installer ;;
+            9) clear; lossless_scaling_installer ;;
+            10) clear; lutris_installer ;;
+            11) clear; minecraft_bedrock_launcher_installer ;;
+            12) clear; mangojuice_installer ;;
+            13) clear; moonlight_installer ;;
+            14) clear; osu_installer ;;
+            15) clear; prism_launcher_installer ;;
+            16) clear; protonplus_installer ;;
+            17) clear; protontricks_installer ;;
+            18) clear; protonup_installer ;;
+            19) clear; sober_installer ;;
+            20) clear; steam_installer ;;
+            21) clear; sunshine_installer ;;
+            22) clear; vinegar_installer ;;
+            23) clear; wivrn_installer ;;
+            24) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -5241,6 +5266,27 @@ tailscale_installer() {
             sudo systemctl enable --now tailscaled
             touch "$state_file"
             echo "Tailscale instalado."
+        fi
+    fi
+}
+
+ tac_installer() {
+    local state_file="$STATE_DIR/tac"
+    local pkg_tac="tac-writer"
+
+    if [ -f "$state_file" ] || pacman -Q tac-writer &>/dev/null; then
+        if confirm "Tac Writer detectado. Desinstalar?"; then
+            echo "Desinstalando Tac Writer..."
+            pacman -Qq tac-writer &>/dev/null && yay -Rsnu --noconfirm $pkg_tac || true
+            cleanup_files "$state_file"
+            echo "Tac Writer desinstalado."
+        fi
+    else
+        if confirm "Instalar Tac Writer?"; then
+            echo "Instalando Tac Writer..."
+            yay -S --noconfirm $pkg_tac
+            touch "$state_file"
+            echo "Tac Writer instalado."
         fi
     fi
 }
