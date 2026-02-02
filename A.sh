@@ -6311,14 +6311,14 @@ linuxtoys_installer() {
     if [ -f "$state_file" ] || pacman -Q linuxtoys-bin &>/dev/null; then
         if confirm "Linuxtoys detectado. Desinstalar?"; then
             echo "Desinstalando Linuxtoys..."
-            pacman -Qq linuxtoys-bin &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_linuxtoys || true
+            pacman -Qq linuxtoys-bin &>/dev/null && paru -Rsnu --noconfirm $pkg_linuxtoys || true
             cleanup_files "$state_file"
             echo "Linuxtoys desinstalado."
         fi
     else
         if confirm "Instalar Linuxtoys?"; then
             echo "Instalando Linuxtoys..."
-            sudo pacman -S --noconfirm $pkg_linuxtoys
+            paru -S --noconfirm $pkg_linuxtoys
             touch "$state_file"
             echo "Linuxtoys instalado."
         fi
