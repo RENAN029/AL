@@ -4289,7 +4289,8 @@ pessoal_menu() {
         echo "17) Stirling PDF"
         echo "18) Waydroid"
         echo "19) Linuxtoys"
-        echo "20) Voltar"
+        echo "20) Web Sites"
+        echo "21) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4313,7 +4314,8 @@ pessoal_menu() {
             17) clear; stirlingpdf_installer ;;
             18) clear; waydroid_installer ;;
             19) clear; linuxtoys_installer ;;
-            20) return ;;
+            20) clear; web_apps_menu ;;
+            21) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -6229,6 +6231,82 @@ linuxtoys_installer() {
             echo "Linuxtoys instalado."
         fi
     fi
+}
+
+dlpsgame_installer() {
+    local state_file="$STATE_DIR/dlpsgame"
+    local url="https://dlpsgame.com/category/ps4/"
+
+    if [ -f "$state_file" ]; then
+        if confirm "DLPSGame já foi aberto. Abrir novamente?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+        fi
+    else
+        if confirm "Abrir DLPSGame no navegador?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+            echo "DLPSGame aberto."
+        fi
+    fi
+}
+
+romsfun_installer() {
+    local state_file="$STATE_DIR/romsfun"
+    local url="https://romsfun.com/"
+
+    if [ -f "$state_file" ]; then
+        if confirm "RomsFun já foi aberto. Abrir novamente?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+        fi
+    else
+        if confirm "Abrir RomsFun no navegador?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+            echo "RomsFun aberto."
+        fi
+    fi
+}
+
+hydra_installer() {
+    local state_file="$STATE_DIR/hydra"
+    local url="https://library.hydra.wiki/sources"
+
+    if [ -f "$state_file" ]; then
+        if confirm "Hydra Library já foi aberto. Abrir novamente?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+        fi
+    else
+        if confirm "Abrir Hydra Library no navegador?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+            echo "Hydra Library aberto."
+        fi
+    fi
+}
+
+web_apps_menu() {
+    while true; do
+        clear
+        echo "=== Aplicações Web ==="
+        echo "1) DLPSGame (PS4 Games)"
+        echo "2) RomsFun"
+        echo "3) Hydra Library"
+        echo "4) Voltar"
+        echo
+        read -p "Selecione uma opção: " opcao
+
+        case $opcao in
+            1) clear; dlpsgame_installer ;;
+            2) clear; romsfun_installer ;;
+            3) clear; hydra_installer ;;
+            4) return ;;
+            *) ;;
+        esac
+        read -p "Pressione Enter para continuar..."
+    done
 }
 
 main_menu() {
