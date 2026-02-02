@@ -4339,24 +4339,25 @@ pessoal_menu() {
         echo "4) Affinity"
         echo "5) CachyOS Kernel"
         echo "6) Dlss Updater"
-        echo "7) Ryujinx"
-        echo "8) cups"
-        echo "9) Ferramentas"
-        echo "10) Fjord Launcher"
-        echo "11) Gnome Boxes"
-        echo "12) Gnome Extensoes"
-        echo "13) Helium Browser"
-        echo "14) Hydra Launcher"
-        echo "15) LocalSend"
-        echo "16) n8n"
-        echo "17) Observer"
-        echo "18) Paperless"
+        echo "7) cups"
+        echo "8) Ferramentas"
+        echo "9) Fjord Launcher"
+        echo "10) Gnome Boxes"
+        echo "11) Gnome Extensoes"
+        echo "12) Helium Browser"
+        echo "13) Hydra Launcher"
+        echo "14) LocalSend"
+        echo "15) n8n"
+        echo "16) Observer"
+        echo "17) Paperless"
+        echo "18) Ryujinx"
         echo "19) ShadPS4"
         echo "20) Stirling PDF"
-        echo "21) Waydroid"
-        echo "22) Linuxtoys"
-        echo "23) Web Sites"
-        echo "24) Voltar"
+        echo "21) Spotify"
+        echo "22) Waydroid"
+        echo "23) Linuxtoys"
+        echo "24) Web Sites"
+        echo "25) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4367,24 +4368,25 @@ pessoal_menu() {
             4) clear; affinity_installer ;;
             5) clear; cachyos_installer ;;
             6) clear; dlss_installer ;;
-            7) clear; ryujinx_installer ;;
-            8) clear; cups_installer ;;
-            9) clear; ferramentas_menu ;;
-            10) clear; unmojang_installer ;;
-            11) clear; gnome_boxes_installer ;;
-            12) clear; gnome_extension_installer ;;
-            13) clear; helium_browser_installer ;;
-            14) clear; hydra_launcher_installer ;;
-            15) clear; localsend_installer ;;
-            16) clear; n8n_installer ;;
-            17) clear; observer_installer ;;
-            18) clear; paperless_installer ;;
+            7) clear; cups_installer ;;
+            8) clear; ferramentas_menu ;;
+            9) clear; unmojang_installer ;;
+            10) clear; gnome_boxes_installer ;;
+            11) clear; gnome_extension_installer ;;
+            12) clear; helium_browser_installer ;;
+            13) clear; hydra_launcher_installer ;;
+            14) clear; localsend_installer ;;
+            15) clear; n8n_installer ;;
+            16) clear; observer_installer ;;
+            17) clear; paperless_installer ;;
+            18) clear; ryujinx_installer ;;
             19) clear; shadps4_installer ;;
             20) clear; stirlingpdf_installer ;;
-            21) clear; waydroid_installer ;;
-            22) clear; linuxtoys_installer ;;
-            23) clear; web_apps_menu ;;
-            24) return ;;
+            21) clear; spotify_installer ;;
+            22) clear; waydroid_installer ;;
+            23) clear; linuxtoys_installer ;;
+            24) clear; web_apps_menu ;;
+            25) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -5461,6 +5463,27 @@ surfsharkvpn_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_surfshark
             touch "$state_file"
             echo "Surfshark VPN instalado."
+        fi
+    fi
+}
+
+spotify_installer() {
+    local state_file="$STATE_DIR/spotify"
+    local pkg_spotify="com.spotify.Client"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.spotify.Client 2>/dev/null; then
+        if confirm "Spotify detectado. Desinstalar?"; then
+            echo "Desinstalando Spotify..."
+            flatpak uninstall --user -y $pkg_spotify 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Spotify desinstalado."
+        fi
+    else
+        if confirm "Instalar Spotify?"; then
+            echo "Instalando Spotify..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_spotify
+            touch "$state_file"
+            echo "Spotify instalado."
         fi
     fi
 }
