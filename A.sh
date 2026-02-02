@@ -679,6 +679,27 @@ chrome_installer() {
     fi
 }
 
+citron_installer() {
+    local state_file="$STATE_DIR/citron"
+    local pkg_citron="citron-git"
+
+    if [ -f "$state_file" ] || pacman -Q citron-git &>/dev/null; then
+        if confirm "Citron detectado. Desinstalar?"; then
+            echo "Desinstalando Citron..."
+            pacman -Qq citron-git &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_citron || true
+            cleanup_files "$state_file"
+            echo "Citron desinstalado."
+        fi
+    else
+        if confirm "Instalar Citron?"; then
+            echo "Instalando Citron..."
+            sudo pacman -S --noconfirm $pkg_citron
+            touch "$state_file"
+            echo "Citron instalado."
+        fi
+    fi
+}
+
 cockpit_client_installer() {
     local state_file="$STATE_DIR/cockpit_client"
     local pkg_cockpitc="org.cockpit_project.CockpitClient"
@@ -1258,6 +1279,27 @@ distroshelf_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_distroshelf
             touch "$state_file"
             echo "Distroshelf instalado."
+        fi
+    fi
+}
+
+distrobox_installer() {
+    local state_file="$STATE_DIR/distrobox"
+    local pkg_distrobox="distrobox"
+
+    if [ -f "$state_file" ] || pacman -Q distrobox &>/dev/null; then
+        if confirm "distrobox detectado. Desinstalar?"; then
+            echo "Desinstalando distrobox..."
+            pacman -Qq distrobox &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_distrobox || true
+            cleanup_files "$state_file"
+            echo "distrobox desinstalado."
+        fi
+    else
+        if confirm "Instalar distrobox?"; then
+            echo "Instalando distrobox..."
+            sudo pacman -S --noconfirm $pkg_distrobox
+            touch "$state_file"
+            echo "distrobox instalado."
         fi
     fi
 }
@@ -4253,19 +4295,22 @@ pessoal_menu() {
         echo "2) AppImage FUSE"
         echo "3) Affinity"
         echo "4) CachyOS Kernel"
-        echo "5) cups"
-        echo "6) Ferramentas"
-        echo "7) Fjord Launcher"
-        echo "8) Gnome Boxes"
-        echo "9) Helium Browser"
-        echo "10) Hydra Launcher"
-        echo "11) LocalSend"
-        echo "12) n8n"
-        echo "13) Observer"
-        echo "14) Paperless"
-        echo "15) Stirling PDF"
-        echo "16) Waydroid"
-        echo "17) Voltar"
+        echo "5) Citron"
+        echo "6) cups"
+        echo "7) Ferramentas"
+        echo "8) Fjord Launcher"
+        echo "9) Gnome Boxes"
+        echo "10) Helium Browser"
+        echo "11) Hydra Launcher"
+        echo "12) LocalSend"
+        echo "13) n8n"
+        echo "14) Observer"
+        echo "15) Paperless"
+        echo "16) ShadPS4"
+        echo "17) Stirling PDF"
+        echo "18) Waydroid"
+        echo "19) Linuxtoys"
+        echo "20) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4274,19 +4319,22 @@ pessoal_menu() {
             2) clear; appimage_fuse_installer ;;
             3) clear; affinity_installer ;;
             4) clear; cachyos_installer ;;
-            5) clear; cups_installer ;;
-            6) clear; ferramentas_menu ;;
-            7) clear; unmojang_installer ;;
-            8) clear; gnome_boxes_installer ;;
-            9) clear; helium_browser_installer ;;
-            10) clear; hydra_launcher_installer ;;
-            11) clear; localsend_installer ;;
-            12) clear; n8n_installer ;;
-            13) clear; observer_installer ;;
-            14) clear; paperless_installer ;;
-            15) clear; stirlingpdf_installer ;;
-            16) clear; waydroid_installer ;;
-            17) return ;;
+            5) clear; citron_installer ;;
+            6) clear; cups_installer ;;
+            7) clear; ferramentas_menu ;;
+            8) clear; unmojang_installer ;;
+            9) clear; gnome_boxes_installer ;;
+            10) clear; helium_browser_installer ;;
+            11) clear; hydra_launcher_installer ;;
+            12) clear; localsend_installer ;;
+            13) clear; n8n_installer ;;
+            14) clear; observer_installer ;;
+            15) clear; paperless_installer ;;
+            16) clear; shadps4_installer ;;
+            17) clear; stirlingpdf_installer ;;
+            18) clear; waydroid_installer ;;
+            19) clear; linuxtoys_installer ;;
+            20) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -4944,6 +4992,27 @@ shader_booster_installer() {
             echo "# End Shader Booster" >> "$dest_file"
 
             [ $patch_applied -eq 1 ] && echo "1" > "$boost_file" && touch "$state_file"
+        fi
+    fi
+}
+
+shadps4_installer() {
+    local state_file="$STATE_DIR/shadps4"
+    local pkg_shadps4="net.shadps4.shadPS4"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q net.shadps4.shadPS4 2>/dev/null; then
+        if confirm "ShadPS4 detectado. Desinstalar?"; then
+            echo "Desinstalando ShadPS4..."
+            flatpak uninstall --user -y $pkg_shadps4 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "ShadPS4 desinstalado."
+        fi
+    else
+        if confirm "Instalar ShadPS4?"; then
+            echo "Instalando ShadPS4..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_shadps4
+            touch "$state_file"
+            echo "ShadPS4 instalado."
         fi
     fi
 }
@@ -6141,23 +6210,23 @@ yt_dlp_installer() {
     fi
 }
 
-distrobox_installer() {
-    local state_file="$STATE_DIR/distrobox"
-    local pkg_distrobox="distrobox"
+linuxtoys_installer() {
+    local state_file="$STATE_DIR/linuxtoys"
+    local pkg_linuxtoys="linuxtoys-bin"
 
-    if [ -f "$state_file" ] || pacman -Q distrobox &>/dev/null; then
-        if confirm "distrobox detectado. Desinstalar?"; then
-            echo "Desinstalando distrobox..."
-            pacman -Qq distrobox &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_distrobox || true
+    if [ -f "$state_file" ] || pacman -Q linuxtoys-bin &>/dev/null; then
+        if confirm "Linuxtoys detectado. Desinstalar?"; then
+            echo "Desinstalando Linuxtoys..."
+            pacman -Qq linuxtoys-bin &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_linuxtoys || true
             cleanup_files "$state_file"
-            echo "distrobox desinstalado."
+            echo "Linuxtoys desinstalado."
         fi
     else
-        if confirm "Instalar distrobox?"; then
-            echo "Instalando distrobox..."
-            sudo pacman -S --noconfirm $pkg_distrobox
+        if confirm "Instalar Linuxtoys?"; then
+            echo "Instalando Linuxtoys..."
+            sudo pacman -S --noconfirm $pkg_linuxtoys
             touch "$state_file"
-            echo "distrobox instalado."
+            echo "Linuxtoys instalado."
         fi
     fi
 }
