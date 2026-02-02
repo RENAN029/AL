@@ -679,27 +679,6 @@ chrome_installer() {
     fi
 }
 
-citron_installer() {
-    local state_file="$STATE_DIR/citron"
-    local pkg_citron="citron-git"
-
-    if [ -f "$state_file" ] || pacman -Q citron-git &>/dev/null; then
-        if confirm "Citron detectado. Desinstalar?"; then
-            echo "Desinstalando Citron..."
-            pacman -Qq citron-git &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_citron || true
-            cleanup_files "$state_file"
-            echo "Citron desinstalado."
-        fi
-    else
-        if confirm "Instalar Citron?"; then
-            echo "Instalando Citron..."
-            sudo pacman -S --noconfirm $pkg_citron
-            touch "$state_file"
-            echo "Citron instalado."
-        fi
-    fi
-}
-
 cockpit_client_installer() {
     local state_file="$STATE_DIR/cockpit_client"
     local pkg_cockpitc="org.cockpit_project.CockpitClient"
@@ -4295,7 +4274,7 @@ pessoal_menu() {
         echo "2) AppImage FUSE"
         echo "3) Affinity"
         echo "4) CachyOS Kernel"
-        echo "5) Citron"
+        echo "5) Ryujinx"
         echo "6) cups"
         echo "7) Ferramentas"
         echo "8) Fjord Launcher"
@@ -4319,7 +4298,7 @@ pessoal_menu() {
             2) clear; appimage_fuse_installer ;;
             3) clear; affinity_installer ;;
             4) clear; cachyos_installer ;;
-            5) clear; citron_installer ;;
+            5) clear; ryujinx_installer ;;
             6) clear; cups_installer ;;
             7) clear; ferramentas_menu ;;
             8) clear; unmojang_installer ;;
@@ -4882,6 +4861,27 @@ realtek_wifi_installer() {
             yay -S --noconfirm $pkg_rtl8821ce
             touch "$state_file"
             echo "Driver instalado. Reinicie o sistema."
+        fi
+    fi
+}
+
+ryujinx_installer() {
+    local state_file="$STATE_DIR/ryujinx"
+    local pkg_ryujinx="ryujinx"
+
+    if [ -f "$state_file" ] || pacman -Q ryujinx &>/dev/null; then
+        if confirm "Ryujinx detectado. Desinstalar?"; then
+            echo "Desinstalando Ryujinx..."
+            pacman -Qq ryujinx &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ryujinx || true
+            cleanup_files "$state_file"
+            echo "Ryujinx desinstalado."
+        fi
+    else
+        if confirm "Instalar Ryujinx?"; then
+            echo "Instalando Ryujinx..."
+            sudo pacman -S --noconfirm $pkg_ryujinx
+            touch "$state_file"
+            echo "Ryujinx instalado."
         fi
     fi
 }
