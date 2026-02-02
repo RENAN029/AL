@@ -1262,6 +1262,27 @@ distroshelf_installer() {
     fi
 }
 
+dlss_installer() {
+    local state_file="$STATE_DIR/dlss"
+    local pkg_dlss="dlss"
+
+    if [ -f "$state_file" ] || pacman -Q dlss-updater &>/dev/null; then
+        if confirm "Dlss Updater detectado. Desinstalar?"; then
+            echo "Desinstalando Dlss Updater..."
+            pacman -Qq dlss-updater &>/dev/null && sudo yay --noconfirm $pkg_dlss || true
+            cleanup_files "$state_file"
+            echo "Dlss Updater desinstalado."
+        fi
+    else
+        if confirm "Instalar Dlss Updater?"; then
+            echo "Instalando Dlss Updater..."
+            yay -S --noconfirm $pkg_dlss
+            touch "$state_file"
+            echo "Dlss Updater instalado."
+        fi
+    fi
+}
+
 distrobox_installer() {
     local state_file="$STATE_DIR/distrobox"
     local pkg_distrobox="distrobox"
@@ -4295,24 +4316,25 @@ pessoal_menu() {
         echo "2) AppImage FUSE"
         echo "3) Affinity"
         echo "4) CachyOS Kernel"
-        echo "5) Ryujinx"
-        echo "6) cups"
-        echo "7) Ferramentas"
-        echo "8) Fjord Launcher"
-        echo "9) Gnome Boxes"
-        echo "10) Gnome Extensoes"
-        echo "11) Helium Browser"
-        echo "12) Hydra Launcher"
-        echo "13) LocalSend"
-        echo "14) n8n"
-        echo "15) Observer"
-        echo "16) Paperless"
-        echo "17) ShadPS4"
-        echo "18) Stirling PDF"
-        echo "19) Waydroid"
-        echo "20) Linuxtoys"
-        echo "21) Web Sites"
-        echo "22) Voltar"
+        echo "5) Dlss Updater"
+        echo "6) Ryujinx"
+        echo "7) cups"
+        echo "8) Ferramentas"
+        echo "9) Fjord Launcher"
+        echo "10) Gnome Boxes"
+        echo "11) Gnome Extensoes"
+        echo "12) Helium Browser"
+        echo "13) Hydra Launcher"
+        echo "14) LocalSend"
+        echo "15) n8n"
+        echo "16) Observer"
+        echo "17) Paperless"
+        echo "18) ShadPS4"
+        echo "19) Stirling PDF"
+        echo "20) Waydroid"
+        echo "21) Linuxtoys"
+        echo "22) Web Sites"
+        echo "23) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4321,24 +4343,25 @@ pessoal_menu() {
             2) clear; appimage_fuse_installer ;;
             3) clear; affinity_installer ;;
             4) clear; cachyos_installer ;;
-            5) clear; ryujinx_installer ;;
-            6) clear; cups_installer ;;
-            7) clear; ferramentas_menu ;;
-            8) clear; unmojang_installer ;;
-            9) clear; gnome_boxes_installer ;;
-            10) clear; gnome_extension_installer ;;
-            11) clear; helium_browser_installer ;;
-            12) clear; hydra_launcher_installer ;;
-            13) clear; localsend_installer ;;
-            14) clear; n8n_installer ;;
-            15) clear; observer_installer ;;
-            16) clear; paperless_installer ;;
-            17) clear; shadps4_installer ;;
-            18) clear; stirlingpdf_installer ;;
-            19) clear; waydroid_installer ;;
-            20) clear; linuxtoys_installer ;;
-            21) clear; web_apps_menu ;;
-            22) return ;;
+            5) clear; dlss_installer ;;
+            6) clear; ryujinx_installer ;;
+            7) clear; cups_installer ;;
+            8) clear; ferramentas_menu ;;
+            9) clear; unmojang_installer ;;
+            10) clear; gnome_boxes_installer ;;
+            11) clear; gnome_extension_installer ;;
+            12) clear; helium_browser_installer ;;
+            13) clear; hydra_launcher_installer ;;
+            14) clear; localsend_installer ;;
+            15) clear; n8n_installer ;;
+            16) clear; observer_installer ;;
+            17) clear; paperless_installer ;;
+            18) clear; shadps4_installer ;;
+            19) clear; stirlingpdf_installer ;;
+            20) clear; waydroid_installer ;;
+            21) clear; linuxtoys_installer ;;
+            22) clear; web_apps_menu ;;
+            23) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
