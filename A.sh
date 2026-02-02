@@ -2291,18 +2291,39 @@ gnome_boxes_installer() {
     local pkg_boxes="org.gnome.Boxes"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q org.gnome.Boxes 2>/dev/null; then
-        if confirm "GNOME Boxes detectado. Desinstalar?"; then
-            echo "Desinstalando GNOME Boxes..."
+        if confirm "Gnome Boxes detectado. Desinstalar?"; then
+            echo "Desinstalando Gnome Boxes..."
             flatpak uninstall --user -y $pkg_boxes 2>/dev/null || true
             cleanup_files "$state_file"
-            echo "GNOME Boxes desinstalado."
+            echo "Gnome Boxes desinstalado."
         fi
     else
-        if confirm "Instalar GNOME Boxes?"; then
-            echo "Instalando GNOME Boxes..."
+        if confirm "Instalar Gnome Boxes?"; then
+            echo "Instalando Gnome Boxes..."
             flatpak install --or-update --user --noninteractive flathub $pkg_boxes
             touch "$state_file"
-            echo "GNOME Boxes instalado."
+            echo "Gnome Boxes instalado."
+        fi
+    fi
+}
+
+gnome_extension_installer() {
+    local state_file="$STATE_DIR/extension"
+    local pkg_extension="gnome-shell-extension-dash-to-dock"
+
+    if [ -f "$state_file" ] || pacman -Q gnome-shell-extension-dash-to-dock &>/dev/null; then
+        if confirm "Gnome Extension detectado. Desinstalar?"; then
+            echo "Desinstalando Gnome Extension..."
+            pacman -Qq gnome-shell-extension-dash-to-dock &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_extension || true
+            cleanup_files "$state_file"
+            echo "Gnome Extension desinstalado."
+        fi
+    else
+        if confirm "Instalar Gnome Extension?"; then
+            echo "Instalando Gnome Extension..."
+            sudo pacman -S --noconfirm $pkg_extension
+            touch "$state_file"
+            echo "Gnome Extension instalado."
         fi
     fi
 }
@@ -4279,18 +4300,19 @@ pessoal_menu() {
         echo "7) Ferramentas"
         echo "8) Fjord Launcher"
         echo "9) Gnome Boxes"
-        echo "10) Helium Browser"
-        echo "11) Hydra Launcher"
-        echo "12) LocalSend"
-        echo "13) n8n"
-        echo "14) Observer"
-        echo "15) Paperless"
-        echo "16) ShadPS4"
-        echo "17) Stirling PDF"
-        echo "18) Waydroid"
-        echo "19) Linuxtoys"
-        echo "20) Web Sites"
-        echo "21) Voltar"
+        echo "10) Gnome Extensoes"
+        echo "11) Helium Browser"
+        echo "12) Hydra Launcher"
+        echo "13) LocalSend"
+        echo "14) n8n"
+        echo "15) Observer"
+        echo "16) Paperless"
+        echo "17) ShadPS4"
+        echo "18) Stirling PDF"
+        echo "19) Waydroid"
+        echo "20) Linuxtoys"
+        echo "21) Web Sites"
+        echo "22) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4304,18 +4326,19 @@ pessoal_menu() {
             7) clear; ferramentas_menu ;;
             8) clear; unmojang_installer ;;
             9) clear; gnome_boxes_installer ;;
-            10) clear; helium_browser_installer ;;
-            11) clear; hydra_launcher_installer ;;
-            12) clear; localsend_installer ;;
-            13) clear; n8n_installer ;;
-            14) clear; observer_installer ;;
-            15) clear; paperless_installer ;;
-            16) clear; shadps4_installer ;;
-            17) clear; stirlingpdf_installer ;;
-            18) clear; waydroid_installer ;;
-            19) clear; linuxtoys_installer ;;
-            20) clear; web_apps_menu ;;
-            21) return ;;
+            10) clear; gnome_extension_installer ;;
+            11) clear; helium_browser_installer ;;
+            12) clear; hydra_launcher_installer ;;
+            13) clear; localsend_installer ;;
+            14) clear; n8n_installer ;;
+            15) clear; observer_installer ;;
+            16) clear; paperless_installer ;;
+            17) clear; shadps4_installer ;;
+            18) clear; stirlingpdf_installer ;;
+            19) clear; waydroid_installer ;;
+            20) clear; linuxtoys_installer ;;
+            21) clear; web_apps_menu ;;
+            22) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
