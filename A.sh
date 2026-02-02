@@ -1062,14 +1062,14 @@ davinci_ffmpeg_installer() {
     if [ -f "$state_file" ] || pacman -Q davinci-ffmpeg-encoder-plugin &>/dev/null; then
         if confirm "Davinci FFmpeg detectado. Desinstalar?"; then
             echo "Desinstalando Davinci FFmpeg..."
-            pacman -Qq davinci-ffmpeg-encoder-plugin &>/dev/null && yay -Rsnu --noconfirm $pkg_davinci || true
+            pacman -Qq davinci-ffmpeg-encoder-plugin &>/dev/null && paru -Rsnu --noconfirm $pkg_davinci || true
             cleanup_files "$state_file"
             echo "Davinci FFmpeg desinstalado."
         fi
     else
         if confirm "Instalar Davinci FFmpeg?"; then
             echo "Instalando Davinci FFmpeg..."
-            yay -S --noconfirm $pkg_davinci
+            paru -S --noconfirm $pkg_davinci
             touch "$state_file"
             echo "Davinci FFmpeg instalado."
         fi
@@ -1290,14 +1290,14 @@ dlss_installer() {
     if [ -f "$state_file" ] || pacman -Q dlss-updater &>/dev/null; then
         if confirm "Dlss Updater detectado. Desinstalar?"; then
             echo "Desinstalando Dlss Updater..."
-            pacman -Qq dlss-updater &>/dev/null && sudo yay --noconfirm $pkg_dlss || true
+            pacman -Qq dlss-updater &>/dev/null && sudo paru --noconfirm $pkg_dlss || true
             cleanup_files "$state_file"
             echo "Dlss Updater desinstalado."
         fi
     else
         if confirm "Instalar Dlss Updater?"; then
             echo "Instalando Dlss Updater..."
-            yay -S --noconfirm $pkg_dlss
+            paru -S --noconfirm $pkg_dlss
             touch "$state_file"
             echo "Dlss Updater instalado."
         fi
@@ -1882,14 +1882,14 @@ figma_installer() {
     if [ -f "$state_file" ] || pacman -Q figma-linux-bin &>/dev/null; then
         if confirm "Figma detectado. Desinstalar?"; then
             echo "Desinstalando Figma..."
-            pacman -Qq figma-linux-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_figma || true
+            pacman -Qq figma-linux-bin &>/dev/null && paru -Rsnu --noconfirm $pkg_figma || true
             cleanup_files "$state_file"
             echo "Figma desinstalado."
         fi
     else
         if confirm "Instalar Figma?"; then
             echo "Instalando Figma..."
-            yay -S --noconfirm $pkg_figma
+            paru -S --noconfirm $pkg_figma
             touch "$state_file"
             echo "Figma instalado."
         fi
@@ -2633,14 +2633,14 @@ hydra_launcher_installer() {
     if [ -f "$state_file" ] || pacman -Q hydra-launcher-bin &>/dev/null; then
         if confirm "Hydra Launcher detectado. Desinstalar?"; then
             echo "Desinstalando Hydra Launcher..."
-            pacman -Qq hydra-launcher-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_hydra || true
+            pacman -Qq hydra-launcher-bin &>/dev/null && paru -Rsnu --noconfirm $pkg_hydra || true
             cleanup_files "$state_file"
             echo "Hydra Launcher desinstalado."
         fi
     else
         if confirm "Instalar Hydra Launcher?"; then
             echo "Instalando Hydra Launcher..."
-            yay -S --noconfirm $pkg_hydra
+            paru -S --noconfirm $pkg_hydra
             touch "$state_file"
             echo "Hydra Launcher instalado."
         fi
@@ -3220,14 +3220,14 @@ lucidglyph_installer() {
     if [ -f "$state_file" ] || pacman -Q lucidglyph &>/dev/null; then
         if confirm "Lucidglyph detectado. Desinstalar?"; then
             echo "Desinstalando Lucidglyph..."
-            pacman -Qq lucidglyph &>/dev/null && yay -Rsnu --noconfirm $pkg_lucidglyph || true
+            pacman -Qq lucidglyph &>/dev/null && paru -Rsnu --noconfirm $pkg_lucidglyph || true
             cleanup_files "$state_file"
             echo "Lucidglyph desinstalado."
         fi
     else
         if confirm "Instalar Lucidglyph?"; then
             echo "Instalando Lucidglyph..."
-            yay -S --noconfirm $pkg_lucidglyph
+            paru -S --noconfirm $pkg_lucidglyph
             touch "$state_file"
             echo "Lucidglyph instalado."
         fi
@@ -3530,14 +3530,14 @@ n8n_installer() {
             echo "Desinstalando n8n..."
             sudo systemctl stop n8n 2>/dev/null || true
             sudo systemctl disable n8n 2>/dev/null || true
-            pacman -Qq n8n &>/dev/null && yay -Rsnu --noconfirm $pkg_n8n || true
+            pacman -Qq n8n &>/dev/null && paru -Rsnu --noconfirm $pkg_n8n || true
             cleanup_files "$state_file"
             echo "n8n desinstalado."
         fi
     else
         if confirm "Instalar n8n?"; then
             echo "Instalando n8n..."
-            yay -S --noconfirm $pkg_n8n
+            paru -S --noconfirm $pkg_n8n
             sudo systemctl enable --now n8n
             touch "$state_file"
             echo "n8n instalado."
@@ -3835,14 +3835,14 @@ observer_installer() {
     if [ -f "$state_file" ] || pacman -Q observer-ai &>/dev/null; then
         if confirm "Observer detectado. Desinstalar?"; then
             echo "Desinstalando Observer..."
-            pacman -Qq observer-ai &>/dev/null && yay -Rsnu --noconfirm $pkg_observer || true
+            pacman -Qq observer-ai &>/dev/null && paru -Rsnu --noconfirm $pkg_observer || true
             cleanup_files "$state_file"
             echo "Observer desinstalado."
         fi
     else
         if confirm "Instalar Observer?"; then
             echo "Instalando Observer..."
-            yay -S --noconfirm $pkg_observer
+            paru -S --noconfirm $pkg_observer
             touch "$state_file"
             echo "Observer instalado."
         fi
@@ -4083,14 +4083,14 @@ opencode_installer() {
     if [ -f "$state_file" ] || pacman -Q opencode-bin &>/dev/null; then
         if confirm "Opencode detectado. Desinstalar?"; then
             echo "Desinstalando Opencode..."
-            pacman -Qq opencode-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_opencode || true
+            pacman -Qq opencode-bin &>/dev/null && paru -Rsnu --noconfirm $pkg_opencode || true
             cleanup_files "$state_file"
             echo "Opencode desinstalado."
         fi
     else
         if confirm "Instalar Opencode?"; then
             echo "Instalando Opencode..."
-            yay -S --noconfirm $pkg_opencode
+            paru -S --noconfirm $pkg_opencode
             touch "$state_file"
             echo "Opencode instalado."
         fi
@@ -4924,14 +4924,14 @@ realtek_wifi_installer() {
     if [ -f "$state_file" ] || [ -d "/usr/src/rtl8821ce" ]; then
         if confirm "Driver Realtek 8821CE detectado. Desinstalar?"; then
             echo "Desinstalando..."
-            pacman -Qq rtl8821ce-dkms-git &>/dev/null && yay -Rsnu --noconfirm $pkg_rtl8821ce || true
+            pacman -Qq rtl8821ce-dkms-git &>/dev/null && paru -Rsnu --noconfirm $pkg_rtl8821ce || true
             cleanup_files "$state_file"
             echo "Driver removido."
         fi
     else
         if confirm "Instalar driver Realtek 8821CE?"; then
             echo "Instalando..."
-            yay -S --noconfirm $pkg_rtl8821ce
+            paru -S --noconfirm $pkg_rtl8821ce
             touch "$state_file"
             echo "Driver instalado. Reinicie o sistema."
         fi
@@ -5322,14 +5322,14 @@ stirlingpdf_installer() {
             echo "Desinstalando Stirling Pdf..."
             sudo systemctl stop stirling-pdf 2>/dev/null || true
             sudo systemctl disable stirling-pdf 2>/dev/null || true
-            pacman -Qq stirling-pdf-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_stirling || true
+            pacman -Qq stirling-pdf-bin &>/dev/null && paru -Rsnu --noconfirm $pkg_stirling || true
             cleanup_files "$state_file"
             echo "Stirling Pdf desinstalado."
         fi
     else
         if confirm "Instalar Stirling Pdf?"; then
             echo "Instalando Stirling Pdf..."
-            yay -S --noconfirm $pkg_stirling
+            paru -S --noconfirm $pkg_stirling
             sudo systemctl enable --now stirling-pdf
             touch "$state_file"
             echo "Stirling Pdf instalado."
@@ -5346,14 +5346,14 @@ snapd_installer() {
             echo "Desinstalando Snapd..."
             sudo systemctl stop snapd.socket 2>/dev/null || true
             sudo systemctl disable snapd.socket 2>/dev/null || true
-            pacman -Qq snapd &>/dev/null && yay -Rsnu --noconfirm $pkg_snapd || true
+            pacman -Qq snapd &>/dev/null && paru -Rsnu --noconfirm $pkg_snapd || true
             cleanup_files "$state_file"
             echo "Snapd desinstalado."
         fi
     else
         if confirm "Instalar Snapd?"; then
             echo "Instalando Snapd..."
-            yay -S --noconfirm $pkg_snapd
+            paru -S --noconfirm $pkg_snapd
             sudo systemctl enable --now snapd.socket
             touch "$state_file"
             echo "Snapd instalado."
@@ -5598,14 +5598,14 @@ tailscale_installer() {
     if [ -f "$state_file" ] || pacman -Q tac-writer &>/dev/null; then
         if confirm "Tac Writer detectado. Desinstalar?"; then
             echo "Desinstalando Tac Writer..."
-            pacman -Qq tac-writer &>/dev/null && yay -Rsnu --noconfirm $pkg_tac || true
+            pacman -Qq tac-writer &>/dev/null && paru -Rsnu --noconfirm $pkg_tac || true
             cleanup_files "$state_file"
             echo "Tac Writer desinstalado."
         fi
     else
         if confirm "Instalar Tac Writer?"; then
             echo "Instalando Tac Writer..."
-            yay -S --noconfirm $pkg_tac
+            paru -S --noconfirm $pkg_tac
             touch "$state_file"
             echo "Tac Writer instalado."
         fi
@@ -5879,14 +5879,14 @@ voxtype_installer() {
     if [ -f "$state_file" ] || pacman -Q voxtype-bin &>/dev/null; then
         if confirm "Voxtype detectado. Desinstalar?"; then
             echo "Desinstalando Voxtype..."
-            pacman -Qq voxtype-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_voxtype || true
+            pacman -Qq voxtype-bin &>/dev/null && paru -Rsnu --noconfirm $pkg_voxtype || true
             cleanup_files "$state_file"
             echo "Voxtype desinstalado."
         fi
     else
         if confirm "Instalar Voxtype?"; then
             echo "Instalando Voxtype..."
-            yay -S --noconfirm $pkg_voxtype
+            paru -S --noconfirm $pkg_voxtype
             touch "$state_file"
             echo "Voxtype instalado."
         fi
@@ -5990,7 +5990,7 @@ winboat_installer() {
     if [ -f "$state_file" ] || pacman -Q winboat-bin &>/dev/null; then
         if confirm "WinBoat detectado. Desinstalar?"; then
             echo "Desinstalando WinBoat..."
-            pacman -Qq winboat-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_winboat || true
+            pacman -Qq winboat-bin &>/dev/null && paru -Rsnu --noconfirm $pkg_winboat || true
             cleanup_files "$state_file" "$HOME/lsw" "$HOME/txtbox"
             echo "WinBoat desinstalado."
         fi
@@ -5998,7 +5998,7 @@ winboat_installer() {
         lsmod | grep -q kvm || { echo "KVM não está disponível. Verifique se a virtualização está habilitada no BIOS."; return 1; }
         if confirm "Instalar WinBoat (Windows em container Docker)?"; then
             echo "Instalando WinBoat..."
-            yay -S --noconfirm $pkg_winboat
+            paru -S --noconfirm $pkg_winboat
             touch "$state_file"
             echo "WinBoat instalado. Reinicie para carregar módulos do kernel."
         fi
@@ -6012,14 +6012,14 @@ windscribevpn_installer() {
     if [ -f "$state_file" ] || pacman -Q windscribe-v2-bin &>/dev/null; then
         if confirm "Windscribe detectado. Desinstalar?"; then
             echo "Desinstalando Windscribe..."
-            pacman -Qq windscribe-v2-bin &>/dev/null && yay -Rsnu --noconfirm $pkg_windscribe || true
+            pacman -Qq windscribe-v2-bin &>/dev/null && paru -Rsnu --noconfirm $pkg_windscribe || true
             cleanup_files "$state_file"
             echo "Windscribe desinstalado."
         fi
     else
         if confirm "Instalar Windscribe?"; then
             echo "Instalando Windscribe..."
-            yay -S --noconfirm $pkg_windscribe
+            paru -S --noconfirm $pkg_windscribe
             touch "$state_file"
             echo "Windscribe instalado."
         fi
