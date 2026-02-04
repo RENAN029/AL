@@ -6239,18 +6239,20 @@ zsh_ohmyzsh_installer() {
         echo "Zsh instalado."
     fi
     
-    if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
+    if [ ! -f "$ohmyzsh_state" ] && [ ! -d "$HOME/.oh-my-zsh" ]; then
+        if confirm "Instalar Oh My Zsh?"; then
+            echo "Instalando Oh My Zsh..."
+            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+            touch "$ohmyzsh_state"
+            echo "Oh My Zsh instalado."
+        fi
+    elif [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
         if confirm "Oh My Zsh detectado. Desinstalar?"; then
             echo "Desinstalando Oh My Zsh..."
             [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
             cleanup_files "$ohmyzsh_state"
             echo "Oh My Zsh desinstalado."
         fi
-    elif confirm "Instalar Oh My Zsh?"; then
-        echo "Instalando Oh My Zsh..."
-        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-        touch "$ohmyzsh_state"
-        echo "Oh My Zsh instalado."
     fi
 }
 
