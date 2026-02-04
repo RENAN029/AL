@@ -5088,6 +5088,7 @@ shadps4_installer() {
     local pkg_state="$STATE_DIR/pkginstaller"
     local pkg_shadps4="net.shadps4.shadPS4"
     local pkg_dir="$HOME/PKGInstaller"
+    local zip_path="$pkg_dir/PKGInstall.zip"
     local appimage_path="$pkg_dir/PKGInstall.AppImage"
 
     if [ -f "$shad_state" ] || flatpak list --app | grep -q net.shadps4.shadPS4 2>/dev/null; then
@@ -5108,8 +5109,12 @@ shadps4_installer() {
         if confirm "Instalar PKG Installer?"; then
             echo "Instalando PKG Installer..."
             mkdir -p "$pkg_dir"
-            local download_url="https://github.com/Muggle345/PKGInstall/releases/download/Release/PKGInstall.AppImage"
-            curl -L -o "$appimage_path" "$download_url"
+            local download_url=$(curl -s https://api.github.com/repos/Muggle345/PKGInstall/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'PKGInstall.*zip' | head -1 | cut -d'"' -f4)
+            [ -z "$download_url" ] && download_url="https://github.com/Muggle345/PKGInstall/releases/latest/download/PKGInstall.zip"
+            curl -L -o "$zip_path" "$download_url"
+            unzip -q "$zip_path" -d "$pkg_dir"
+            rm -f "$zip_path"
+            find "$pkg_dir" -name "*.AppImage" -exec mv {} "$appimage_path" \;
             chmod +x "$appimage_path"
             touch "$pkg_state"
             echo "PKG Installer instalado."
@@ -5118,7 +5123,8 @@ shadps4_installer() {
         if confirm "PKG Installer detectado. Desinstalar?"; then
             echo "Desinstalando PKG Installer..."
             [ -f "$appimage_path" ] && rm -f "$appimage_path"
-            [ -d "$pkg_dir" ] && rmdir "$pkg_dir" 2>/dev/null || true
+            [ -f "$zip_path" ] && rm -f "$zip_path"
+            [ -d "$pkg_dir" ] && rm -rf "$pkg_dir"
             cleanup_files "$pkg_state"
             echo "PKG Installer desinstalado."
         fi
