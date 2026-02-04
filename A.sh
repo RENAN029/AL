@@ -1901,10 +1901,8 @@ fish_fisher_installer() {
     local fisher_state="$STATE_DIR/fisher"
     local pkg_fish="fish"
     local pkg_fisher="fisher"
-    local fish_installed=0
 
     if [ -f "$fish_state" ] || pacman -Q fish &>/dev/null; then
-        fish_installed=1
         if confirm "Fish Shell detectado. Desinstalar?"; then
             echo "Desinstalando Fish Shell..."
             if [ -f "$fisher_state" ] || pacman -Q fisher &>/dev/null; then
@@ -1926,20 +1924,19 @@ fish_fisher_installer() {
         echo "Fish Shell instalado."
     fi
 
-    if [ $fish_installed -eq 1 ] && [ -f "$fish_state" ]; then
-        if [ -f "$fisher_state" ] || pacman -Q fisher &>/dev/null; then
-            if confirm "Fisher detectado. Desinstalar?"; then
-                echo "Desinstalando Fisher..."
-                pacman -Qq fisher &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fisher || true
-                cleanup_files "$fisher_state"
-                echo "Fisher desinstalado."
-            fi
-        elif confirm "Instalar Fisher (plugin manager)?"; then
-            echo "Instalando Fisher..."
-            sudo pacman -S --noconfirm $pkg_fisher
-            touch "$fisher_state"
-            echo "Fisher instalado."
+    if [ -f "$fisher_state" ] || pacman -Q fisher &>/dev/null; then
+        if confirm "Fisher detectado. Desinstalar?"; then
+            echo "Desinstalando Fisher..."
+            pacman -Qq fisher &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fisher || true
+            cleanup_files "$fisher_state"
+            echo "Fisher desinstalado."
         fi
+    elif confirm "Instalar Fisher (plugin manager)?"; then
+        echo "Instalando Fisher..."
+        sudo pacman -S --noconfirm $pkg_fisher
+        fish -c "fisher install jorgebucaran/fisher" 2>/dev/null || true
+        touch "$fisher_state"
+        echo "Fisher instalado."
     fi
 }
 
