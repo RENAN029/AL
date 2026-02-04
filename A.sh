@@ -6218,10 +6218,8 @@ zsh_ohmyzsh_installer() {
     local zsh_state="$STATE_DIR/zsh"
     local ohmyzsh_state="$STATE_DIR/ohmyzsh"
     local pkg_zsh="zsh"
-    local zsh_installed=0
 
     if [ -f "$zsh_state" ] || pacman -Q zsh &>/dev/null; then
-        zsh_installed=1
         if confirm "Zsh detectado. Desinstalar?"; then
             echo "Desinstalando Zsh..."
             if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
@@ -6240,21 +6238,19 @@ zsh_ohmyzsh_installer() {
         touch "$zsh_state"
         echo "Zsh instalado."
     fi
-
-    if [ $zsh_installed -eq 1 ] && [ -f "$zsh_state" ]; then
-        if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
-            if confirm "Oh My Zsh detectado. Desinstalar?"; then
-                echo "Desinstalando Oh My Zsh..."
-                [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
-                cleanup_files "$ohmyzsh_state"
-                echo "Oh My Zsh desinstalado."
-            fi
-        elif confirm "Instalar Oh My Zsh?"; then
-            echo "Instalando Oh My Zsh..."
-            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-            touch "$ohmyzsh_state"
-            echo "Oh My Zsh instalado."
+    
+    if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
+        if confirm "Oh My Zsh detectado. Desinstalar?"; then
+            echo "Desinstalando Oh My Zsh..."
+            [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
+            cleanup_files "$ohmyzsh_state"
+            echo "Oh My Zsh desinstalado."
         fi
+    elif confirm "Instalar Oh My Zsh?"; then
+        echo "Instalando Oh My Zsh..."
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+        touch "$ohmyzsh_state"
+        echo "Oh My Zsh instalado."
     fi
 }
 
