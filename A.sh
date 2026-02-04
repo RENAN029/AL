@@ -244,7 +244,7 @@ archiving_compression_installer() {
     local state_file="$STATE_DIR/archiving_compression"
     local pkg_archiving="tar p7zip unrar unzip zip xz gzip bzip2 lzop lz4 zstd"
 
-    if [ -f "$state_file" ]; then
+    if [ -f "$state_file" ] || pacman -Q p7zip &>/dev/null; then
         if confirm "Pacotes de Arquivos Compactados detectados. Desinstalar?"; then
             echo "Desinstalando Pacotes de Arquivos Compactados..."
             pacman -Qq tar &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_archiving || true
