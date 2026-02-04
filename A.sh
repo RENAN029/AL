@@ -241,22 +241,22 @@ appimage_fuse_installer() {
 }
 
 archiving_compression_installer() {
-    local state_file="$STATE_DIR/archiving_compression"
-    local pkg_archiving="tar p7zip unrar unzip zip xz gzip bzip2 lzop lz4 zstd"
+    local state_file="$STATE_DIR/pessoal_compactacao"
+    local pkg_compactacao="tar p7zip unrar unzip gzip bzip2 xz zip lzop"
 
-    if [ -f "$state_file" ] || pacman -Q p7zip &>/dev/null; then
-        if confirm "Pacotes de Arquivos Compactados detectados. Desinstalar?"; then
-            echo "Desinstalando Pacotes de Arquivos Compactados..."
-            pacman -Qq tar &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_archiving || true
+    if [ -f "$state_file" ]; then
+        if confirm "Pacotes de Compactação detectados. Desinstalar?"; then
+            echo "Desinstalando Pacotes de Compactação..."
+            pacman -Qq tar &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_compactacao || true
             cleanup_files "$state_file"
-            echo "Pacotes de Arquivos Compactados desinstalados."
+            echo "Pacotes de Compactação desinstalados."
         fi
     else
-        if confirm "Instalar Pacotes de Arquivos Compactados?"; then
-            echo "Instalando Pacotes de Arquivos Compactados..."
-            sudo pacman -S --noconfirm $pkg_archiving
+        if confirm "Instalar Pacotes de Compactação?"; then
+            echo "Instalando Pacotes de Compactação..."
+            sudo pacman -S --noconfirm $pkg_compactacao
             touch "$state_file"
-            echo "Pacotes de Arquivos Compactados instalados."
+            echo "Pacotes de Compactação instalados."
         fi
     fi
 }
