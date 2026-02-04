@@ -5084,22 +5084,43 @@ shader_booster_installer() {
 }
 
 shadps4_installer() {
-    local state_file="$STATE_DIR/shadps4"
+    local shad_state="$STATE_DIR/shadps4"
+    local pkg_state="$STATE_DIR/pkginstaller"
     local pkg_shadps4="net.shadps4.shadPS4"
+    local pkg_dir="$HOME/PKGInstaller"
+    local appimage_path="$pkg_dir/PKGInstall.AppImage"
 
-    if [ -f "$state_file" ] || flatpak list --app | grep -q net.shadps4.shadPS4 2>/dev/null; then
+    if [ -f "$shad_state" ] || flatpak list --app | grep -q net.shadps4.shadPS4 2>/dev/null; then
         if confirm "ShadPS4 detectado. Desinstalar?"; then
             echo "Desinstalando ShadPS4..."
             flatpak uninstall --user -y $pkg_shadps4 2>/dev/null || true
-            cleanup_files "$state_file"
+            cleanup_files "$shad_state"
             echo "ShadPS4 desinstalado."
         fi
-    else
-        if confirm "Instalar ShadPS4?"; then
-            echo "Instalando ShadPS4..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_shadps4
-            touch "$state_file"
-            echo "ShadPS4 instalado."
+    elif confirm "Instalar ShadPS4?"; then
+        echo "Instalando ShadPS4..."
+        flatpak install --or-update --user --noninteractive flathub $pkg_shadps4
+        touch "$shad_state"
+        echo "ShadPS4 instalado."
+    fi
+    
+    if [ ! -f "$pkg_state" ] && [ ! -f "$appimage_path" ]; then
+        if confirm "Instalar PKG Installer?"; then
+            echo "Instalando PKG Installer..."
+            mkdir -p "$pkg_dir"
+            local download_url="https://github.com/Muggle345/PKGInstall/releases/download/Release/PKGInstall.AppImage"
+            curl -L -o "$appimage_path" "$download_url"
+            chmod +x "$appimage_path"
+            touch "$pkg_state"
+            echo "PKG Installer instalado."
+        fi
+    elif [ -f "$pkg_state" ] || [ -f "$appimage_path" ]; then
+        if confirm "PKG Installer detectado. Desinstalar?"; then
+            echo "Desinstalando PKG Installer..."
+            [ -f "$appimage_path" ] && rm -f "$appimage_path"
+            [ -d "$pkg_dir" ] && rmdir "$pkg_dir" 2>/dev/null || true
+            cleanup_files "$pkg_state"
+            echo "PKG Installer desinstalado."
         fi
     fi
 }
