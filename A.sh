@@ -3789,20 +3789,19 @@ nvm_installer() {
 }
 
 obs_installer() {
-    local state_file="$STATE_DIR/obs"
-    local plugin_state_file="$STATE_DIR/obs-pipewire-plugin"
+    local obs_state="$STATE_DIR/obs"
+    local obs_plugins_state="$STATE_DIR/obs_plugins"
     local pkg_wireplumber="wireplumber xorg-xwayland"
     local pkg_obs="com.obsproject.Studio"
 
-    if [ -f "$state_file" ] || flatpak list --app --columns=application | grep -q "com.obsproject.Studio"; then
+    if [ -f "$obs_state" ] || flatpak list --app --columns=application | grep -q "com.obsproject.Studio"; then
         if confirm "OBS Studio detectado. Desinstalar?"; then
             echo "Desinstalando OBS Studio..."
             flatpak remove --user -y --noninteractive $pkg_obs
-            if [ -f "$plugin_state_file" ] || [ -d "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio" ]; then
-                [ -d "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio" ] && rm -rf "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio"
-                cleanup_files "$plugin_state_file"
+            cleanup_files "$obs_state"
+            if [ -f "$obs_plugins_state" ] || [ -d "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio" ]; then
+                cleanup_files "$obs_plugins_state" "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio"
             fi
-            cleanup_files "$state_file" "$HOME/.var/app/com.obsproject.Studio"
             if confirm "Desinstalar também wireplumber e xorg-xwayland?"; then
                 sudo pacman -Rns --noconfirm $pkg_wireplumber
             fi
@@ -3810,54 +3809,35 @@ obs_installer() {
         fi
     elif confirm "Instalar OBS Studio?"; then
         echo "Instalando OBS Studio..."
-        if confirm "Instalar plugins recomendados (pipewire audio capture)?"; then
-            sudo pacman -S --noconfirm $pkg_wireplumber
-            flatpak install --user -y --noninteractive flathub $pkg_obs
-            local ver=$(curl -s "https://api.github.com/repos/dimtpap/obs-pipewire-audio-capture/releases/latest" | grep -oP '"tag_name": "\K(.*)(?=")')
-            mkdir -p /tmp/obspipe && cd /tmp/obspipe
-            curl -fsSL "https://github.com/dimtpap/obs-pipewire-audio-capture/releases/download/${ver}/linux-pipewire-audio-${ver}-flatpak-30.tar.gz" -o linux-pipewire-audio.tar.gz
-            tar -xvzf linux-pipewire-audio.tar.gz
-            mkdir -p "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio"
-            cp -rf linux-pipewire-audio/* "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio/"
-            flatpak override --user --filesystem=xdg-run/pipewire-0 $pkg_obs
-            flatpak override --user --socket=x11 --nosocket=wayland --env=QT_QPA_PLATFORM=xcb $pkg_obs
-
-            cd .. && rm -rf /tmp/obspipe
-            touch "$plugin_state_file"
-        else
-            flatpak install --user -y --noninteractive flathub $pkg_obs
-        fi
-        touch "$state_file"
+        flatpak install --user -y --noninteractive flathub $pkg_obs
+        touch "$obs_state"
         echo "OBS Studio instalado."
     fi
-
-    if [ ! -f "$state_file" ] && ! flatpak list --app --columns=application | grep -q "com.obsproject.Studio"; then
-        if [ -f "$plugin_state_file" ] || [ -d "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio" ]; then
-            if confirm "Plugin Pipewire Audio Capture detectado (sem OBS). Desinstalar?"; then
-                echo "Desinstalando plugin Pipewire Audio Capture..."
-                [ -d "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio" ] && rm -rf "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio"
-                cleanup_files "$plugin_state_file"
-                if confirm "Desinstalar também wireplumber e xorg-xwayland?"; then
-                    sudo pacman -Rns --noconfirm $pkg_wireplumber
-                fi
-                echo "Plugin Pipewire Audio Capture desinstalado."
-            fi
-        elif confirm "Instalar plugin Pipewire Audio Capture (sem OBS)?"; then
-            echo "Instalando plugin Pipewire Audio Capture..."
+    
+    if [ ! -f "$obs_plugins_state" ] && [ ! -d "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio" ]; then
+        if confirm "Instalar plugins recomendados (pipewire audio capture)?"; then
+            echo "Instalando plugins do OBS Studio..."
             sudo pacman -S --noconfirm $pkg_wireplumber
-            flatpak install --user -y --noninteractive flathub $pkg_obs
             local ver=$(curl -s "https://api.github.com/repos/dimtpap/obs-pipewire-audio-capture/releases/latest" | grep -oP '"tag_name": "\K(.*)(?=")')
             mkdir -p /tmp/obspipe && cd /tmp/obspipe
             curl -fsSL "https://github.com/dimtpap/obs-pipewire-audio-capture/releases/download/${ver}/linux-pipewire-audio-${ver}-flatpak-30.tar.gz" -o linux-pipewire-audio.tar.gz
             tar -xvzf linux-pipewire-audio.tar.gz
             mkdir -p "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio"
-            cp -rf linux-pipewire-audio/* "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio/"
+            cp -rf linux-pipewire-audio/* "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio/" 
             flatpak override --user --filesystem=xdg-run/pipewire-0 $pkg_obs
-            flatpak override --user --socket=x11 --nosocket=wayland --env=QT_QPA_PLATFORM=xcb $pkg_obs
+            flatpak override --user --socket=x11 --nosocket=wayland --env=QT_QPA_PLATFORM=xcb $pkg_obs 
             cd .. && rm -rf /tmp/obspipe
-            touch "$state_file"
-            touch "$plugin_state_file"
-            echo "Plugin Pipewire Audio Capture instalado."
+            touch "$obs_plugins_state"
+            echo "Plugins do OBS Studio instalados."
+        fi
+    elif [ -f "$obs_plugins_state" ] || [ -d "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio" ]; then
+        if confirm "Plugins do OBS detectados. Desinstalar?"; then
+            echo "Desinstalando plugins do OBS Studio..."
+            cleanup_files "$obs_plugins_state" "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio"
+            if confirm "Desinstalar também wireplumber e xorg-xwayland?"; then
+                sudo pacman -Rns --noconfirm $pkg_wireplumber
+            fi
+            echo "Plugins do OBS Studio desinstalados."
         fi
     fi
 }
