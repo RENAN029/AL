@@ -1828,7 +1828,7 @@ ferramentas_menu() {
         echo "21) yt-dlp"
         echo "22) fzf"
         echo "23) gdu"
-        echo "24) Pacotes de compressao e descompressao"
+        echo "24) Pacotes de Arquivos"
         echo "25) Podman"
         echo "26) Ollama"
         echo "27) Voxtype"
