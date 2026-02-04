@@ -240,6 +240,27 @@ appimage_fuse_installer() {
     fi
 }
 
+archiving_compression_installer() {
+    local state_file="$STATE_DIR/archiving_compression"
+    local pkg_archiving="tar p7zip unrar unzip zip xz gzip bzip2 lzop lz4 zstd"
+
+    if [ -f "$state_file" ]; then
+        if confirm "Pacotes de Arquivos Compactados detectados. Desinstalar?"; then
+            echo "Desinstalando Pacotes de Arquivos Compactados..."
+            pacman -Qq tar &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_archiving || true
+            cleanup_files "$state_file"
+            echo "Pacotes de Arquivos Compactados desinstalados."
+        fi
+    else
+        if confirm "Instalar Pacotes de Arquivos Compactados?"; then
+            echo "Instalando Pacotes de Arquivos Compactados..."
+            sudo pacman -S --noconfirm $pkg_archiving
+            touch "$state_file"
+            echo "Pacotes de Arquivos Compactados instalados."
+        fi
+    fi
+}
+
 archsb_installer() {
     local state_file="$STATE_DIR/archsb"
     local pkg_archsb="sbctl efibootmgr"
@@ -825,27 +846,6 @@ cpux_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_cpux
             touch "$state_file"
             echo "CPU-X instalado."
-        fi
-    fi
-}
-
-croc_installer() {
-    local state_file="$STATE_DIR/croc"
-    local pkg_croc="croc"
-
-    if [ -f "$state_file" ] || pacman -Q croc &>/dev/null; then
-        if confirm "Croc detectado. Desinstalar?"; then
-            echo "Desinstalando Croc..."
-            pacman -Qq croc &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_croc || true
-            cleanup_files "$state_file"
-            echo "Croc desinstalado."
-        fi
-    else
-        if confirm "Instalar Croc?"; then
-            echo "Instalando Croc..."
-            sudo pacman -S --noconfirm $pkg_croc
-            touch "$state_file"
-            echo "Croc instalado."
         fi
     fi
 }
@@ -1828,7 +1828,7 @@ ferramentas_menu() {
         echo "21) yt-dlp"
         echo "22) fzf"
         echo "23) gdu"
-        echo "24) croc"
+        echo "24) Pacotes de compressao e descompressao"
         echo "25) Podman"
         echo "26) Ollama"
         echo "27) Voxtype"
@@ -1862,7 +1862,7 @@ ferramentas_menu() {
             21) clear; yt_dlp_installer ;;
             22) clear; fzf_installer ;;
             23) clear; gdu_installer ;;
-            24) clear; croc_installer ;;
+            24) clear; archiving_compression_installer ;;
             25) clear; podman_installer ;;
             26) clear; ollama_menu ;;
             27) clear; voxtype_installer ;;
