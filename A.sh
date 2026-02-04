@@ -1937,7 +1937,6 @@ fish_fisher_installer() {
         elif confirm "Instalar Fisher (plugin manager)?"; then
             echo "Instalando Fisher..."
             sudo pacman -S --noconfirm $pkg_fisher
-            fish -c "fisher install jorgebucaran/fisher" 2>/dev/null || true
             touch "$fisher_state"
             echo "Fisher instalado."
         fi
