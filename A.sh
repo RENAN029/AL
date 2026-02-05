@@ -2534,7 +2534,7 @@ heroic_games_launcher_installer() {
 
 helium_browser_installer() {
     local state_file="$STATE_DIR/helium"
-    local pkg_input="helium-browser-bin"
+    local pkg_helium="helium-browser-bin"
 
     if [ -f "$state_file" ] || pacman -Q helium-browser-bin &>/dev/null; then
         if confirm "Helium Browser detectado. Desinstalar?"; then
