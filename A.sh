@@ -1285,12 +1285,12 @@ distroshelf_installer() {
 
 dlss_installer() {
     local state_file="$STATE_DIR/dlss"
-    local pkg_dlss="dlss"
+    local pkg_dlss="dlss-updater"
 
     if [ -f "$state_file" ] || pacman -Q dlss-updater &>/dev/null; then
         if confirm "Dlss Updater detectado. Desinstalar?"; then
             echo "Desinstalando Dlss Updater..."
-            pacman -Qq dlss-updater &>/dev/null && sudo paru --noconfirm $pkg_dlss || true
+            pacman -Qq dlss-updater &>/dev/null && paru --noconfirm $pkg_dlss || true
             cleanup_files "$state_file"
             echo "Dlss Updater desinstalado."
         fi
