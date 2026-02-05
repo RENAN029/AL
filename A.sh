@@ -563,7 +563,7 @@ broadcom_wifi_menu() {
 
 btrfs_assistant_installer() {
     local state_file="$STATE_DIR/btrfs_assistant"
-    local pkg_btrfs_assistant="btrfs-assistant"
+    local pkg_btrfs_assistant="btrfs-assistant snnaper"
 
     if [ -f "$state_file" ] || pacman -Q btrfs-assistant &>/dev/null; then
         if confirm "Btrfs Assistant detectado. Desinstalar?"; then
