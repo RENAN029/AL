@@ -1290,7 +1290,7 @@ dlss_installer() {
     if [ -f "$state_file" ] || pacman -Q dlss-updater &>/dev/null; then
         if confirm "Dlss Updater detectado. Desinstalar?"; then
             echo "Desinstalando Dlss Updater..."
-            pacman -Qq dlss-updater &>/dev/null && paru --noconfirm $pkg_dlss || true
+            pacman -Qq dlss-updater &>/dev/null && paru -Rsnu --noconfirm $pkg_dlss || true
             cleanup_files "$state_file"
             echo "Dlss Updater desinstalado."
         fi
