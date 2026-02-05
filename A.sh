@@ -4254,14 +4254,14 @@ paperless_installer() {
             echo "Desinstalando Paperless..."
             sudo systemctl stop paperless.target 2>/dev/null || true
             sudo systemctl disable paperless.target 2>/dev/null || true
-            pacman -Qq paperless-ngx-venv &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_paperless || true
+            pacman -Qq paperless-ngx-venv &>/dev/null && paru -Rsnu --noconfirm $pkg_paperless || true
             cleanup_files "$state_file"
             echo "Paperless desinstalado."
         fi
     else
         if confirm "Instalar Paperless?"; then
             echo "Instalando Paperless..."
-            sudo pacman -S --noconfirm $pkg_paperless
+            paru -S --noconfirm $pkg_paperless
             sudo systemctl enable --now paperless.target
             touch "$state_file"
             echo "Paperless instalado."
