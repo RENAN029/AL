@@ -6268,7 +6268,7 @@ zsh_ohmyzsh_installer() {
         if confirm "Zsh detectado. Desinstalar?"; then
             echo "Desinstalando Zsh..."
             if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
-                [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
+                [ -d "$HOME/.oh-my-zsh" ] && yes | uninstall_oh_my_zsh
                 cleanup_files "$ohmyzsh_state"
             fi
             pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zsh || true
@@ -6294,7 +6294,7 @@ zsh_ohmyzsh_installer() {
     elif [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
         if confirm "Oh My Zsh detectado. Desinstalar?"; then
             echo "Desinstalando Oh My Zsh..."
-            [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
+            [ -d "$HOME/.oh-my-zsh" ] && yes | uninstall_oh_my_zsh
             cleanup_files "$ohmyzsh_state"
             echo "Oh My Zsh desinstalado."
         fi
