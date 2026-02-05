@@ -1842,8 +1842,8 @@ ferramentas_menu() {
             1) clear; modern_unix_installer ;;
             2) clear; pessoal_base_installer ;;
             3) clear; pessoal_media_installer ;;
-            4) clear; intel_ucode_installer ;;
-            5) clear; amd_ucode_installer ;;
+            4) clear; amd_ucode_installer ;;
+            5) clear; intel_ucode_installer ;;
             6) clear; aria2_installer ;;
             7) clear; btop_installer ;;
             8) clear; curl_installer ;;
