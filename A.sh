@@ -6421,6 +6421,24 @@ hydra_installer() {
     fi
 }
 
+piracy_installer() {
+    local state_file="$STATE_DIR/piracy"
+    local url="https://www.reddit.com/r/Piracy/wiki/megathread/"
+
+    if [ -f "$state_file" ]; then
+        if confirm "r/Piracy já foi aberto. Abrir novamente?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+        fi
+    else
+        if confirm "Abrir r/Piracy no navegador?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+            echo "r/Piracy aberto."
+        fi
+    fi
+}
+
 web_apps_menu() {
     while true; do
         clear
@@ -6428,7 +6446,8 @@ web_apps_menu() {
         echo "1) DLPSGame (PS4 Games)"
         echo "2) RomsFun"
         echo "3) Hydra Library"
-        echo "4) Voltar"
+        echo "4) rPiracy"
+        echo "5) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -6436,7 +6455,8 @@ web_apps_menu() {
             1) clear; dlpsgame_installer ;;
             2) clear; romsfun_installer ;;
             3) clear; hydra_installer ;;
-            4) return ;;
+            4) clear; piracy_installer ;;
+            5) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
