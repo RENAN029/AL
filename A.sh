@@ -2389,11 +2389,13 @@ godot_installer() {
 
 goverlay_installer() {
     local state_file="$STATE_DIR/goverlay"
+    local pkg_mangohud="mangohud"
     local pkg_goverlay="io.github.benjamimgois.goverlay"
 
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.benjamimgois.goverlay 2>/dev/null; then
         if confirm "Goverlay detectado. Desinstalar?"; then
             echo "Desinstalando Goverlay..."
+            pacman -Qq mangohud &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_mangohud || true
             flatpak uninstall --user -y $pkg_goverlay 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Goverlay desinstalado."
@@ -2401,6 +2403,7 @@ goverlay_installer() {
     else
         if confirm "Instalar Goverlay?"; then
             echo "Instalando Goverlay..."
+            sudo pacman -S --noconfirm $pkg_mangohud
             flatpak install --or-update --user --noninteractive flathub $pkg_goverlay
             command -v flatpak &>/dev/null && flatpak install --or-update --user --noninteractive flathub com.valvesoftware.Steam.VulkanLayer.MangoHud/x86_64/stable org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/23.08 org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/24.08
             touch "$state_file"
