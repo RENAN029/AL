@@ -6276,17 +6276,17 @@ zsh_ohmyzsh_installer() {
                     yes | "$HOME/.oh-my-zsh/tools/uninstall.sh"
                 }
                 cleanup_files "$ohmyzsh_state"
-                cleanup_files "$HOME/.zshrc" "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc.backup"
             fi
             pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zsh || true
             sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
-            cleanup_files "$zsh_state"
+            cleanup_files "$zsh_state" "$HOME/.zshrc" "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc.backup"
             echo "Zsh desinstalado."
         fi
     elif confirm "Instalar Zsh?"; then
         echo "Instalando Zsh..."
         sudo pacman -S --noconfirm $pkg_zsh
         sudo chsh -s "$(which zsh)" "$USER"
+        touch "$HOME/.zshrc"
         touch "$zsh_state"
         echo "Zsh instalado."
     fi
@@ -6294,12 +6294,7 @@ zsh_ohmyzsh_installer() {
     if [ ! -f "$ohmyzsh_state" ] && [ ! -d "$HOME/.oh-my-zsh" ]; then
         if confirm "Instalar Oh My Zsh?"; then
             echo "Instalando Oh My Zsh..."
-            touch "$HOME/.zshrc"
             sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-            if [ -f "$HOME/.zshrc" ]; then
-                sed -i 's|^source .*oh-my-zsh.sh$|source $HOME/.oh-my-zsh/oh-my-zsh.sh|g' "$HOME/.zshrc"
-                sed -i 's|^ZSH=.*$|ZSH=$HOME/.oh-my-zsh|g' "$HOME/.zshrc"
-            fi
             touch "$ohmyzsh_state"
             echo "Oh My Zsh instalado."
         fi
@@ -6310,7 +6305,7 @@ zsh_ohmyzsh_installer() {
                 chmod +x "$HOME/.oh-my-zsh/tools/uninstall.sh"
                 yes | "$HOME/.oh-my-zsh/tools/uninstall.sh"
             }
-            cleanup_files "$ohmyzsh_state" "$HOME/.zshrc" "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc.backup"
+            cleanup_files "$ohmyzsh_state"
             echo "Oh My Zsh desinstalado."
         fi
     fi
