@@ -6271,12 +6271,16 @@ zsh_ohmyzsh_installer() {
         if confirm "Zsh detectado. Desinstalar?"; then
             echo "Desinstalando Zsh..."
             if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
-                [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
+                [ -d "$HOME/.oh-my-zsh" ] && {
+                    chmod +x "$HOME/.oh-my-zsh/tools/uninstall.sh"
+                    yes | "$HOME/.oh-my-zsh/tools/uninstall.sh"
+                }
                 cleanup_files "$ohmyzsh_state"
+                cleanup_files "$HOME/.zshrc" "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc.backup"
             fi
             pacman -Qq zsh &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zsh || true
             sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
-            cleanup_files "$zsh_state" "$HOME/.zshrc"
+            cleanup_files "$zsh_state"
             echo "Zsh desinstalado."
         fi
     elif confirm "Instalar Zsh?"; then
@@ -6291,14 +6295,21 @@ zsh_ohmyzsh_installer() {
         if confirm "Instalar Oh My Zsh?"; then
             echo "Instalando Oh My Zsh..."
             sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+            if [ -f "$HOME/.zshrc" ]; then
+                sed -i 's|^source .*oh-my-zsh.sh$|source $HOME/.oh-my-zsh/oh-my-zsh.sh|g' "$HOME/.zshrc"
+                sed -i 's|^ZSH=.*$|ZSH=$HOME/.oh-my-zsh|g' "$HOME/.zshrc"
+            fi
             touch "$ohmyzsh_state"
             echo "Oh My Zsh instalado."
         fi
     elif [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
         if confirm "Oh My Zsh detectado. Desinstalar?"; then
             echo "Desinstalando Oh My Zsh..."
-            [ -d "$HOME/.oh-my-zsh" ] && yes | "$HOME/.oh-my-zsh"/tools/uninstall.sh
-            cleanup_files "$ohmyzsh_state"
+            [ -d "$HOME/.oh-my-zsh" ] && {
+                chmod +x "$HOME/.oh-my-zsh/tools/uninstall.sh"
+                yes | "$HOME/.oh-my-zsh/tools/uninstall.sh"
+            }
+            cleanup_files "$ohmyzsh_state" "$HOME/.zshrc" "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc.backup"
             echo "Oh My Zsh desinstalado."
         fi
     fi
