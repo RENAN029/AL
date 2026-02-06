@@ -26,23 +26,47 @@ acer_manager_installer() {
 
     if [ -f "$state_file" ] || [ -d "/tmp/damx" ] || [ -f "/usr/local/bin/damx" ]; then
         if confirm "Acer Manager detectado. Desinstalar?"; then
-            [ -d "/tmp/damx" ] && cd /tmp/damx/ && echo -e "2\nq\nq\n" | sudo bash setup.sh
-            sudo rm -rf /tmp/damx /usr/local/bin/damx
+            # Executar desinstalação se o diretório existir
+            if [ -d "/tmp/damx" ]; then
+                cd /tmp/damx/ && echo "3" | sudo bash setup.sh
+            fi
+            
+            # Remover arquivos residuais
+            sudo rm -rf /tmp/damx /tmp/damx.tar.gz
+            sudo rm -f /usr/local/bin/damx 2>/dev/null
+            
             if confirm "Desinstalar também base-devel e linux-headers?"; then
-                sudo pacman -Rns --noconfirm $pkg_acer
+                sudo pacman -Rns --noconfirm $pkg_acer 2>/dev/null
             fi
             cleanup_files "$state_file"
         fi
     else
         if confirm "Instalar Acer Manager?"; then
-            sudo pacman -S --noconfirm $pkg_acer
-            local vers=$(curl -s https://api.github.com/repos/PXDiv/Div-Acer-Manager-Max/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
-            curl -L "https://github.com/PXDiv/Div-Acer-Manager-Max/archive/refs/tags/$vers.tar.gz" -o /tmp/damx.tar.gz
+            # Instalar dependências
+            sudo pacman -S --needed --noconfirm $pkg_acer
+            
+            # Baixar última release
+            echo "Baixando Acer Manager..."
+            local download_url=$(curl -s https://api.github.com/repos/PXDiv/Div-Acer-Manager-Max/releases/latest | grep -oP '"browser_download_url": "\K(.*\.tar\.gz)(?=")')
+            
+            if [ -z "$download_url" ]; then
+                echo "Erro: Não foi possível obter URL de download"
+                return 1
+            fi
+            
+            curl -L "$download_url" -o /tmp/damx.tar.gz
             mkdir -p /tmp/damx
             tar -xzf /tmp/damx.tar.gz -C /tmp/damx --strip-components=1
+            
+            # Executar instalação
             cd /tmp/damx/
-            echo -e "1\nq\nq\n" | sudo bash setup.sh
+            chmod +x setup.sh
+            echo "1" | sudo bash setup.sh
+            
+            # Marcar como instalado
             touch "$state_file"
+            
+            echo "Reinicie o sistema para completar a instalação."
         fi
     fi
 }
