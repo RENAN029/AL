@@ -4263,7 +4263,7 @@ paperless_installer() {
 
 paru_installer() {
     local state_file="$STATE_DIR/paru"
-    local pkg_paru="paru"
+    local pkg_paru="paru base-devel"
 
     if [ -f "$state_file" ] || pacman -Q paru &>/dev/null; then
         if confirm "Paru detectado. Desinstalar?"; then
@@ -6124,7 +6124,7 @@ xdg_base_installer() {
 
 yay_installer() {
     local state_file="$STATE_DIR/yay"
-    local pkg_yay="yay"
+    local pkg_yay="yay base-devel"
 
     if [ -f "$state_file" ] || pacman -Q yay &>/dev/null; then
         if confirm "Yay detectado. Desinstalar?"; then
