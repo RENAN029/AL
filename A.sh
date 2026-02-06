@@ -6294,6 +6294,7 @@ zsh_ohmyzsh_installer() {
     if [ ! -f "$ohmyzsh_state" ] && [ ! -d "$HOME/.oh-my-zsh" ]; then
         if confirm "Instalar Oh My Zsh?"; then
             echo "Instalando Oh My Zsh..."
+            touch "$HOME/.zshrc"
             sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
             if [ -f "$HOME/.zshrc" ]; then
                 sed -i 's|^source .*oh-my-zsh.sh$|source $HOME/.oh-my-zsh/oh-my-zsh.sh|g' "$HOME/.zshrc"
