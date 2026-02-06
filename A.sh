@@ -777,13 +777,14 @@ cohesion_installer() {
 
 cpu_ondemand_installer() {
     local state_file="$STATE_DIR/cpu_ondemand"
+    local service_file="/etc/systemd/system/set-ondemand-governor.service"
 
-    if [ -f "$state_file" ] || [ -f "/etc/systemd/system/set-ondemand-governor" ]; then
+    if [ -f "$state_file" ] || [ -f "$service_file" ]; then
         if confirm "CPU Ondemand detectado. Desinstalar?"; then
             echo "Desinstalando CPU Ondemand..."
-            sudo systemctl stop set-ondemand-governor 2>/dev/null || true
-            sudo systemctl disable set-ondemand-governor 2>/dev/null || true
-            sudo rm -f /etc/systemd/system/set-ondemand-governor /etc/default/grub.d/01_intel_pstate_disable /etc/kernel/cmdline.d/10-intel-pstate-disable.conf /usr/local/bin/set-ondemand-governor.sh 2>/dev/null || true
+            sudo systemctl stop set-ondemand-governor.service 2>/dev/null || true
+            sudo systemctl disable set-ondemand-governor.service 2>/dev/null || true
+            sudo rm -f "$service_file" /etc/default/grub.d/01_intel_pstate_disable /etc/kernel/cmdline.d/10-intel-pstate-disable.conf /usr/local/bin/set-ondemand-governor.sh 2>/dev/null || true
             sudo mkdir -p /boot/grub 2>/dev/null || true
             sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
             sudo bootctl update 2>/dev/null || true
@@ -805,8 +806,8 @@ Type=oneshot
 ExecStart=/usr/local/bin/set-ondemand-governor.sh
 
 [Install]
-WantedBy=multi-user.target' | sudo tee /etc/systemd/system/set-ondemand-governor
-            sudo systemctl enable set-ondemand-governor
+WantedBy=multi-user.target' | sudo tee /etc/systemd/system/set-ondemand-governor.service
+            sudo systemctl enable set-ondemand-governor.service
             sudo mkdir -p /etc/default/grub.d
             echo 'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} intel_pstate=disable"' | sudo tee /etc/default/grub.d/01_intel_pstate_disable
             sudo mkdir -p /boot/grub 2>/dev/null || true
