@@ -22,7 +22,7 @@ cleanup_files() {
 
 de_gnome_installer() {
     local state_file="$STATE_DIR/de_gnome"
-    local pkg_gnome="gnome-initial-setup gnome-console gnome-software gnome-tweaks gnome-disk-utility gnome-backgrounds"
+    local pkg_gnome="gdm3"
 
     if [ -f "$state_file" ] || pacman -Q gnome-shell &>/dev/null; then
         if confirm "Gnome detectado. Desinstalar?"; then
