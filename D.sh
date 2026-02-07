@@ -20,6 +20,125 @@ cleanup_files() {
     done
 }
 
+ufw_installer() {
+    local state_file="$STATE_DIR/ufw"
+    local pkg_ufw="ufw"
+
+    if [ -f "$state_file" ] || pacman -Q ufw &>/dev/null; then
+        if confirm "UFW detectado. Desinstalar?"; then
+            echo "Desinstalando UFW..."
+            sudo systemctl stop ufw 2>/dev/null || true
+            sudo systemctl disable ufw 2>/dev/null || true
+            pacman -Qq ufw &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ufw || true
+            cleanup_files "$state_file"
+            echo "UFW desinstalado."
+        fi
+    else
+        if confirm "Instalar UFW?"; then
+            echo "Instalando UFW..."
+            sudo pacman -S --noconfirm $pkg_ufw
+            sudo ufw default deny incoming
+            sudo ufw default allow outgoing
+            sudo ufw allow 53317/udp
+            sudo ufw allow 53317/tcp
+            sudo ufw allow 1714:1764/udp
+            sudo ufw allow 1714:1764/tcp
+            sudo systemctl enable --now ufw
+            sudo ufw --force enable
+            sudo ufw status verbose
+            touch "$state_file"
+            echo "UFW instalado e configurado."
+        fi
+    fi
+}
+
+archiving_compression_installer() {
+    local state_file="$STATE_DIR/pessoal_compactacao"
+    local pkg_compactacao="tar 7zip unrar unzip gzip lrzip xz zip lzop"
+
+    if [ -f "$state_file" ]; then
+        if confirm "Pacotes de Compactação detectados. Desinstalar?"; then
+            echo "Desinstalando Pacotes de Compactação..."
+            pacman -Qq tar &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_compactacao || true
+            cleanup_files "$state_file"
+            echo "Pacotes de Compactação desinstalados."
+        fi
+    else
+        if confirm "Instalar Pacotes de Compactação?"; then
+            echo "Instalando Pacotes de Compactação..."
+            sudo pacman -S --noconfirm $pkg_compactacao
+            touch "$state_file"
+            echo "Pacotes de Compactação instalados."
+        fi
+    fi
+}
+
+apparmor_installer() {
+    local state_file="$STATE_DIR/apparmor"
+    local pkg_apparmor="apparmor"
+
+    if [ -f "$state_file" ] || pacman -Q apparmor &>/dev/null; then
+        if confirm "AppArmor detectado. Desinstalar?"; then
+            echo "Desinstalando AppArmor..."
+            sudo systemctl stop apparmor 2>/dev/null || true
+            sudo systemctl disable apparmor 2>/dev/null || true
+            pacman -Qq apparmor &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_apparmor || true
+            cleanup_files "$state_file"
+            echo "AppArmor desinstalado."
+        fi
+    else
+        if confirm "Instalar AppArmor?"; then
+            echo "Instalando AppArmor..."
+            sudo pacman -S --noconfirm $pkg_apparmor
+            sudo systemctl enable apparmor
+            touch "$state_file"
+            echo "AppArmor instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+gamemode_installer() {
+    local state_file="$STATE_DIR/gamemode"
+    local pkg_gamemode="gamemode"
+
+    if [ -f "$state_file" ] || pacman -Q gamemode &>/dev/null; then
+        if confirm "Gamemode detectado. Desinstalar?"; then
+            echo "Desinstalando Gamemode..."
+            pacman -Qq gamemode &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_gamemode || true
+            cleanup_files "$state_file"
+            echo "Gamemode desinstalado."
+        fi
+    else
+        if confirm "Instalar Gamemode?"; then
+            echo "Instalando Gamemode..."
+            sudo pacman -S --noconfirm $pkg_gamemode
+            touch "$state_file"
+            echo "Gamemode instalado."
+        fi
+    fi
+}
+
+fwupd_installer() {
+    local state_file="$STATE_DIR/fwupd"
+    local pkg_fwupd="fwupd"
+
+    if [ -f "$state_file" ] || pacman -Q fwupd &>/dev/null; then
+        if confirm "Fwupd detectado. Desinstalar?"; then
+            echo "Desinstalando Fwupd..."
+            pacman -Qq fwupd &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fwupd || true
+            cleanup_files "$state_file"
+            echo "Fwupd desinstalado."
+        fi
+    else
+        if confirm "Instalar Fwupd?"; then
+            echo "Instalando Fwupd..."
+            sudo pacman -S --noconfirm $pkg_fwupd
+            touch "$state_file"
+            echo "Fwupd instalado."
+        fi
+    fi
+}
+
 flatpak_flathub_installer() {
     local flatpak_state="$STATE_DIR/flatpak"
     local flathub_state="$STATE_DIR/flathub"
