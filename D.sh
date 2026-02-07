@@ -45,7 +45,7 @@ de_gnome_installer() {
 
 de_plasma_installer() {
     local state_file="$STATE_DIR/de_plasma"
-    local pkg_plasma="sddm-kcm kde-plasma-desktop konsole dolphin kdeconnect partitionmanager ark"
+    local pkg_plasma="sddm kde-plasma-desktop konsole dolphin kdeconnect partitionmanager ark"
 
     if [ -f "$state_file" ] || pacman -Q plasma-meta &>/dev/null; then
         if confirm "Plasma detectado. Desinstalar?"; then
