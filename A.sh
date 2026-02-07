@@ -178,10 +178,6 @@ apparmor_installer() {
             echo "Desinstalando AppArmor..."
             sudo systemctl stop apparmor 2>/dev/null || true
             sudo systemctl disable apparmor 2>/dev/null || true
-            sudo rm -f /etc/default/grub.d/99-apparmor.cfg /etc/kernel/cmdline.d/99-apparmor.conf 2>/dev/null || true
-            sudo mkdir -p /boot/grub 2>/dev/null || true
-            sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
-            sudo bootctl update 2>/dev/null || true
             pacman -Qq apparmor &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_apparmor || true
             cleanup_files "$state_file"
             echo "AppArmor desinstalado."
@@ -190,16 +186,6 @@ apparmor_installer() {
         if confirm "Instalar AppArmor?"; then
             echo "Instalando AppArmor..."
             sudo pacman -S --noconfirm $pkg_apparmor
-            if pacman -Qq grub &>/dev/null; then
-                sudo mkdir -p /etc/default/grub.d
-                echo 'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} apparmor=1 security=apparmor"' | sudo tee /etc/default/grub.d/99-apparmor.cfg
-                sudo mkdir -p /boot/grub 2>/dev/null || true
-                sudo grub-mkconfig -o /boot/grub/grub.cfg
-            else
-                sudo mkdir -p /etc/kernel/cmdline.d
-                echo "apparmor=1 security=apparmor" | sudo tee /etc/kernel/cmdline.d/99-apparmor.conf
-                sudo bootctl update 2>/dev/null || true
-            fi
             sudo systemctl enable apparmor
             touch "$state_file"
             echo "AppArmor instalado. Reinicie para aplicar."
