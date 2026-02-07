@@ -20,25 +20,25 @@ cleanup_files() {
     done
 }
 
-de_plasma_installer() {
-    local state_file="$STATE_DIR/de_plasma"
-    local pkg_plasma="plasma-meta konsole dolphin kdeconnect partitionmanager ark"
+de_gnome_installer() {
+    local state_file="$STATE_DIR/de_gnome"
+    local pkg_gnome="gnome-initial-setup gnome-console gnome-software gnome-tweaks gnome-disk-utility gnome-backgrounds"
 
-    if [ -f "$state_file" ] || pacman -Q plasma-meta &>/dev/null; then
-        if confirm "Plasma detectado. Desinstalar?"; then
-            echo "Desinstalando Plasma..."
-            sudo systemctl disable sddm 2>/dev/null || true
-            pacman -Qq plasma-meta &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_plasma || true
+    if [ -f "$state_file" ] || pacman -Q gnome-shell &>/dev/null; then
+        if confirm "Gnome detectado. Desinstalar?"; then
+            echo "Desinstalando Gnome..."
+            sudo systemctl disable gdm 2>/dev/null || true
+            pacman -Qq gnome-shell &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_gnome || true
             cleanup_files "$state_file"
-            echo "Plasma desinstalado."
+            echo "Gnome desinstalado."
         fi
     else
-        if confirm "Instalar Plasma?"; then
-            echo "Instalando Plasma..."
-            sudo pacman -S --noconfirm $pkg_plasma
-            sudo systemctl enable sddm
+        if confirm "Instalar Gnome?"; then
+            echo "Instalando Gnome..."
+            sudo pacman -S --noconfirm $pkg_gnome
+            sudo systemctl enable gdm
             touch "$state_file"
-            echo "Plasma instalado. Reinicie para aplicar."
+            echo "Gnome instalado. Reinicie para aplicar."
         fi
     fi
 }
