@@ -20,6 +20,50 @@ cleanup_files() {
     done
 }
 
+neovim_installer() {
+    local state_file="$STATE_DIR/nvim"
+    local pkg_neovim="neovim"
+
+    if [ -f "$state_file" ] || pacman -Q neovim &>/dev/null; then
+        if confirm "NeoVim detectado. Desinstalar?"; then
+            echo "Desinstalando NeoVim..."
+            pacman -Qq neovim &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_neovim || true
+            cleanup_files "$state_file"
+            echo "NeoVim desinstalado."
+        fi
+    else
+        if confirm "Instalar NeoVim?"; then
+            echo "Instalando NeoVim..."
+            sudo pacman -S --noconfirm $pkg_neovim
+            touch "$state_file"
+            echo "NeoVim instalado."
+        fi
+    fi
+}
+
+lazyvim_installer() {
+    local state_file="$STATE_DIR/nvim_lazyvim"
+    local nvim_dir="$HOME/.config/nvim"
+
+    if [ -f "$state_file" ] || [ -d "$nvim_dir" ]; then
+        if confirm "LazyVim detectado. Desinstalar?"; then
+            echo "Desinstalando LazyVim..."
+            rm -rf "$nvim_dir"
+            cleanup_files "$state_file"
+            echo "LazyVim desinstalado."
+        fi
+    else
+        if confirm "Instalar LazyVim?"; then
+            echo "Instalando LazyVim..."
+            rm -rf "$nvim_dir"
+            git clone https://github.com/LazyVim/starter "$nvim_dir"
+            rm -rf "$nvim_dir/.git"
+            touch "$state_file"
+            echo "LazyVim instalado."
+        fi
+    fi
+}
+
 podman_installer() {
     local state_file="$STATE_DIR/podman"
     local pkg_podman="podman podman-compose"
