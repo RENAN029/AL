@@ -20,6 +20,42 @@ cleanup_files() {
     done
 }
 
+flatpak_flathub_installer() {
+    local flatpak_state="$STATE_DIR/flatpak"
+    local flathub_state="$STATE_DIR/flathub"
+    local pkg_flatpak="flatpak"
+
+    if [ -f "$flatpak_state" ] || pacman -Q flatpak &>/dev/null; then
+        if confirm "Flatpak detectado. Desinstalar?"; then
+            echo "Desinstalando Flatpak..."
+            pacman -Qq flatpak &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_flatpak || true
+            rm -rf "$HOME/.local/share/flatpak" 2>/dev/null || true
+            sudo rm -rf /var/lib/flatpak 2>/dev/null || true
+            cleanup_files "$flatpak_state" "$flathub_state"
+            echo "Flatpak desinstalado."
+        fi
+    elif confirm "Instalar Flatpak?"; then
+        echo "Instalando Flatpak..."
+        sudo pacman -S --noconfirm $pkg_flatpak
+        touch "$flatpak_state"
+        echo "Flatpak instalado."
+    fi
+
+    if [ -f "$flathub_state" ] || flatpak remote-list | grep -q flathub 2>/dev/null; then
+        if confirm "Flathub detectado. Remover?"; then
+            echo "Removendo Flathub..."
+            flatpak remote-delete flathub 2>/dev/null || true
+            cleanup_files "$flathub_state"
+            echo "Flathub removido."
+        fi
+    elif confirm "Adicionar repositório Flathub?"; then
+        echo "Adicionando Flathub..."
+        flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        touch "$flathub_state"
+        echo "Flathub adicionado."
+    fi
+}
+
 neovim_installer() {
     local state_file="$STATE_DIR/nvim"
     local pkg_neovim="neovim"
