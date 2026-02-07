@@ -5722,10 +5722,9 @@ ufw_installer() {
     if [ -f "$state_file" ] || pacman -Q ufw &>/dev/null; then
         if confirm "UFW detectado. Desinstalar?"; then
             echo "Desinstalando UFW..."
-            systemctl is-active --quiet ufw 2>/dev/null && sudo systemctl stop ufw || true
-            systemctl is-enabled --quiet ufw 2>/dev/null && sudo systemctl disable ufw || true
+            sudo systemctl stop ufw 2>/dev/null || true
+            sudo systemctl disable ufw 2>/dev/null || true
             pacman -Qq ufw &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ufw || true
-            sudo rm -rf /etc/ufw /lib/ufw /usr/share/ufw /var/lib/ufw /usr/bin/ufw /usr/sbin/ufw 2>/dev/null || true
             cleanup_files "$state_file"
             echo "UFW desinstalado."
         fi
@@ -5739,7 +5738,7 @@ ufw_installer() {
             sudo ufw allow 53317/tcp
             sudo ufw allow 1714:1764/udp
             sudo ufw allow 1714:1764/tcp
-            sudo systemctl enable ufw
+            sudo systemctl enable --now ufw
             sudo ufw --force enable
             sudo ufw status verbose
             touch "$state_file"
