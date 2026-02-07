@@ -20,6 +20,27 @@ cleanup_files() {
     done
 }
 
+podman_installer() {
+    local state_file="$STATE_DIR/podman"
+    local pkg_podman="podman podman-compose"
+
+    if [ -f "$state_file" ] || pacman -Q podman &>/dev/null; then
+        if confirm "Podman detectado. Desinstalar?"; then
+            echo "Desinstalando Podman..."
+            pacman -Qq podman &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_podman || true
+            cleanup_files "$state_file"
+            echo "Podman desinstalado."
+        fi
+    else
+        if confirm "Instalar Podman?"; then
+            echo "Instalando Podman..."
+            sudo pacman -S --noconfirm $pkg_podman
+            touch "$state_file"
+            echo "Podman instalado."
+        fi
+    fi
+}
+
 de_gnome_installer() {
     local state_file="$STATE_DIR/de_gnome"
     local pkg_gnome="gdm3 gnome-initial-setup gnome-console gnome-software gnome-tweaks gnome-disk-utility gnome-backgrounds"
