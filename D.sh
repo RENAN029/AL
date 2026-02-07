@@ -20,6 +20,128 @@ cleanup_files() {
     done
 }
 
+aria2_installer() {
+    local state_file="$STATE_DIR/aria2"
+    local pkg_aria2="aria2"
+
+    if [ -f "$state_file" ] || pacman -Q aria2 &>/dev/null; then
+        if confirm "aria2 detectado. Desinstalar?"; then
+            echo "Desinstalando aria2..."
+            pacman -Qq aria2 &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_aria2 || true
+            cleanup_files "$state_file"
+            echo "aria2 desinstalado."
+        fi
+    else
+        if confirm "Instalar aria2?"; then
+            echo "Instalando aria2..."
+            sudo pacman -S --noconfirm $pkg_aria2
+            touch "$state_file"
+            echo "aria2 instalado."
+        fi
+    fi
+}
+
+faugus_launcher_installer() {
+    local state_file="$STATE_DIR/faugus_launcher"
+    local pkg_faugus="io.github.Faugus.faugus-launcher"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.Faugus.faugus-launcher 2>/dev/null; then
+        if confirm "Faugus Launcher detectado. Desinstalar?"; then
+            echo "Desinstalando Faugus Launcher..."
+            flatpak uninstall --user -y $pkg_faugus 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Faugus Launcher desinstalado."
+        fi
+    else
+        if confirm "Instalar Faugus Launcher?"; then
+            echo "Instalando Faugus Launcher..."
+            flatpak install --user --noninteractive flathub $pkg_faugus
+            sudo flatpak override io.github.Faugus.faugus-launcher --filesystem=~/.var/app/com.valvesoftware.Steam/.steam/steam/userdata/
+            sudo flatpak override com.valvesoftware.Steam --talk-name=org.freedesktop.Flatpak
+            sudo flatpak override com.valvesoftware.Steam --filesystem=~/.var/app/io.github.Faugus.faugus-launcher/config/faugus-launcher/
+            touch "$state_file"
+            echo "Faugus Launcher instalado."
+        fi
+    fi
+}
+
+steam_installer() {
+    local state_file="$STATE_DIR/steam"
+    local pkg_steam="com.valvesoftware.Steam"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.valvesoftware.Steam 2>/dev/null; then
+        if confirm "Steam detectado. Desinstalar?"; then
+            echo "Desinstalando Steam..."
+            flatpak uninstall --user -y $pkg_steam 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Steam desinstalado."
+        fi
+    else
+        if confirm "Instalar Steam?"; then
+            echo "Instalando Steam..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_steam
+            touch "$state_file"
+            echo "Steam instalado."
+        fi
+    fi
+}
+
+chaotic_aur_installer() {
+    local state_file="$STATE_DIR/chaotic_aur"
+    local pkg_chaotic="chaotic-keyring chaotic-mirrorlist"
+
+    if [ -f "$state_file" ] || (pacman -Q chaotic-keyring &>/dev/null && pacman -Q chaotic-mirrorlist &>/dev/null); then
+        if confirm "Chaotic AUR detectado. Desinstalar?"; then
+            echo "Desinstalando Chaotic AUR..."
+            sudo sed -i '/\[chaotic-aur\]/,/^$/d' /etc/pacman.conf 2>/dev/null || true
+            pacman -Qq chaotic-keyring &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_chaotic || true
+            sudo pacman-key --delete 3056513887B78AEB 2>/dev/null || true
+            sudo sed -i '/^ILoveCandy/d' /etc/pacman.conf 2>/dev/null || true
+            sudo sed -i '/^ParallelDownloads/d' /etc/pacman.conf 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Chaotic AUR desinstalado."
+        fi
+    else
+        if confirm "Instalar Chaotic AUR?"; then
+            echo "Instalando Chaotic AUR..."
+            sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
+            sudo pacman-key --lsign-key 3056513887B78AEB
+            sudo pacman -U --noconfirm \
+                "https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst" \
+                "https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst"
+            sudo sed -i 's/^#Color/Color/' /etc/pacman.conf
+            sudo sed -i '/Color/a ILoveCandy' /etc/pacman.conf
+            sudo sed -i '/^ParallelDownloads/d' /etc/pacman.conf
+            sudo sed -i '/ILoveCandy/a ParallelDownloads = 15' /etc/pacman.conf
+            echo -e "\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist" | sudo tee -a /etc/pacman.conf
+            sudo pacman -Syu
+            touch "$state_file"
+            echo "Chaotic AUR instalado."
+        fi
+    fi
+}
+
+zen_browser_installer() {
+    local state_file="$STATE_DIR/zen_browser"
+    local pkg_zen="app.zen_browser.zen"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q app.zen_browser.zen 2>/dev/null; then
+        if confirm "Zen Browser detectado. Desinstalar?"; then
+            echo "Desinstalando Zen Browser..."
+            flatpak uninstall --user -y $pkg_zen 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Zen Browser desinstalado."
+        fi
+    else
+        if confirm "Instalar Zen Browser?"; then
+            echo "Instalando Zen Browser..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_zen
+            touch "$state_file"
+            echo "Zen Browser instalado."
+        fi
+    fi
+}
+
 ufw_installer() {
     local state_file="$STATE_DIR/ufw"
     local pkg_ufw="ufw"
