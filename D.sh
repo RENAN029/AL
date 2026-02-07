@@ -176,7 +176,7 @@ ufw_installer() {
 
 archiving_compression_installer() {
     local state_file="$STATE_DIR/pessoal_compactacao"
-    local pkg_compactacao="tar 7zip unrar unzip gzip lrzip xz zip lzop"
+    local pkg_compactacao="tar 7zip unrar unzip gzip lrzip xz-utils zip lzop"
 
     if [ -f "$state_file" ]; then
         if confirm "Pacotes de Compactação detectados. Desinstalar?"; then
