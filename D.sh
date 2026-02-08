@@ -20,6 +20,79 @@ cleanup_files() {
     done
 }
 
+fish_fisher_installer() {
+    local fish_state="$STATE_DIR/fish"
+    local fisher_state="$STATE_DIR/fisher"
+    local pkg_fish="fish"
+    local pkg_fisher="fisher"
+
+    if [ -f "$fish_state" ] || pacman -Q fish &>/dev/null; then
+        if confirm "Fish Shell detectado. Desinstalar?"; then
+            echo "Desinstalando Fish Shell..."
+            if [ -f "$fisher_state" ] || pacman -Q fisher &>/dev/null; then
+                pacman -Qq fisher &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fisher || true
+                cleanup_files "$fisher_state"
+            fi
+            pacman -Qq fish &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fish || true
+            sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
+            cleanup_files "$fish_state" "$HOME/.config/fish"
+            echo "Fish Shell desinstalado."
+        fi
+    elif confirm "Instalar Fish Shell?"; then
+        echo "Instalando Fish Shell..."
+        sudo pacman -S --noconfirm $pkg_fish
+        sudo chsh -s "$(which fish)" "$USER"
+        mkdir -p ~/.config/fish
+        echo "set fish_greeting" > ~/.config/fish/config.fish
+        touch "$fish_state"
+        echo "Fish Shell instalado."
+    fi
+
+    if [ -f "$fisher_state" ] || pacman -Q fisher &>/dev/null; then
+        if confirm "Fisher detectado. Desinstalar?"; then
+            echo "Desinstalando Fisher..."
+            pacman -Qq fisher &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fisher || true
+            cleanup_files "$fisher_state"
+            echo "Fisher desinstalado."
+        fi
+    elif confirm "Instalar Fisher (plugin manager)?"; then
+        echo "Instalando Fisher..."
+        sudo pacman -S --noconfirm $pkg_fisher
+        fish -c "fisher install jorgebucaran/fisher" 2>/dev/null || true
+        touch "$fisher_state"
+        echo "Fisher instalado."
+    fi
+    #Utilize o script do fisher no lugar da instalacao do pacote como abaixo no debian, use curl:
+#!/bin/bash
+# name: Fisher
+# version: 1.0
+# description: fisher_desc
+# icon: fish.svg
+# repo: https://github.com/jorgebucaran/fisher
+
+# --- Start of the script code ---
+source "$SCRIPT_DIR/libs/linuxtoys.lib"
+source "$SCRIPT_DIR/libs/helpers.lib"
+_lang_
+source "$SCRIPT_DIR/libs/lang/${langfile}.lib"
+
+sudo_rq
+_packages=(fish)
+_install_
+
+if command -v fish >/dev/null 2>&1; then
+	sudo chsh -s "$(type -p fish)" "$USER"
+
+	if fish -c "curl -sL https://git.io/fisher | source; fisher install jorgebucaran/fisher"; then
+		zeninf "$msg018"
+	else
+		fatal "Fisher could not be installed."
+	fi
+else
+	fatal "Unable to complete installation"
+fi
+}
+
 mise_installer() {
     local state_file="$STATE_DIR/mise"
     local pkg_mise="mise"
@@ -39,7 +112,7 @@ mise_installer() {
             echo "Mise instalado."
         fi
     fi
-    #Utilize o script no lugar da instalacao do pacote como abaixo no debian, use curl:
+    #Utilize o script do mise no lugar da instalacao do pacote como abaixo no debian, use curl:
 #!/bin/bash
 # name: Mise
 # version: 1.0
