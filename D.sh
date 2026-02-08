@@ -20,6 +20,48 @@ cleanup_files() {
     done
 }
 
+pessoal_base_installer() {
+    local state_file="$STATE_DIR/pessoal_base"
+    local pkg_base="fonts-noto fonts-noto-cjk fonts-noto-color-emoji fonts-noto-extra fonts-noto-cjk-extra fonts-jetbrains-mono"
+
+    if [ -f "$state_file" ] || pacman -Q fonts-jetbrains-mono &>/dev/null; then
+        if confirm "Pacotes Base detectados. Desinstalar?"; then
+            echo "Desinstalando Pacotes Base..."
+            pacman -Qq fonts-noto &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_base || true
+            cleanup_files "$state_file"
+            echo "Pacotes Base desinstalados."
+        fi
+    else
+        if confirm "Instalar Pacotes Base?"; then
+            echo "Instalando Pacotes Base..."
+            sudo pacman -S --noconfirm $pkg_base
+            touch "$state_file"
+            echo "Pacotes Base instalados."
+        fi
+    fi
+}
+
+pessoal_media_installer() {
+    local state_file="$STATE_DIR/pessoal_media"
+    local pkg_media="ffmpeg gstreamer1.0-plugins-ugly gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-alsa"
+
+    if [ -f "$state_file" ] || pacman -Q gstreamer1.0-alsa &>/dev/null; then
+        if confirm "Pacotes de Mídia detectados. Desinstalar?"; then
+            echo "Desinstalando Pacotes de Mídia..."
+            pacman -Qq ffmpeg &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_media || true
+            cleanup_files "$state_file"
+            echo "Pacotes de Mídia desinstalados."
+        fi
+    else
+        if confirm "Instalar Pacotes de Mídia?"; then
+            echo "Instalando Pacotes de Mídia..."
+            sudo pacman -S --noconfirm $pkg_media
+            touch "$state_file"
+            echo "Pacotes de Mídia instalados."
+        fi
+    fi
+}
+
 yt_dlp_installer() {
     local state_file="$STATE_DIR/yt_dlp"
     local pkg_ytdlp="yt-dlp"
