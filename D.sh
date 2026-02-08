@@ -20,6 +20,28 @@ cleanup_files() {
     done
 }
 
+unmojang_installer() {
+    local state_file="$STATE_DIR/unmojang"
+    local pkg_fjord="org.unmojang.FjordLauncher"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.unmojang.FjordLauncher 2>/dev/null; then
+        if confirm "Fjord Launcher detectado. Desinstalar?"; then
+            echo "Desinstalando Fjord Launcher..."
+            flatpak uninstall --user -y $pkg_fjord 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Fjord Launcher desinstalado."
+        fi
+    else
+        if confirm "Instalar Fjord Launcher?"; then
+            echo "Instalando Fjord Launcher..."
+            flatpak remote-add --user --if-not-exists hero-persson https://hero-persson.github.io/unmojang-flatpak/index.flatpakrepo
+            flatpak install --user --or-update --noninteractive hero-persson $pkg_fjord
+            touch "$state_file"
+            echo "Fjord Launcher instalado."
+        fi
+    fi
+}
+
 xdg_base_installer() {
     local state_file="$STATE_DIR/xdg_base"
     local pkg_xdg="xdg-user-dirs xdg-utils"
