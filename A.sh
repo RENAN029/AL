@@ -232,10 +232,10 @@ archiving_compression_installer() {
     local state_file="$STATE_DIR/pessoal_compactacao"
     local pkg_compactacao="tar 7zip unrar unzip gzip lrzip xz zip lzop"
 
-    if [ -f "$state_file" ]; then
+    if [ -f "$state_file" ] || pacman -Q unrar &>/dev/null; then
         if confirm "Pacotes de Compactação detectados. Desinstalar?"; then
             echo "Desinstalando Pacotes de Compactação..."
-            pacman -Qq tar &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_compactacao || true
+            pacman -Qq unrar &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_compactacao || true
             cleanup_files "$state_file"
             echo "Pacotes de Compactação desinstalados."
         fi
