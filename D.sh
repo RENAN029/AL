@@ -815,10 +815,10 @@ main_menu() {
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
-            1) admin_menu ;;
-            2) devs_menu ;;
-            3) drivers_menu ;;
-            4) educacao_menu ;;
+            1) admin_installer ;;
+            2) devs_installer ;;
+            3) drivers_installer;;
+            4) educacao_installer ;;
             5) exit 0 ;;
             *) ;;
         esac
