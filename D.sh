@@ -20,6 +20,27 @@ cleanup_files() {
     done
 }
 
+curl_installer() {
+    local state_file="$STATE_DIR/curl"
+    local pkg_curl="curl"
+
+    if [ -f "$state_file" ] || pacman -Q curl &>/dev/null; then
+        if confirm "curl detectado. Desinstalar?"; then
+            echo "Desinstalando curl..."
+            pacman -Qq curl &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_curl || true
+            cleanup_files "$state_file"
+            echo "curl desinstalado."
+        fi
+    else
+        if confirm "Instalar curl?"; then
+            echo "Instalando curl..."
+            sudo pacman -S --noconfirm $pkg_curl
+            touch "$state_file"
+            echo "curl instalado."
+        fi
+    fi
+}
+
 appimage_fuse_installer() {
     local state_file="$STATE_DIR/appimage_fuse"
     local pkg_fuse="fuse fuse3"
