@@ -5740,7 +5740,6 @@ ufw_installer() {
             sudo ufw allow 1714:1764/tcp
             sudo systemctl enable --now ufw
             sudo ufw --force enable
-            sudo ufw status verbose
             touch "$state_file"
             echo "UFW instalado e configurado."
         fi
