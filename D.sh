@@ -20,6 +20,27 @@ cleanup_files() {
     done
 }
 
+yt_dlp_installer() {
+    local state_file="$STATE_DIR/yt_dlp"
+    local pkg_ytdlp="yt-dlp"
+
+    if [ -f "$state_file" ] || pacman -Q yt-dlp &>/dev/null; then
+        if confirm "yt-dlp detectado. Desinstalar?"; then
+            echo "Desinstalando yt-dlp..."
+            pacman -Qq yt-dlp &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ytdlp || true
+            cleanup_files "$state_file"
+            echo "yt-dlp desinstalado."
+        fi
+    else
+        if confirm "Instalar yt-dlp?"; then
+            echo "Instalando yt-dlp..."
+            sudo pacman -S --noconfirm $pkg_ytdlp
+            touch "$state_file"
+            echo "yt-dlp instalado."
+        fi
+    fi
+}
+
 nvidia_proprietary_dkms_installer() {
     local state_file="$STATE_DIR/nvidia_proprietary"
     local pkg_nvidia="nvidia-dkms nvidia-utils nvidia-settings"
