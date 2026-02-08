@@ -20,6 +20,27 @@ cleanup_files() {
     done
 }
 
+appimage_fuse_installer() {
+    local state_file="$STATE_DIR/appimage_fuse"
+    local pkg_fuse="fuse fuse3"
+
+    if [ -f "$state_file" ] || pacman -Q fuse &>/dev/null; then
+        if confirm "FUSE para AppImage detectado. Desinstalar?"; then
+            echo "Desinstalando FUSE para AppImage..."
+            pacman -Qq fuse2 &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fuse || true
+            cleanup_files "$state_file"
+            echo "FUSE para AppImage desinstalado."
+        fi
+    else
+        if confirm "Instalar FUSE para AppImage?"; then
+            echo "Instalando FUSE para AppImage..."
+            sudo pacman -S --noconfirm $pkg_fuse
+            touch "$state_file"
+            echo "FUSE para AppImage instalado."
+        fi
+    fi
+}
+
 aria2_installer() {
     local state_file="$STATE_DIR/aria2"
     local pkg_aria2="aria2"
@@ -179,10 +200,10 @@ archiving_compression_installer() {
     local state_file="$STATE_DIR/pessoal_compactacao"
     local pkg_compactacao="tar 7zip unrar unzip gzip lrzip xz-utils zip lzop"
 
-    if [ -f "$state_file" ]; then
+    if [ -f "$state_file" ] || pacman -Q 7zip &>/dev/null; then
         if confirm "Pacotes de Compactação detectados. Desinstalar?"; then
             echo "Desinstalando Pacotes de Compactação..."
-            pacman -Qq tar &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_compactacao || true
+            pacman -Qq 7zip &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_compactacao || true
             cleanup_files "$state_file"
             echo "Pacotes de Compactação desinstalados."
         fi
