@@ -20,6 +20,91 @@ cleanup_files() {
     done
 }
 
+mise_installer() {
+    local state_file="$STATE_DIR/mise"
+    local pkg_mise="mise"
+
+    if [ -f "$state_file" ] || pacman -Q mise &>/dev/null; then
+        if confirm "Mise detectado. Desinstalar?"; then
+            echo "Desinstalando Mise..."
+            pacman -Qq mise &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_mise || true
+            cleanup_files "$state_file"
+            echo "Mise desinstalado."
+        fi
+    else
+        if confirm "Instalar Mise?"; then
+            echo "Instalando Mise..."
+            sudo pacman -S --noconfirm $pkg_mise
+            touch "$state_file"
+            echo "Mise instalado."
+        fi
+    fi
+    #Utilize o script no lugar da instalacao do pacote como abaixo no debian, use curl:
+#!/bin/bash
+# name: Mise
+# version: 1.0
+# description: mise_desc
+# icon: mise.svg
+# repo: https://github.com/jdx/mise
+
+# --- Start of the script code ---
+#SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+source "$SCRIPT_DIR/libs/linuxtoys.lib"
+_lang_
+source "$SCRIPT_DIR/libs/lang/${langfile}.lib"
+if [ -f $HOME/.bashrc ]; then
+    curl https://mise.run/bash | sh
+    mise use -g usage
+    mkdir -p ~/.local/share/bash-completion/
+    mise completion bash --include-bash-completion-lib > ~/.local/share/bash-completion/completions/mise
+fi
+if ! command -v rpm-ostree &>/dev/null; then
+    # mise is not compatible with ZSH on ostree distros
+    if [ -f $HOME/.zshrc ]; then
+        curl https://mise.run/zsh | sh
+        mise use -g usage
+        mkdir -p /usr/local/share/zsh/site-functions
+        mise completion zsh  > /usr/local/share/zsh/site-functions/_mise
+    fi
+fi
+if [ -f $HOME/.config/fish/config.fish ]; then
+    curl https://mise.run/fish | sh
+    mise use -g usage
+    mkdir -p ~/.config/fish/completions
+    mise completion fish > ~/.config/fish/completions/mise.fish
+fi
+zeninf "$msg282"
+xdg-open https://mise.jdx.dev/walkthrough.html
+exit 0
+}
+
+starship_installer() {
+    local state_file="$STATE_DIR/starship"
+    local pkg_starship="starship"
+
+    if [ -f "$state_file" ] || pacman -Q starship &>/dev/null; then
+        if confirm "Starship detectado. Desinstalar?"; then
+            echo "Desinstalando Starship..."
+            pacman -Qq starship &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_starship || true
+            sed -i '/starship init/d' ~/.bashrc 2>/dev/null || true
+            sed -i '/starship init/d' ~/.zshrc 2>/dev/null || true
+            [ -f ~/.config/fish/config.fish ] && sed -i '/starship init fish/d' ~/.config/fish/config.fish 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Starship desinstalado."
+        fi
+    else
+        if confirm "Instalar Starship?"; then
+            echo "Instalando Starship..."
+            sudo pacman -S --noconfirm $pkg_starship
+            [ -f ~/.bashrc ] && grep -q "starship init" ~/.bashrc || echo -e "\neval \"\$(starship init bash)\"" >> ~/.bashrc
+            [ -f ~/.zshrc ] && grep -q "starship init" ~/.zshrc || echo -e "\neval \"\$(starship init zsh)\"" >> ~/.zshrc
+            command -v fish &>/dev/null && mkdir -p ~/.config/fish && if [ -f ~/.config/fish/config.fish ]; then grep -q "starship init fish" ~/.config/fish/config.fish || echo -e "\nstarship init fish | source" >> ~/.config/fish/config.fish; else echo -e "starship init fish | source" >> ~/.config/fish/config.fish; fi
+            touch "$state_file"
+            echo "Starship instalado."
+        fi
+    fi
+}
+
 snapd_installer() {
     local state_file="$STATE_DIR/snapd"
     local pkg_snapd="snapd"
@@ -338,41 +423,6 @@ steam_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_steam
             touch "$state_file"
             echo "Steam instalado."
-        fi
-    fi
-}
-
-chaotic_aur_installer() {
-    local state_file="$STATE_DIR/chaotic_aur"
-    local pkg_chaotic="chaotic-keyring chaotic-mirrorlist"
-
-    if [ -f "$state_file" ] || (pacman -Q chaotic-keyring &>/dev/null && pacman -Q chaotic-mirrorlist &>/dev/null); then
-        if confirm "Chaotic AUR detectado. Desinstalar?"; then
-            echo "Desinstalando Chaotic AUR..."
-            sudo sed -i '/\[chaotic-aur\]/,/^$/d' /etc/pacman.conf 2>/dev/null || true
-            pacman -Qq chaotic-keyring &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_chaotic || true
-            sudo pacman-key --delete 3056513887B78AEB 2>/dev/null || true
-            sudo sed -i '/^ILoveCandy/d' /etc/pacman.conf 2>/dev/null || true
-            sudo sed -i '/^ParallelDownloads/d' /etc/pacman.conf 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Chaotic AUR desinstalado."
-        fi
-    else
-        if confirm "Instalar Chaotic AUR?"; then
-            echo "Instalando Chaotic AUR..."
-            sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
-            sudo pacman-key --lsign-key 3056513887B78AEB
-            sudo pacman -U --noconfirm \
-                "https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst" \
-                "https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst"
-            sudo sed -i 's/^#Color/Color/' /etc/pacman.conf
-            sudo sed -i '/Color/a ILoveCandy' /etc/pacman.conf
-            sudo sed -i '/^ParallelDownloads/d' /etc/pacman.conf
-            sudo sed -i '/ILoveCandy/a ParallelDownloads = 15' /etc/pacman.conf
-            echo -e "\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist" | sudo tee -a /etc/pacman.conf
-            sudo pacman -Syu
-            touch "$state_file"
-            echo "Chaotic AUR instalado."
         fi
     fi
 }
