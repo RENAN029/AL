@@ -20,6 +20,27 @@ cleanup_files() {
     done
 }
 
+xdg_base_installer() {
+    local state_file="$STATE_DIR/xdg_base"
+    local pkg_xdg="xdg-user-dirs xdg-utils"
+
+    if [ -f "$state_file" ] || pacman -Q xdg-user-dirs &>/dev/null; then
+        if confirm "XDG Base detectado. Desinstalar?"; then
+            echo "Desinstalando XDG Base..."
+            pacman -Qq xdg-user-dirs &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_xdg || true
+            cleanup_files "$state_file"
+            echo "XDG Base desinstalado."
+        fi
+    else
+        if confirm "Instalar XDG Base?"; then
+            echo "Instalando XDG Base..."
+            sudo pacman -S --noconfirm $pkg_xdg
+            touch "$state_file"
+            echo "XDG Base instalado."
+        fi
+    fi
+}
+
 pessoal_base_installer() {
     local state_file="$STATE_DIR/pessoal_base"
     local pkg_base="fonts-noto fonts-noto-cjk fonts-noto-color-emoji fonts-noto-extra fonts-noto-cjk-extra fonts-jetbrains-mono"
