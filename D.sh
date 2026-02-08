@@ -20,6 +20,39 @@ cleanup_files() {
     done
 }
 
+shader_booster_installer() {
+    local state_file="$STATE_DIR/shader_booster"
+    local boost_file="$HOME/.booster"
+
+    if [ -f "$state_file" ] || [ -f "$boost_file" ]; then
+        if confirm "Shader Booster detectado. Desinstalar?"; then
+            for shell_file in "$HOME/.bash_profile" "$HOME/.profile" "$HOME/.zshrc"; do
+                [ -f "$shell_file" ] && sed -i '/# Shader Booster patches/,/# End Shader Booster/d' "$shell_file"
+            done
+            cleanup_files "$state_file" "$boost_file" "$HOME/patch-nvidia" "$HOME/patch-mesa"
+        fi
+    else
+        if confirm "Instalar Shader Booster?"; then
+            local has_nvidia=$(lspci | grep -i 'nvidia')
+            local has_mesa=$(lspci | grep -Ei '(vga|3d)' | grep -vi nvidia)
+            local patch_applied=0
+            local dest_file=""
+
+            for file in "$HOME/.bash_profile" "$HOME/.profile" "$HOME/.zshrc"; do
+                [ -f "$file" ] && dest_file="$file" && break
+            done
+            [ -z "$dest_file" ] && dest_file="$HOME/.bash_profile" && touch "$dest_file"
+
+            echo -e "\n# Shader Booster patches" >> "$dest_file"
+            [ -n "$has_nvidia" ] && curl -s https://raw.githubusercontent.com/psygreg/shader-booster/main/patch-nvidia >> "$dest_file" && patch_applied=1
+            [ -n "$has_mesa" ] && curl -s https://raw.githubusercontent.com/psygreg/shader-booster/main/patch-mesa >> "$dest_file" && patch_applied=1
+            echo "# End Shader Booster" >> "$dest_file"
+
+            [ $patch_applied -eq 1 ] && echo "1" > "$boost_file" && touch "$state_file"
+        fi
+    fi
+}
+
 curl_installer() {
     local state_file="$STATE_DIR/curl"
     local pkg_curl="curl"
