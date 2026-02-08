@@ -178,6 +178,10 @@ apparmor_installer() {
             echo "Desinstalando AppArmor..."
             sudo systemctl stop apparmor 2>/dev/null || true
             sudo systemctl disable apparmor 2>/dev/null || true
+            sudo rm -f /etc/default/grub.d/99-apparmor.cfg /etc/kernel/cmdline.d/99-apparmor.conf 2>/dev/null || true
+            sudo mkdir -p /boot/grub 2>/dev/null || true
+            sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
+            sudo bootctl update 2>/dev/null || true
             pacman -Qq apparmor &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_apparmor || true
             cleanup_files "$state_file"
             echo "AppArmor desinstalado."
@@ -186,6 +190,16 @@ apparmor_installer() {
         if confirm "Instalar AppArmor?"; then
             echo "Instalando AppArmor..."
             sudo pacman -S --noconfirm $pkg_apparmor
+            if pacman -Qq grub &>/dev/null; then
+                sudo mkdir -p /etc/default/grub.d
+                echo 'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} apparmor=1 security=apparmor"' | sudo tee /etc/default/grub.d/99-apparmor.cfg
+                sudo mkdir -p /boot/grub 2>/dev/null || true
+                sudo grub-mkconfig -o /boot/grub/grub.cfg
+            else
+                sudo mkdir -p /etc/kernel/cmdline.d
+                echo "apparmor=1 security=apparmor" | sudo tee /etc/kernel/cmdline.d/99-apparmor.conf
+                sudo bootctl update 2>/dev/null || true
+            fi
             sudo systemctl enable apparmor
             touch "$state_file"
             echo "AppArmor instalado. Reinicie para aplicar."
@@ -5722,9 +5736,10 @@ ufw_installer() {
     if [ -f "$state_file" ] || pacman -Q ufw &>/dev/null; then
         if confirm "UFW detectado. Desinstalar?"; then
             echo "Desinstalando UFW..."
-            sudo systemctl stop ufw 2>/dev/null || true
-            sudo systemctl disable ufw 2>/dev/null || true
+            systemctl is-active --quiet ufw 2>/dev/null && sudo systemctl stop ufw || true
+            systemctl is-enabled --quiet ufw 2>/dev/null && sudo systemctl disable ufw || true
             pacman -Qq ufw &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ufw || true
+            sudo rm -rf /etc/ufw /lib/ufw /usr/share/ufw /var/lib/ufw /usr/bin/ufw /usr/sbin/ufw 2>/dev/null || true
             cleanup_files "$state_file"
             echo "UFW desinstalado."
         fi
@@ -5738,8 +5753,9 @@ ufw_installer() {
             sudo ufw allow 53317/tcp
             sudo ufw allow 1714:1764/udp
             sudo ufw allow 1714:1764/tcp
-            sudo systemctl enable --now ufw
+            sudo systemctl enable ufw
             sudo ufw --force enable
+            sudo ufw status verbose
             touch "$state_file"
             echo "UFW instalado e configurado."
         fi
