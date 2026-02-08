@@ -4403,7 +4403,7 @@ pessoal_base_installer() {
     local state_file="$STATE_DIR/pessoal_base"
     local pkg_base="noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-noto-nerd noto-fonts-extra ttf-jetbrains-mono"
 
-    if [ -f "$state_file" ]; then
+    if [ -f "$state_file" ] || pacman -Q noto-fonts &>/dev/null; then
         if confirm "Pacotes Base detectados. Desinstalar?"; then
             echo "Desinstalando Pacotes Base..."
             pacman -Qq noto-fonts &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_base || true
@@ -4424,7 +4424,7 @@ pessoal_media_installer() {
     local state_file="$STATE_DIR/pessoal_media"
     local pkg_media="ffmpeg gst-plugins-ugly gst-plugins-good gst-plugins-base gst-plugins-bad gst-libav gstreamer"
 
-    if [ -f "$state_file" ]; then
+    if [ -f "$state_file" ] || pacman -Q ffmpeg &>/dev/null; then
         if confirm "Pacotes de Mídia detectados. Desinstalar?"; then
             echo "Desinstalando Pacotes de Mídia..."
             pacman -Qq ffmpeg &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_media || true
