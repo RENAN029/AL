@@ -20,6 +20,57 @@ cleanup_files() {
     done
 }
 
+nvidia_proprietary_dkms_installer() {
+    local state_file="$STATE_DIR/nvidia_proprietary"
+    local pkg_nvidia="nvidia-dkms nvidia-utils nvidia-settings"
+
+    if [ -f "$state_file" ] || pacman -Q nvidia-dkms &>/dev/null; then
+        if confirm "Nvidia Proprietário com DKMS detectado. Desinstalar?"; then
+            echo "Desinstalando Nvidia Proprietário com DKMS..."
+            pacman -Qq nvidia-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_nvidia || true
+            cleanup_files "$state_file"
+            echo "Nvidia Proprietário desinstalado."
+        fi
+    else
+        echo "Instalando Nvidia Proprietário com DKMS..."
+        sudo pacman -S --noconfirm $pkg_nvidia
+        sudo mkinitcpio -P
+        touch "$state_file"
+        echo "Nvidia Proprietário instalado. Reinicie para aplicar."
+    fi
+    #Utilize o driver official da nvidia ao modificar para o debian, abaixo tem um exemplo de como instalado, depois o coloque no metodo acima, utilize curl em vez de wget:
+#!/bin/bash
+# name: Nvidia Drivers
+# version: 1.0
+# description: nv_desc
+# icon: nvidia.svg
+# compat: debian
+# reboot: yes
+# nocontainer
+# gpu: Nvidia
+
+# --- Start of the script code ---
+#SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+source "$SCRIPT_DIR/libs/linuxtoys.lib"
+# language
+_lang_
+source "$SCRIPT_DIR/libs/lang/${langfile}.lib"
+cd $HOME
+# add Nvidia repository for Debian
+wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
+sleep 1
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sleep 1
+sudo apt-get update
+sleep 1
+sudo apt-get install -y cuda-drivers
+sleep 1
+sudo update-initramfs -u
+sleep 1
+sudo update-grub
+zeninf "$msg036"
+}
+
 shader_booster_installer() {
     local state_file="$STATE_DIR/shader_booster"
     local boost_file="$HOME/.booster"
