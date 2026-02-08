@@ -20,6 +20,30 @@ cleanup_files() {
     done
 }
 
+snapd_installer() {
+    local state_file="$STATE_DIR/snapd"
+    local pkg_snapd="snapd"
+
+    if [ -f "$state_file" ] || pacman -Q snapd &>/dev/null; then
+        if confirm "Snapd detectado. Desinstalar?"; then
+            echo "Desinstalando Snapd..."
+            sudo systemctl stop snapd.socket 2>/dev/null || true
+            sudo systemctl disable snapd.socket 2>/dev/null || true
+            pacman -Qq snapd &>/dev/null && paru -Rsnu --noconfirm $pkg_snapd || true
+            cleanup_files "$state_file"
+            echo "Snapd desinstalado."
+        fi
+    else
+        if confirm "Instalar Snapd?"; then
+            echo "Instalando Snapd..."
+            paru -S --noconfirm $pkg_snapd
+            sudo systemctl enable --now snapd.socket
+            touch "$state_file"
+            echo "Snapd instalado."
+        fi
+    fi
+}
+
 unmojang_installer() {
     local state_file="$STATE_DIR/unmojang"
     local pkg_fjord="org.unmojang.FjordLauncher"
