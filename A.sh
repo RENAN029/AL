@@ -4422,7 +4422,7 @@ pessoal_base_installer() {
 
 pessoal_media_installer() {
     local state_file="$STATE_DIR/pessoal_media"
-    local pkg_media="ffmpeg gstreamer1.0-plugins-ugly gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-alsa"
+    local pkg_media="ffmpeg gst-plugins-ugly gst-plugins-good gst-plugins-base gst-plugins-bad gst-libav gstreamer"
 
     if [ -f "$state_file" ]; then
         if confirm "Pacotes de Mídia detectados. Desinstalar?"; then
