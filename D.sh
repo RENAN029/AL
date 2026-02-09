@@ -20,6 +20,15 @@ cleanup_files() {
     done
 }
 
+fix_time_issue() {
+    echo "Corrigindo problema de data/hora..."
+    sudo apt update 2>&1 | grep -q "Not live until" && {
+        echo "Detectado problema de assinatura por data/hora incorreta."
+        sudo date -s "$(wget -qSO- --max-redirect=0 google.com 2>&1 | grep Date: | cut -d' ' -f5-8)Z" || true
+        sudo hwclock --systohc || true
+    }
+}
+
 add_repositories() {
     local state_file="$STATE_DIR/repos_contrib_nonfree"
     
@@ -33,6 +42,7 @@ add_repositories() {
         fi
     else
         if confirm "Adicionar repositórios CONTRIB/NON-FREE/NON-FREE-FIRMWARE?"; then
+            fix_time_issue
             echo "Adicionando repositórios..."
             sudo sed -i 's/main$/main contrib non-free non-free-firmware/' /etc/apt/sources.list
             sudo apt update
@@ -57,6 +67,7 @@ apparmor_installer() {
         fi
     else
         if confirm "Instalar AppArmor?"; then
+            fix_time_issue
             echo "Instalando AppArmor..."
             sudo apt update
             sudo apt install -y $pkg_apparmor
@@ -80,6 +91,7 @@ appimage_fuse_installer() {
         fi
     else
         if confirm "Instalar FUSE para AppImage?"; then
+            fix_time_issue
             echo "Instalando FUSE para AppImage..."
             sudo apt update
             sudo apt install -y $pkg_fuse
@@ -102,6 +114,7 @@ archiving_compression_installer() {
         fi
     else
         if confirm "Instalar Pacotes de Compactação?"; then
+            fix_time_issue
             echo "Instalando Pacotes de Compactação..."
             sudo apt update
             sudo apt install -y $pkg_compactacao
@@ -124,6 +137,7 @@ aria2_installer() {
         fi
     else
         if confirm "Instalar aria2?"; then
+            fix_time_issue
             echo "Instalando aria2..."
             sudo apt update
             sudo apt install -y $pkg_aria2
@@ -146,6 +160,7 @@ curl_installer() {
         fi
     else
         if confirm "Instalar curl?"; then
+            fix_time_issue
             echo "Instalando curl..."
             sudo apt update
             sudo apt install -y $pkg_curl
@@ -165,11 +180,13 @@ deb_multimedia_installer() {
             echo "Removendo DebMultimedia..."
             sudo rm -f /etc/apt/sources.list.d/dmo.sources /usr/share/keyrings/deb-multimedia-keyring.pgp
             cleanup_files "$state_file"
+            fix_time_issue
             sudo apt update
             echo "DebMultimedia removido."
         fi
     else
         if confirm "Adicionar repositório DebMultimedia?"; then
+            fix_time_issue
             echo "Adicionando DebMultimedia..."
             curl -fsSL -o "$key_file" "$key_url"
             sudo dpkg -i "$key_file"
@@ -203,6 +220,7 @@ de_gnome_installer() {
         fi
     else
         if confirm "Instalar Gnome?"; then
+            fix_time_issue
             echo "Instalando Gnome..."
             sudo apt update
             sudo apt install -y $pkg_gnome
@@ -227,6 +245,7 @@ de_plasma_installer() {
         fi
     else
         if confirm "Instalar Plasma?"; then
+            fix_time_issue
             echo "Instalando Plasma..."
             sudo apt update
             sudo apt install -y $pkg_plasma
@@ -278,6 +297,7 @@ fish_fisher_installer() {
             echo "Fish Shell desinstalado."
         fi
     elif confirm "Instalar Fish Shell?"; then
+        fix_time_issue
         echo "Instalando Fish Shell..."
         sudo apt update
         sudo apt install -y $pkg_fish
@@ -322,6 +342,7 @@ flatpak_flathub_installer() {
             echo "Flatpak desinstalado."
         fi
     elif confirm "Instalar Flatpak?"; then
+        fix_time_issue
         echo "Instalando Flatpak..."
         sudo apt update
         sudo apt install -y $pkg_flatpak
@@ -364,6 +385,7 @@ fwupd_installer() {
         fi
     else
         if confirm "Instalar Fwupd?"; then
+            fix_time_issue
             echo "Instalando Fwupd..."
             sudo apt update
             sudo apt install -y $pkg_fwupd
@@ -386,6 +408,7 @@ gamemode_installer() {
         fi
     else
         if confirm "Instalar Gamemode?"; then
+            fix_time_issue
             echo "Instalando Gamemode..."
             sudo apt update
             sudo apt install -y $pkg_gamemode
@@ -473,6 +496,7 @@ nala_installer() {
         fi
     else
         if confirm "Instalar Nala?"; then
+            fix_time_issue
             echo "Instalando Nala..."
             sudo apt update
             sudo apt install -y $pkg_nala
@@ -495,6 +519,7 @@ neovim_installer() {
         fi
     else
         if confirm "Instalar NeoVim?"; then
+            fix_time_issue
             echo "Instalando NeoVim..."
             sudo apt update
             sudo apt install -y $pkg_neovim
@@ -507,27 +532,36 @@ neovim_installer() {
 nvidia_proprietary_dkms_installer() {
     local state_file="$STATE_DIR/nvidia_proprietary"
     
-    if [ -f "$state_file" ] || dpkg -l cuda-drivers &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l nvidia-driver-* &>/dev/null; then
         if confirm "Nvidia Proprietário detectado. Desinstalar?"; then
             echo "Desinstalando Nvidia Proprietário..."
-            sudo apt purge -y cuda-drivers cuda-keyring nvidia-driver-* nvidia-*
+            sudo apt purge -y nvidia-driver-* nvidia-* cuda-* libnvidia-* || true
             sudo rm -f /etc/apt/preferences.d/nvidia-repo
+            sudo rm -f /etc/apt/sources.list.d/cuda*.list
+            sudo rm -f /usr/share/keyrings/cuda-archive-keyring.gpg
             cleanup_files "$state_file"
             sudo update-initramfs -u
             echo "Nvidia Proprietário desinstalado."
         fi
     else
         echo "Instalando Nvidia Proprietário..."
-        sudo apt update
-        sudo apt install -y dkms libdw-dev clang lld llvm build-essential linux-headers-$(uname -r) pipewire-audio-client-libraries
+        fix_time_issue
         
+        echo "Instalando dependências..."
+        sudo apt update
+        sudo apt install -y dkms build-essential linux-headers-$(uname -r)
+        
+        echo "Baixando e instalando driver da NVIDIA..."
         curl -fsSL -o /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
         sudo dpkg -i /tmp/cuda-keyring.deb
-        cleanup_files /tmp/cuda-keyring.deb
+        rm -f /tmp/cuda-keyring.deb
         
-        echo "Package: *  
-Pin: origin https://developer.download.nvidia.com  
-Pin-Priority: 900" | sudo tee /etc/apt/preferences.d/nvidia-repo > /dev/null
+        echo "Types: deb
+URIs: https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64
+Suites: bookworm
+Components: main
+Architectures: amd64
+Signed-By: /usr/share/keyrings/cuda-archive-keyring.gpg" | sudo tee /etc/apt/sources.list.d/cuda.list > /dev/null
         
         sudo apt update
         sudo apt install -y cuda-drivers
@@ -549,7 +583,10 @@ pacstall_installer() {
         fi
     else
         if confirm "Instalar Pacstall?"; then
+            fix_time_issue
             echo "Instalando Pacstall..."
+            sudo apt update
+            sudo apt install -y curl
             sudo bash -c "$(curl -fsSL https://pacstall.dev/q/install -o -)"
             touch "$state_file"
             echo "Pacstall instalado."
@@ -570,6 +607,7 @@ pessoal_base_installer() {
         fi
     else
         if confirm "Instalar Pacotes Base?"; then
+            fix_time_issue
             echo "Instalando Pacotes Base..."
             sudo apt update
             sudo apt install -y $pkg_base
@@ -592,6 +630,7 @@ pessoal_media_installer() {
         fi
     else
         if confirm "Instalar Pacotes de Mídia?"; then
+            fix_time_issue
             echo "Instalando Pacotes de Mídia..."
             sudo apt update
             sudo apt install -y $pkg_media
@@ -614,6 +653,7 @@ podman_installer() {
         fi
     else
         if confirm "Instalar Podman?"; then
+            fix_time_issue
             echo "Instalando Podman..."
             sudo apt update
             sudo apt install -y $pkg_podman
@@ -671,6 +711,7 @@ snapd_installer() {
         fi
     else
         if confirm "Instalar Snapd?"; then
+            fix_time_issue
             echo "Instalando Snapd..."
             sudo apt update
             sudo apt install -y $pkg_snapd
@@ -697,6 +738,7 @@ starship_installer() {
         fi
     else
         if confirm "Instalar Starship?"; then
+            fix_time_issue
             echo "Instalando Starship..."
             sudo apt update
             sudo apt install -y $pkg_starship
@@ -746,6 +788,7 @@ ufw_installer() {
         fi
     else
         if confirm "Instalar UFW?"; then
+            fix_time_issue
             echo "Instalando UFW..."
             sudo apt update
             sudo apt install -y $pkg_ufw
@@ -799,6 +842,7 @@ xdg_base_installer() {
         fi
     else
         if confirm "Instalar XDG Base?"; then
+            fix_time_issue
             echo "Instalando XDG Base..."
             sudo apt update
             sudo apt install -y $pkg_xdg
@@ -821,6 +865,7 @@ yt_dlp_installer() {
         fi
     else
         if confirm "Instalar yt-dlp?"; then
+            fix_time_issue
             echo "Instalando yt-dlp..."
             sudo apt update
             sudo apt install -y $pkg_ytdlp
