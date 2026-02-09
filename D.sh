@@ -20,15 +20,6 @@ cleanup_files() {
     done
 }
 
-fix_time_issue() {
-    echo "Corrigindo problema de data/hora..."
-    sudo apt update 2>&1 | grep -q "Not live until" && {
-        echo "Detectado problema de assinatura por data/hora incorreta."
-        sudo date -s "$(wget -qSO- --max-redirect=0 google.com 2>&1 | grep Date: | cut -d' ' -f5-8)Z" || true
-        sudo hwclock --systohc || true
-    }
-}
-
 add_repositories() {
     local state_file="$STATE_DIR/repos_contrib_nonfree"
     
@@ -38,14 +29,14 @@ add_repositories() {
             sudo sed -i '/non-free\|non-free-firmware\|contrib/d' /etc/apt/sources.list
             sudo sed -i '/non-free\|non-free-firmware\|contrib/d' /etc/apt/sources.list.d/* 2>/dev/null || true
             cleanup_files "$state_file"
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
             echo "Repositórios removidos."
         fi
     else
         if confirm "Adicionar repositórios CONTRIB/NON-FREE/NON-FREE-FIRMWARE?"; then
-            fix_time_issue
             echo "Adicionando repositórios..."
             sudo sed -i 's/main$/main contrib non-free non-free-firmware/' /etc/apt/sources.list
-            sudo apt update
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
             touch "$state_file"
             echo "Repositórios adicionados."
         fi
@@ -67,10 +58,9 @@ apparmor_installer() {
         fi
     else
         if confirm "Instalar AppArmor?"; then
-            fix_time_issue
             echo "Instalando AppArmor..."
-            sudo apt update
-            sudo apt install -y $pkg_apparmor
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_apparmor --allow-unauthenticated
             sudo systemctl enable apparmor
             touch "$state_file"
             echo "AppArmor instalado. Reinicie para aplicar."
@@ -91,10 +81,9 @@ appimage_fuse_installer() {
         fi
     else
         if confirm "Instalar FUSE para AppImage?"; then
-            fix_time_issue
             echo "Instalando FUSE para AppImage..."
-            sudo apt update
-            sudo apt install -y $pkg_fuse
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_fuse --allow-unauthenticated
             touch "$state_file"
             echo "FUSE para AppImage instalado."
         fi
@@ -114,10 +103,9 @@ archiving_compression_installer() {
         fi
     else
         if confirm "Instalar Pacotes de Compactação?"; then
-            fix_time_issue
             echo "Instalando Pacotes de Compactação..."
-            sudo apt update
-            sudo apt install -y $pkg_compactacao
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_compactacao --allow-unauthenticated
             touch "$state_file"
             echo "Pacotes de Compactação instalados."
         fi
@@ -137,10 +125,9 @@ aria2_installer() {
         fi
     else
         if confirm "Instalar aria2?"; then
-            fix_time_issue
             echo "Instalando aria2..."
-            sudo apt update
-            sudo apt install -y $pkg_aria2
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_aria2 --allow-unauthenticated
             touch "$state_file"
             echo "aria2 instalado."
         fi
@@ -160,10 +147,9 @@ curl_installer() {
         fi
     else
         if confirm "Instalar curl?"; then
-            fix_time_issue
             echo "Instalando curl..."
-            sudo apt update
-            sudo apt install -y $pkg_curl
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_curl --allow-unauthenticated
             touch "$state_file"
             echo "curl instalado."
         fi
@@ -180,15 +166,13 @@ deb_multimedia_installer() {
             echo "Removendo DebMultimedia..."
             sudo rm -f /etc/apt/sources.list.d/dmo.sources /usr/share/keyrings/deb-multimedia-keyring.pgp
             cleanup_files "$state_file"
-            fix_time_issue
-            sudo apt update
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
             echo "DebMultimedia removido."
         fi
     else
         if confirm "Adicionar repositório DebMultimedia?"; then
-            fix_time_issue
             echo "Adicionando DebMultimedia..."
-            curl -fsSL -o "$key_file" "$key_url"
+            curl -fsSL -o "$key_file" "$key_url" --insecure
             sudo dpkg -i "$key_file"
             cleanup_files "$key_file"
             
@@ -199,7 +183,7 @@ Components: main non-free
 Signed-By: /usr/share/keyrings/deb-multimedia-keyring.pgp
 Enabled: yes" | sudo tee /etc/apt/sources.list.d/dmo.sources > /dev/null
             
-            sudo apt update
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
             touch "$state_file"
             echo "DebMultimedia adicionado."
         fi
@@ -210,20 +194,19 @@ de_gnome_installer() {
     local state_file="$STATE_DIR/de_gnome"
     local pkg_gnome="gnome-shell gnome-terminal gnome-software gnome-tweaks gnome-disk-utility gnome-backgrounds gdm3"
 
-    if [ -f "$state_file" ] || dpkg -l gnome-shell &>/dev/null; then
+    if [ -f "$state_file" ]; then
         if confirm "Gnome detectado. Desinstalar?"; then
             echo "Desinstalando Gnome..."
             sudo systemctl disable gdm 2>/dev/null || true
-            sudo apt purge -y $pkg_gnome
+            sudo apt purge -y $pkg_gnome 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Gnome desinstalado."
         fi
     else
         if confirm "Instalar Gnome?"; then
-            fix_time_issue
             echo "Instalando Gnome..."
-            sudo apt update
-            sudo apt install -y $pkg_gnome
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_gnome --allow-unauthenticated
             sudo systemctl enable gdm
             touch "$state_file"
             echo "Gnome instalado. Reinicie para aplicar."
@@ -239,16 +222,15 @@ de_plasma_installer() {
         if confirm "Plasma detectado. Desinstalar?"; then
             echo "Desinstalando Plasma..."
             sudo systemctl disable sddm 2>/dev/null || true
-            sudo apt purge -y $pkg_plasma
+            sudo apt purge -y $pkg_plasma 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Plasma desinstalado."
         fi
     else
         if confirm "Instalar Plasma?"; then
-            fix_time_issue
             echo "Instalando Plasma..."
-            sudo apt update
-            sudo apt install -y $pkg_plasma
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_plasma --allow-unauthenticated
             sudo systemctl enable sddm
             touch "$state_file"
             echo "Plasma instalado. Reinicie para aplicar."
@@ -291,16 +273,15 @@ fish_fisher_installer() {
             if [ -f "$fisher_state" ]; then
                 cleanup_files "$fisher_state"
             fi
-            sudo apt purge -y $pkg_fish
+            sudo apt purge -y $pkg_fish 2>/dev/null || true
             sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
             cleanup_files "$fish_state" "$HOME/.config/fish"
             echo "Fish Shell desinstalado."
         fi
     elif confirm "Instalar Fish Shell?"; then
-        fix_time_issue
         echo "Instalando Fish Shell..."
-        sudo apt update
-        sudo apt install -y $pkg_fish
+        sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+        sudo apt install -y $pkg_fish --allow-unauthenticated
         sudo chsh -s "$(which fish)" "$USER"
         mkdir -p ~/.config/fish
         echo "set fish_greeting" > ~/.config/fish/config.fish
@@ -327,6 +308,17 @@ fish_fisher_installer() {
     fi
 }
 
+fix_apt_signatures() {
+    echo "Corrigindo assinaturas APT..."
+    
+    sudo apt clean
+    sudo rm -rf /var/lib/apt/lists/*
+    
+    sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+    
+    echo "Assinaturas APT corrigidas."
+}
+
 flatpak_flathub_installer() {
     local flatpak_state="$STATE_DIR/flatpak"
     local flathub_state="$STATE_DIR/flathub"
@@ -335,22 +327,21 @@ flatpak_flathub_installer() {
     if [ -f "$flatpak_state" ] || dpkg -l flatpak &>/dev/null; then
         if confirm "Flatpak detectado. Desinstalar?"; then
             echo "Desinstalando Flatpak..."
-            sudo apt purge -y $pkg_flatpak
+            sudo apt purge -y $pkg_flatpak 2>/dev/null || true
             rm -rf "$HOME/.local/share/flatpak" 2>/dev/null || true
             sudo rm -rf /var/lib/flatpak 2>/dev/null || true
             cleanup_files "$flatpak_state" "$flathub_state"
             echo "Flatpak desinstalado."
         fi
     elif confirm "Instalar Flatpak?"; then
-        fix_time_issue
         echo "Instalando Flatpak..."
-        sudo apt update
-        sudo apt install -y $pkg_flatpak
+        sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+        sudo apt install -y $pkg_flatpak --allow-unauthenticated
         
         if dpkg -l gnome-shell &>/dev/null; then
-            sudo apt install -y gnome-software-plugin-flatpak
+            sudo apt install -y gnome-software-plugin-flatpak --allow-unauthenticated
         elif dpkg -l plasma-desktop &>/dev/null; then
-            sudo apt install -y plasma-discover-backend-flatpak
+            sudo apt install -y plasma-discover-backend-flatpak --allow-unauthenticated
         fi
         
         touch "$flatpak_state"
@@ -385,10 +376,9 @@ fwupd_installer() {
         fi
     else
         if confirm "Instalar Fwupd?"; then
-            fix_time_issue
             echo "Instalando Fwupd..."
-            sudo apt update
-            sudo apt install -y $pkg_fwupd
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_fwupd --allow-unauthenticated
             touch "$state_file"
             echo "Fwupd instalado."
         fi
@@ -408,10 +398,9 @@ gamemode_installer() {
         fi
     else
         if confirm "Instalar Gamemode?"; then
-            fix_time_issue
             echo "Instalando Gamemode..."
-            sudo apt update
-            sudo apt install -y $pkg_gamemode
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_gamemode --allow-unauthenticated
             touch "$state_file"
             echo "Gamemode instalado."
         fi
@@ -496,10 +485,9 @@ nala_installer() {
         fi
     else
         if confirm "Instalar Nala?"; then
-            fix_time_issue
             echo "Instalando Nala..."
-            sudo apt update
-            sudo apt install -y $pkg_nala
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_nala --allow-unauthenticated
             touch "$state_file"
             echo "Nala instalado."
         fi
@@ -519,10 +507,9 @@ neovim_installer() {
         fi
     else
         if confirm "Instalar NeoVim?"; then
-            fix_time_issue
             echo "Instalando NeoVim..."
-            sudo apt update
-            sudo apt install -y $pkg_neovim
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_neovim --allow-unauthenticated
             touch "$state_file"
             echo "NeoVim instalado."
         fi
@@ -532,39 +519,34 @@ neovim_installer() {
 nvidia_proprietary_dkms_installer() {
     local state_file="$STATE_DIR/nvidia_proprietary"
     
-    if [ -f "$state_file" ] || dpkg -l nvidia-driver-* &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l cuda-drivers &>/dev/null; then
         if confirm "Nvidia Proprietário detectado. Desinstalar?"; then
             echo "Desinstalando Nvidia Proprietário..."
-            sudo apt purge -y nvidia-driver-* nvidia-* cuda-* libnvidia-* || true
+            sudo apt purge -y cuda-drivers cuda-keyring nvidia-driver-* nvidia-*
             sudo rm -f /etc/apt/preferences.d/nvidia-repo
-            sudo rm -f /etc/apt/sources.list.d/cuda*.list
-            sudo rm -f /usr/share/keyrings/cuda-archive-keyring.gpg
             cleanup_files "$state_file"
             sudo update-initramfs -u
             echo "Nvidia Proprietário desinstalado."
         fi
     else
         echo "Instalando Nvidia Proprietário..."
-        fix_time_issue
+        sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+        sudo apt install -y dkms libdw-dev clang lld llvm build-essential linux-headers-$(uname -r) pipewire-audio-client-libraries --allow-unauthenticated
         
-        echo "Instalando dependências..."
-        sudo apt update
-        sudo apt install -y dkms build-essential linux-headers-$(uname -r)
-        
-        echo "Baixando e instalando driver da NVIDIA..."
-        curl -fsSL -o /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
+        curl -fsSL -o /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb --insecure
         sudo dpkg -i /tmp/cuda-keyring.deb
-        rm -f /tmp/cuda-keyring.deb
+        cleanup_files /tmp/cuda-keyring.deb
         
-        echo "Types: deb
-URIs: https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64
-Suites: bookworm
-Components: main
-Architectures: amd64
-Signed-By: /usr/share/keyrings/cuda-archive-keyring.gpg" | sudo tee /etc/apt/sources.list.d/cuda.list > /dev/null
+        sudo rm -f /etc/apt/sources.list.d/cuda.list
+        sudo tee /etc/apt/sources.list.d/cuda-debian12-x86_64.list << 'EOF'
+deb https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /
+EOF
         
-        sudo apt update
-        sudo apt install -y cuda-drivers
+        sudo mkdir -p /etc/apt/keyrings
+        curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/7fa2af80.pub | sudo tee /etc/apt/keyrings/nvidia-cuda-keyring.gpg > /dev/null
+        
+        sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+        sudo apt install -y cuda-drivers --allow-unauthenticated
         sudo update-initramfs -u
         touch "$state_file"
         echo "Nvidia Proprietário instalado. Reinicie para aplicar."
@@ -583,10 +565,7 @@ pacstall_installer() {
         fi
     else
         if confirm "Instalar Pacstall?"; then
-            fix_time_issue
             echo "Instalando Pacstall..."
-            sudo apt update
-            sudo apt install -y curl
             sudo bash -c "$(curl -fsSL https://pacstall.dev/q/install -o -)"
             touch "$state_file"
             echo "Pacstall instalado."
@@ -607,10 +586,9 @@ pessoal_base_installer() {
         fi
     else
         if confirm "Instalar Pacotes Base?"; then
-            fix_time_issue
             echo "Instalando Pacotes Base..."
-            sudo apt update
-            sudo apt install -y $pkg_base
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_base --allow-unauthenticated
             touch "$state_file"
             echo "Pacotes Base instalados."
         fi
@@ -630,10 +608,9 @@ pessoal_media_installer() {
         fi
     else
         if confirm "Instalar Pacotes de Mídia?"; then
-            fix_time_issue
             echo "Instalando Pacotes de Mídia..."
-            sudo apt update
-            sudo apt install -y $pkg_media
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_media --allow-unauthenticated
             touch "$state_file"
             echo "Pacotes de Mídia instalados."
         fi
@@ -653,10 +630,9 @@ podman_installer() {
         fi
     else
         if confirm "Instalar Podman?"; then
-            fix_time_issue
             echo "Instalando Podman..."
-            sudo apt update
-            sudo apt install -y $pkg_podman
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_podman --allow-unauthenticated
             touch "$state_file"
             echo "Podman instalado."
         fi
@@ -711,10 +687,9 @@ snapd_installer() {
         fi
     else
         if confirm "Instalar Snapd?"; then
-            fix_time_issue
             echo "Instalando Snapd..."
-            sudo apt update
-            sudo apt install -y $pkg_snapd
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_snapd --allow-unauthenticated
             sudo systemctl enable --now snapd.socket
             touch "$state_file"
             echo "Snapd instalado."
@@ -738,10 +713,9 @@ starship_installer() {
         fi
     else
         if confirm "Instalar Starship?"; then
-            fix_time_issue
             echo "Instalando Starship..."
-            sudo apt update
-            sudo apt install -y $pkg_starship
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_starship --allow-unauthenticated
             [ -f ~/.bashrc ] && grep -q "starship init" ~/.bashrc || echo -e "\neval \"\$(starship init bash)\"" >> ~/.bashrc
             [ -f ~/.zshrc ] && grep -q "starship init" ~/.zshrc || echo -e "\neval \"\$(starship init zsh)\"" >> ~/.zshrc
             command -v fish &>/dev/null && mkdir -p ~/.config/fish && if [ -f ~/.config/fish/config.fish ]; then grep -q "starship init fish" ~/.config/fish/config.fish || echo -e "\nstarship init fish | source" >> ~/.config/fish/config.fish; else echo -e "starship init fish | source" >> ~/.config/fish/config.fish; fi
@@ -788,10 +762,9 @@ ufw_installer() {
         fi
     else
         if confirm "Instalar UFW?"; then
-            fix_time_issue
             echo "Instalando UFW..."
-            sudo apt update
-            sudo apt install -y $pkg_ufw
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_ufw --allow-unauthenticated
             sudo ufw default deny incoming
             sudo ufw default allow outgoing
             sudo ufw allow 53317/udp
@@ -842,10 +815,9 @@ xdg_base_installer() {
         fi
     else
         if confirm "Instalar XDG Base?"; then
-            fix_time_issue
             echo "Instalando XDG Base..."
-            sudo apt update
-            sudo apt install -y $pkg_xdg
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_xdg --allow-unauthenticated
             touch "$state_file"
             echo "XDG Base instalado."
         fi
@@ -865,10 +837,9 @@ yt_dlp_installer() {
         fi
     else
         if confirm "Instalar yt-dlp?"; then
-            fix_time_issue
             echo "Instalando yt-dlp..."
-            sudo apt update
-            sudo apt install -y $pkg_ytdlp
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated -o Acquire::Check-Valid-Until=false
+            sudo apt install -y $pkg_ytdlp --allow-unauthenticated
             touch "$state_file"
             echo "yt-dlp instalado."
         fi
@@ -911,28 +882,29 @@ main_menu() {
         echo "9)  DE: Plasma"
         echo "10) Faugus Launcher"
         echo "11) Fish Shell + Fisher"
-        echo "12) Flatpak + Flathub"
-        echo "13) Fwupd"
-        echo "14) Gamemode"
-        echo "15) LazyVim"
-        echo "16) Mise"
-        echo "17) Nala"
-        echo "18) NeoVim"
-        echo "19) NVIDIA Drivers"
-        echo "20) Pacstall"
-        echo "21) Pacotes Base"
-        echo "22) Pacotes de Mídia"
-        echo "23) Podman"
-        echo "24) Shader Booster"
-        echo "25) Snapd"
-        echo "26) Starship"
-        echo "27) Steam"
-        echo "28) UFW"
-        echo "29) Unmojang (Fjord)"
-        echo "30) XDG Base"
-        echo "31) yt-dlp"
-        echo "32) Zen Browser"
-        echo "33) Sair"
+        echo "12) Fix APT Signatures"
+        echo "13) Flatpak + Flathub"
+        echo "14) Fwupd"
+        echo "15) Gamemode"
+        echo "16) LazyVim"
+        echo "17) Mise"
+        echo "18) Nala"
+        echo "19) NeoVim"
+        echo "20) NVIDIA Drivers"
+        echo "21) Pacstall"
+        echo "22) Pacotes Base"
+        echo "23) Pacotes de Mídia"
+        echo "24) Podman"
+        echo "25) Shader Booster"
+        echo "26) Snapd"
+        echo "27) Starship"
+        echo "28) Steam"
+        echo "29) UFW"
+        echo "30) Unmojang (Fjord)"
+        echo "31) XDG Base"
+        echo "32) yt-dlp"
+        echo "33) Zen Browser"
+        echo "34) Sair"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -948,28 +920,29 @@ main_menu() {
             9) de_plasma_installer ;;
             10) faugus_launcher_installer ;;
             11) fish_fisher_installer ;;
-            12) flatpak_flathub_installer ;;
-            13) fwupd_installer ;;
-            14) gamemode_installer ;;
-            15) lazyvim_installer ;;
-            16) mise_installer ;;
-            17) nala_installer ;;
-            18) neovim_installer ;;
-            19) nvidia_proprietary_dkms_installer ;;
-            20) pacstall_installer ;;
-            21) pessoal_base_installer ;;
-            22) pessoal_media_installer ;;
-            23) podman_installer ;;
-            24) shader_booster_installer ;;
-            25) snapd_installer ;;
-            26) starship_installer ;;
-            27) steam_installer ;;
-            28) ufw_installer ;;
-            29) unmojang_installer ;;
-            30) xdg_base_installer ;;
-            31) yt_dlp_installer ;;
-            32) zen_browser_installer ;;
-            33) exit 0 ;;
+            12) fix_apt_signatures ;;
+            13) flatpak_flathub_installer ;;
+            14) fwupd_installer ;;
+            15) gamemode_installer ;;
+            16) lazyvim_installer ;;
+            17) mise_installer ;;
+            18) nala_installer ;;
+            19) neovim_installer ;;
+            20) nvidia_proprietary_dkms_installer ;;
+            21) pacstall_installer ;;
+            22) pessoal_base_installer ;;
+            23) pessoal_media_installer ;;
+            24) podman_installer ;;
+            25) shader_booster_installer ;;
+            26) snapd_installer ;;
+            27) starship_installer ;;
+            28) steam_installer ;;
+            29) ufw_installer ;;
+            30) unmojang_installer ;;
+            31) xdg_base_installer ;;
+            32) yt_dlp_installer ;;
+            33) zen_browser_installer ;;
+            34) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
