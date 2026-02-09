@@ -28,8 +28,8 @@ fish_fisher_installer() {
     if [ -f "$fish_state" ] || dpkg -l fish &>/dev/null; then
         if confirm "Fish Shell detectado. Desinstalar?"; then
             echo "Desinstalando Fish Shell..."
-            if [ -f "$fisher_state" ] || [ -d "$HOME/.config/fish/functions/fisher.fish" ]; then
-                cleanup_files "$fisher_state" "$HOME/.config/fish/functions/fisher.fish"
+            if [ -f "$fisher_state" ]; then
+                cleanup_files "$fisher_state"
             fi
             sudo apt remove --purge -y $pkg_fish
             sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
@@ -47,20 +47,20 @@ fish_fisher_installer() {
         echo "Fish Shell instalado."
     fi
 
-    if [ -f "$fisher_state" ] || [ -f "$HOME/.config/fish/functions/fisher.fish" ]; then
+    if [ -f "$fisher_state" ]; then
         if confirm "Fisher detectado. Desinstalar?"; then
             echo "Desinstalando Fisher..."
-            cleanup_files "$fisher_state" "$HOME/.config/fish/functions/fisher.fish"
+            cleanup_files "$fisher_state"
             echo "Fisher desinstalado."
         fi
     elif confirm "Instalar Fisher (plugin manager)?"; then
         echo "Instalando Fisher..."
         if command -v fish >/dev/null 2>&1; then
-            fish -c "curl -sL https://git.io/fisher | source; fisher install jorgebucaran/fisher"
+            fish -c "curl -sL https://git.io/fisher | source; fisher install jorgebucaran/fisher" 2>/dev/null || true
             touch "$fisher_state"
             echo "Fisher instalado."
         else
-            echo "Fish Shell não está instalado."
+            echo "Fish não está instalado. Instale primeiro."
         fi
     fi
 }
@@ -68,29 +68,28 @@ fish_fisher_installer() {
 mise_installer() {
     local state_file="$STATE_DIR/mise"
 
-    if [ -f "$state_file" ] || command -v mise &>/dev/null; then
+    if [ -f "$state_file" ]; then
         if confirm "Mise detectado. Desinstalar?"; then
             echo "Desinstalando Mise..."
-            curl -s https://mise.run/uninstall | sh
             cleanup_files "$state_file"
             echo "Mise desinstalado."
         fi
     else
         if confirm "Instalar Mise?"; then
             echo "Instalando Mise..."
-            if [ -f "$HOME/.bashrc" ]; then
+            if [ -f $HOME/.bashrc ]; then
                 curl https://mise.run/bash | sh
                 mise use -g usage
                 mkdir -p ~/.local/share/bash-completion/
                 mise completion bash --include-bash-completion-lib > ~/.local/share/bash-completion/completions/mise
             fi
-            if [ -f "$HOME/.zshrc" ]; then
+            if [ -f $HOME/.zshrc ]; then
                 curl https://mise.run/zsh | sh
                 mise use -g usage
-                sudo mkdir -p /usr/local/share/zsh/site-functions
-                mise completion zsh | sudo tee /usr/local/share/zsh/site-functions/_mise >/dev/null
+                mkdir -p /usr/local/share/zsh/site-functions
+                mise completion zsh > /usr/local/share/zsh/site-functions/_mise
             fi
-            if [ -f "$HOME/.config/fish/config.fish" ]; then
+            if [ -f $HOME/.config/fish/config.fish ]; then
                 curl https://mise.run/fish | sh
                 mise use -g usage
                 mkdir -p ~/.config/fish/completions
@@ -104,12 +103,11 @@ mise_installer() {
 
 starship_installer() {
     local state_file="$STATE_DIR/starship"
-    local pkg_starship="starship"
 
-    if [ -f "$state_file" ] || dpkg -l starship &>/dev/null; then
+    if [ -f "$state_file" ] || command -v starship &>/dev/null; then
         if confirm "Starship detectado. Desinstalar?"; then
             echo "Desinstalando Starship..."
-            sudo apt remove --purge -y $pkg_starship
+            sudo rm -f /usr/local/bin/starship
             sed -i '/starship init/d' ~/.bashrc 2>/dev/null || true
             sed -i '/starship init/d' ~/.zshrc 2>/dev/null || true
             [ -f ~/.config/fish/config.fish ] && sed -i '/starship init fish/d' ~/.config/fish/config.fish 2>/dev/null || true
@@ -119,8 +117,7 @@ starship_installer() {
     else
         if confirm "Instalar Starship?"; then
             echo "Instalando Starship..."
-            sudo apt update
-            sudo apt install -y $pkg_starship
+            curl -sS https://starship.rs/install.sh | sh -s -- -y
             [ -f ~/.bashrc ] && grep -q "starship init" ~/.bashrc || echo -e "\neval \"\$(starship init bash)\"" >> ~/.bashrc
             [ -f ~/.zshrc ] && grep -q "starship init" ~/.zshrc || echo -e "\neval \"\$(starship init zsh)\"" >> ~/.zshrc
             command -v fish &>/dev/null && mkdir -p ~/.config/fish && if [ -f ~/.config/fish/config.fish ]; then grep -q "starship init fish" ~/.config/fish/config.fish || echo -e "\nstarship init fish | source" >> ~/.config/fish/config.fish; else echo -e "starship init fish | source" >> ~/.config/fish/config.fish; fi
@@ -201,7 +198,7 @@ xdg_base_installer() {
 
 pessoal_base_installer() {
     local state_file="$STATE_DIR/pessoal_base"
-    local pkg_base="fonts-noto fonts-noto-cjk fonts-noto-color-emoji fonts-noto-extra fonts-noto-cjk-extra fonts-jetbrains-mono fonts-bebas-neue"
+    local pkg_base="fonts-noto fonts-noto-cjk fonts-noto-color-emoji fonts-noto-extra fonts-noto-cjk-extra fonts-jetbrains-mono"
 
     if [ -f "$state_file" ] || dpkg -l fonts-jetbrains-mono &>/dev/null; then
         if confirm "Pacotes Base detectados. Desinstalar?"; then
@@ -271,29 +268,27 @@ nvidia_proprietary_dkms_installer() {
     if [ -f "$state_file" ] || dpkg -l cuda-drivers &>/dev/null; then
         if confirm "Nvidia Proprietário detectado. Desinstalar?"; then
             echo "Desinstalando Nvidia Proprietário..."
-            sudo apt remove --purge -y cuda-drivers nvidia-driver-* nvidia-open
+            sudo apt remove --purge -y cuda-drivers cuda-keyring
+            sudo rm -f /etc/apt/sources.list.d/cuda-*.list
             sudo rm -f /etc/apt/preferences.d/nvidia-repo
+            sudo update-initramfs -u
+            sudo update-grub
             cleanup_files "$state_file"
             echo "Nvidia Proprietário desinstalado."
         fi
     else
-        if confirm "Instalar Nvidia Proprietário?"; then
-            echo "Instalando Nvidia Proprietário..."
-            sudo apt update
-            sudo apt install -y dkms libdw-dev clang lld llvm build-essential linux-headers-amd64 pipewire-audio-client-libraries
-            cd $HOME
-            curl -O https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
-            sudo dpkg -i cuda-keyring_1.1-1_all.deb
-            sudo apt update
-            sudo apt install -y cuda-drivers
-            echo "Package: *" | sudo tee /etc/apt/preferences.d/nvidia-repo >/dev/null
-            echo "Pin: origin https://developer.download.nvidia.com" | sudo tee -a /etc/apt/preferences.d/nvidia-repo >/dev/null
-            echo "Pin-Priority: 900" | sudo tee -a /etc/apt/preferences.d/nvidia-repo >/dev/null
-            sudo update-initramfs -u
-            sudo update-grub
-            touch "$state_file"
-            echo "Nvidia Proprietário instalado. Reinicie para aplicar."
-        fi
+        echo "Instalando Nvidia Proprietário..."
+        sudo apt update
+        sudo apt install -y dkms libdw-dev clang lld llvm build-essential linux-headers-amd64 pipewire-audio-client-libraries
+        cd $HOME
+        curl -O https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
+        sudo dpkg -i cuda-keyring_1.1-1_all.deb
+        sudo apt update
+        sudo apt install -y cuda-drivers
+        sudo update-initramfs -u
+        sudo update-grub
+        touch "$state_file"
+        echo "Nvidia Proprietário instalado. Reinicie para aplicar."
     fi
 }
 
@@ -306,7 +301,7 @@ shader_booster_installer() {
             for shell_file in "$HOME/.bash_profile" "$HOME/.profile" "$HOME/.zshrc"; do
                 [ -f "$shell_file" ] && sed -i '/# Shader Booster patches/,/# End Shader Booster/d' "$shell_file"
             done
-            cleanup_files "$state_file" "$boost_file" "$HOME/patch-nvidia" "$HOME/patch-mesa"
+            cleanup_files "$state_file" "$boost_file"
         fi
     else
         if confirm "Instalar Shader Booster?"; then
@@ -354,9 +349,9 @@ curl_installer() {
 
 appimage_fuse_installer() {
     local state_file="$STATE_DIR/appimage_fuse"
-    local pkg_fuse="libfuse2 fuse3"
+    local pkg_fuse="fuse libfuse2"
 
-    if [ -f "$state_file" ] || dpkg -l libfuse2 &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l fuse &>/dev/null; then
         if confirm "FUSE para AppImage detectado. Desinstalar?"; then
             echo "Desinstalando FUSE para AppImage..."
             sudo apt remove --purge -y $pkg_fuse
@@ -472,7 +467,7 @@ ufw_installer() {
             sudo systemctl stop ufw 2>/dev/null || true
             sudo systemctl disable ufw 2>/dev/null || true
             sudo apt remove --purge -y $pkg_ufw
-            sudo rm -rf /etc/ufw /lib/ufw /usr/share/ufw /var/lib/ufw /usr/bin/ufw /usr/sbin/ufw 2>/dev/null || true
+            sudo rm -rf /etc/ufw /lib/ufw /usr/share/ufw /var/lib/ufw 2>/dev/null || true
             cleanup_files "$state_file"
             echo "UFW desinstalado."
         fi
@@ -528,8 +523,6 @@ apparmor_installer() {
             sudo systemctl stop apparmor 2>/dev/null || true
             sudo systemctl disable apparmor 2>/dev/null || true
             sudo apt remove --purge -y $pkg_apparmor
-            sudo sed -i '/apparmor=1/d' /etc/default/grub
-            sudo update-grub
             cleanup_files "$state_file"
             echo "AppArmor desinstalado."
         fi
@@ -538,11 +531,9 @@ apparmor_installer() {
             echo "Instalando AppArmor..."
             sudo apt update
             sudo apt install -y $pkg_apparmor
-            sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/&apparmor=1 security=apparmor /' /etc/default/grub
-            sudo update-grub
             sudo systemctl enable apparmor
             touch "$state_file"
-            echo "AppArmor instalado. Reinicie para aplicar."
+            echo "AppArmor instalado."
         fi
     fi
 }
@@ -844,31 +835,57 @@ zsh_ohmyzsh_installer() {
 
 deb_multimedia_installer() {
     local state_file="$STATE_DIR/deb_multimedia"
-    local keyring_file="deb-multimedia-keyring_2024.9.1_all.deb"
 
-    if [ -f "$state_file" ] || [ -f "/etc/apt/sources.list.d/dmo.sources" ]; then
+    if [ -f "$state_file" ]; then
         if confirm "DebMultimedia detectado. Desinstalar?"; then
             echo "Desinstalando DebMultimedia..."
             sudo rm -f /etc/apt/sources.list.d/dmo.sources
+            sudo rm -f /usr/share/keyrings/deb-multimedia-keyring.gpg
             sudo apt update
-            cleanup_files "$state_file" "$HOME/$keyring_file"
+            cleanup_files "$state_file"
             echo "DebMultimedia desinstalado."
         fi
     else
-        if confirm "Instalar DebMultimedia?"; then
+        if confirm "Instalar repositório DebMultimedia?"; then
             echo "Instalando DebMultimedia..."
-            curl -O https://www.deb-multimedia.org/pool/main/d/deb-multimedia-keyring/$keyring_file
-            sudo dpkg -i $keyring_file
-            echo "Types: deb" | sudo tee /etc/apt/sources.list.d/dmo.sources >/dev/null
-            echo "URIs: https://www.deb-multimedia.org" | sudo tee -a /etc/apt/sources.list.d/dmo.sources >/dev/null
-            echo "Suites: forky" | sudo tee -a /etc/apt/sources.list.d/dmo.sources >/dev/null
-            echo "Components: main non-free" | sudo tee -a /etc/apt/sources.list.d/dmo.sources >/dev/null
-            echo "Signed-By: /usr/share/keyrings/deb-multimedia-keyring.pgp" | sudo tee -a /etc/apt/sources.list.d/dmo.sources >/dev/null
-            echo "Enabled: yes" | sudo tee -a /etc/apt/sources.list.d/dmo.sources >/dev/null
+            curl -O https://www.deb-multimedia.org/pool/main/d/deb-multimedia-keyring/deb-multimedia-keyring_2024.9.1_all.deb
+            sudo dpkg -i deb-multimedia-keyring_2024.9.1_all.deb
+            rm -f deb-multimedia-keyring_2024.9.1_all.deb
+            
+            echo 'Types: deb
+URIs: https://www.deb-multimedia.org
+Suites: forky
+Components: main non-free
+Signed-By: /usr/share/keyrings/deb-multimedia-keyring.gpg
+Enabled: yes' | sudo tee /etc/apt/sources.list.d/dmo.sources > /dev/null
+            
             sudo apt update
-            sudo apt modernize-sources
             touch "$state_file"
             echo "DebMultimedia instalado."
+        fi
+    fi
+}
+
+nonfree_contrib_installer() {
+    local state_file="$STATE_DIR/nonfree_contrib"
+    local sources_file="/etc/apt/sources.list"
+
+    if [ -f "$state_file" ]; then
+        if confirm "Non-free/Contrib detectados. Desinstalar?"; then
+            echo "Removendo non-free e contrib..."
+            sudo sed -i 's/ main non-free-firmware/ main non-free-firmware/g' "$sources_file"
+            sudo sed -i 's/ main non-free-firmware non-free contrib/ main non-free-firmware/g' "$sources_file"
+            sudo apt update
+            cleanup_files "$state_file"
+            echo "Non-free/Contrib removidos."
+        fi
+    else
+        if confirm "Adicionar non-free e contrib aos repositórios?"; then
+            echo "Adicionando non-free e contrib..."
+            sudo sed -i 's/ main non-free-firmware/ main non-free-firmware non-free contrib/g' "$sources_file"
+            sudo apt update
+            touch "$state_file"
+            echo "Non-free/Contrib adicionados."
         fi
     fi
 }
@@ -901,14 +918,14 @@ pacstall_installer() {
     if [ -f "$state_file" ] || command -v pacstall &>/dev/null; then
         if confirm "Pacstall detectado. Desinstalar?"; then
             echo "Desinstalando Pacstall..."
-            curl -s https://pacstall.dev/q/uninstall | sudo bash
+            sudo bash -c "$(curl -fsSL https://pacstall.dev/q/uninstall -o -)"
             cleanup_files "$state_file"
             echo "Pacstall desinstalado."
         fi
     else
         if confirm "Instalar Pacstall?"; then
             echo "Instalando Pacstall..."
-            sudo bash -c "$(curl -s https://pacstall.dev/q/install)"
+            sudo bash -c "$(curl -fsSL https://pacstall.dev/q/install -o -)"
             touch "$state_file"
             echo "Pacstall instalado."
         fi
@@ -918,10 +935,10 @@ pacstall_installer() {
 zswap_installer() {
     local state_file="$STATE_DIR/zswap"
 
-    if [ -f "$state_file" ] || grep -q "zswap.enabled=1" /etc/default/grub 2>/dev/null; then
+    if [ -f "$state_file" ]; then
         if confirm "ZSWAP detectado. Desinstalar?"; then
             echo "Desinstalando ZSWAP..."
-            sudo sed -i 's/ zswap.enabled=1//g' /etc/default/grub
+            sudo sed -i '/zswap.enabled=1/d' /etc/default/grub
             sudo update-grub
             cleanup_files "$state_file"
             echo "ZSWAP desinstalado."
@@ -929,33 +946,10 @@ zswap_installer() {
     else
         if confirm "Ativar ZSWAP?"; then
             echo "Ativando ZSWAP..."
-            sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/&zswap.enabled=1 /' /etc/default/grub
+            sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="[^"]*/& zswap.enabled=1/' /etc/default/grub
             sudo update-grub
             touch "$state_file"
             echo "ZSWAP ativado. Reinicie para aplicar."
-        fi
-    fi
-}
-
-enable_nonfree_repos() {
-    local state_file="$STATE_DIR/nonfree_repos"
-    
-    if [ -f "$state_file" ] || grep -q "non-free" /etc/apt/sources.list && grep -q "contrib" /etc/apt/sources.list; then
-        if confirm "Repositórios NON-FREE/CONTRIB detectados. Desativar?"; then
-            echo "Desativando repositórios NON-FREE/CONTRIB..."
-            sudo sed -i 's/ main non-free-firmware/ main/g' /etc/apt/sources.list
-            sudo sed -i 's/ main non-free-firmware contrib non-free/ main/g' /etc/apt/sources.list
-            sudo apt update
-            cleanup_files "$state_file"
-            echo "Repositórios desativados."
-        fi
-    else
-        if confirm "Ativar repositórios NON-FREE/CONTRIB?"; then
-            echo "Ativando repositórios NON-FREE/CONTRIB..."
-            sudo sed -i 's/ main non-free-firmware/ main non-free-firmware contrib non-free/g' /etc/apt/sources.list
-            sudo apt update
-            touch "$state_file"
-            echo "Repositórios ativados."
         fi
     fi
 }
@@ -976,7 +970,7 @@ main_menu() {
         echo "10) Nvidia Proprietário"
         echo "11) Shader Booster"
         echo "12) curl"
-        echo "13) AppImage FUSE"
+        echo "13) FUSE AppImage"
         echo "14) aria2"
         echo "15) Faugus Launcher"
         echo "16) Steam"
@@ -996,10 +990,10 @@ main_menu() {
         echo "30) CachyOS Configs"
         echo "31) Zsh + Oh My Zsh"
         echo "32) DebMultimedia"
-        echo "33) Nala"
-        echo "34) Pacstall"
-        echo "35) ZSWAP"
-        echo "36) Ativar NON-FREE/CONTRIB"
+        echo "33) Non-free/Contrib"
+        echo "34) Nala"
+        echo "35) Pacstall"
+        echo "36) ZSWAP"
         echo "37) Sair"
         echo
         read -p "Selecione uma opção: " opcao
@@ -1037,10 +1031,10 @@ main_menu() {
             30) cachyconfs_installer ;;
             31) zsh_ohmyzsh_installer ;;
             32) deb_multimedia_installer ;;
-            33) nala_installer ;;
-            34) pacstall_installer ;;
-            35) zswap_installer ;;
-            36) enable_nonfree_repos ;;
+            33) nonfree_contrib_installer ;;
+            34) nala_installer ;;
+            35) pacstall_installer ;;
+            36) zswap_installer ;;
             37) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
