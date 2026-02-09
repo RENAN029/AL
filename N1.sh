@@ -242,6 +242,29 @@ For generic wifi or hardware issues, you may need to build your ISO with more up
   # You might need to disable ZFS if it isn't supported on the latest kernel packages
   # boot.supportedFilesystems.zfs = lib.mkForce false;
 ele deve fazer todos esses processos de forma automatizada parecido com oque ocorre com o archinstall do arch linux, ele deve oferecer opcoes de instalacao de ambientes desktop, por exemplo: 
+
+#!/bin/bash
+set -e
+
+[ ! -f /etc/arch-release ] && { echo "Apenas Arch Linux é suportado."; exit 1; }
+
+STATE_DIR="$HOME/.config/arch_scripts"
+mkdir -p "$STATE_DIR"
+
+confirm() {
+    local prompt="$1"
+    read -p "$prompt (s/n): " -n 1 resposta
+    echo
+    [[ "$resposta" = "s" || "$resposta" = "S" ]]
+}
+
+cleanup_files() {
+    local files=("$@")
+    for file in "${files[@]}"; do
+        [ -e "$file" ] && rm -rf "$file" || true
+    done
+}
+
 de_cosmic_installer() {
     local state_file="$STATE_DIR/de_cosmic"
     local pkg_cosmic="cosmic-session cosmic-terminal cosmic-files cosmic-store cosmic-wallpapers"
