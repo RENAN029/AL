@@ -481,21 +481,18 @@ neovim_installer() {
 nvidia_proprietary_dkms_installer() {
     local state_file="$STATE_DIR/nvidia_proprietary"
 
-    if [ -f "$state_file" ] || dpkg -l cuda-drivers &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l nvidia-driver &>/dev/null; then
         if confirm "NVIDIA Proprietário detectado. Desinstalar?"; then
             echo "Desinstalando NVIDIA Proprietário..."
-            dpkg -l cuda-drivers &>/dev/null && sudo apt purge -y cuda-drivers cuda-keyring || true
+            dpkg -l nvidia-driver &>/dev/null && sudo apt purge -y nvidia-driver nvidia-settings nvidia-vdpau-driver || true
             cleanup_files "$state_file"
             echo "NVIDIA Proprietário desinstalado."
         fi
     else
         if confirm "Instalar NVIDIA Proprietário?"; then
             echo "Instalando NVIDIA Proprietário..."
-            cd ~
-            curl -OL https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
-            sudo dpkg -i cuda-keyring_1.1-1_all.deb
-            sudo apt update
-            sudo apt install -y cuda-drivers
+            sudo apt install -y linux-headers-amd64 build-essential dkms
+            sudo apt install -y nvidia-driver nvidia-settings nvidia-vdpau-driver
             sudo update-initramfs -u
             sudo update-grub
             touch "$state_file"
