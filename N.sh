@@ -1,8 +1,4 @@
-#!/usr/bin/env bash
-
-# NixOS Minimal Installer
-# Inspirado no archinstall, mas para NixOS
-
+#!/bin/bash
 set -e
 
 # Cores para output
@@ -12,263 +8,376 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Variáveis globais
-TARGET_DISK=""
-BOOT_MODE=""
-SWAP_SIZE="2GB"
-HOSTNAME="nixos"
-USERNAME=""
-DESKTOP_ENV=""
+# Diretório para arquivos de estado
 STATE_DIR="/tmp/nixos-installer-state"
-CONFIG_FILE="/mnt/etc/nixos/configuration.nix"
+mkdir -p "$STATE_DIR"
 
 # Funções auxiliares
-print_info() {
+log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
 
-print_success() {
+log_success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
-print_warning() {
+log_warn() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
-print_error() {
+log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
 confirm() {
-    read -p "$1 (y/N): " -n 1 -r
+    local prompt="$1"
+    read -p "$prompt (s/n): " -n 1 resposta
     echo
-    [[ $REPLY =~ ^[Yy]$ ]]
+    [[ "$resposta" = "s" || "$resposta" = "S" ]]
 }
 
-cleanup() {
-    print_warning "Limpando..."
-    umount -R /mnt 2>/dev/null || true
-    swapoff /mnt/.swapfile 2>/dev/null || true
+# Verificar se estamos no instalador do NixOS
+check_environment() {
+    if [ ! -f /etc/os-release ] || ! grep -q "NixOS" /etc/os-release 2>/dev/null; then
+        log_error "Este script deve ser executado no instalador do NixOS."
+        exit 1
+    fi
 }
 
-trap cleanup EXIT
-
-# Funções principais
-detect_boot_mode() {
+# Detectar hardware
+detect_hardware() {
+    log_info "Detectando hardware..."
+    
+    # Detectar modo de boot
     if [ -d /sys/firmware/efi ]; then
         BOOT_MODE="UEFI"
-        print_info "Modo de boot detectado: UEFI"
+        log_info "Modo de boot: UEFI"
     else
         BOOT_MODE="BIOS"
-        print_info "Modo de boot detectado: BIOS"
+        log_info "Modo de boot: BIOS"
     fi
-}
-
-select_disk() {
-    print_info "Discos disponíveis:"
-    lsblk -d -o NAME,SIZE,TYPE,MODEL
     
-    while true; do
-        read -p "Digite o disco para instalação (ex: sda, nvme0n1): " disk
-        if [ -b "/dev/$disk" ]; then
-            TARGET_DISK="/dev/$disk"
-            print_info "Disco selecionado: $TARGET_DISK"
-            
-            if confirm "Todos os dados em $TARGET_DISK serão apagados. Continuar?"; then
-                break
-            fi
-        else
-            print_error "Disco inválido!"
-        fi
-    done
-}
-
-partition_disk() {
-    print_info "Particionando disco $TARGET_DISK..."
+    # Listar discos disponíveis
+    log_info "Discos disponíveis:"
+    lsblk -d -o NAME,SIZE,MODEL | grep -v "NAME"
     
-    # Limpar tabela de partições
-    wipefs -a "$TARGET_DISK"
-    
-    if [ "$BOOT_MODE" = "UEFI" ]; then
-        # GPT para UEFI
-        parted "$TARGET_DISK" --script mklabel gpt
-        
-        # Partição de boot EFI
-        parted "$TARGET_DISK" --script mkpart primary fat32 1MiB 512MiB
-        parted "$TARGET_DISK" --script set 1 esp on
-        
-        # Partição raiz
-        parted "$TARGET_DISK" --script mkpart primary ext4 512MiB 100%
-        
-        BOOT_PART="${TARGET_DISK}1"
-        ROOT_PART="${TARGET_DISK}2"
+    # Detectar WiFi
+    if ip link show | grep -q "wl"; then
+        HAS_WIFI=true
+        log_info "WiFi detectado"
     else
-        # MBR para BIOS
-        parted "$TARGET_DISK" --script mklabel msdos
-        
-        # Partição de boot
-        parted "$TARGET_DISK" --script mkpart primary ext4 1MiB 512MiB
-        parted "$TARGET_DISK" --script set 1 boot on
-        
-        # Partição raiz
-        parted "$TARGET_DISK" --script mkpart primary ext4 512MiB 100%
-        
-        BOOT_PART="${TARGET_DISK}1"
-        ROOT_PART="${TARGET_DISK}2"
+        HAS_WIFI=false
+        log_info "WiFi não detectado"
+    fi
+}
+
+# Configurar rede
+setup_network() {
+    log_info "Configurando rede..."
+    
+    if $HAS_WIFI; then
+        if confirm "Conectar a rede WiFi?"; then
+            log_info "Iniciando nmtui para configuração WiFi..."
+            nmtui
+        fi
     fi
     
-    # Sincronizar
-    sync
-    sleep 2
+    # Testar conexão
+    if ping -c 1 nixos.org >/dev/null 2>&1; then
+        log_success "Conexão com internet estabelecida"
+    else
+        log_warn "Sem conexão com internet. Algumas funcionalidades podem não funcionar."
+    fi
+}
+
+# Particionamento
+partition_disk() {
+    log_info "Selecionando disco para instalação..."
+    
+    # Listar discos
+    echo -e "\nDiscos disponíveis:"
+    lsblk -d -o NAME,SIZE,MODEL,TYPE | grep -v "loop"
+    
+    read -p "Digite o nome do disco (ex: sda, nvme0n1): " DISK
+    
+    # Validar disco
+    if [ ! -b "/dev/$DISK" ]; then
+        log_error "Disco /dev/$DISK não encontrado!"
+        exit 1
+    fi
+    
+    DISK_PATH="/dev/$DISK"
+    
+    # Backup dos dados existentes
+    if confirm "AVISO: Todos os dados em $DISK_PATH serão apagados. Continuar?"; then
+        log_info "Particionando $DISK_PATH..."
+        
+        if [ "$BOOT_MODE" = "UEFI" ]; then
+            partition_uefi
+        else
+            partition_bios
+        fi
+    else
+        log_info "Instalação cancelada."
+        exit 0
+    fi
+}
+
+partition_uefi() {
+    # Limpar tabela de partições
+    wipefs -a "$DISK_PATH"
+    
+    # Criar partições GPT
+    parted "$DISK_PATH" -- mklabel gpt
+    parted "$DISK_PATH" -- mkpart ESP fat32 1MiB 512MiB
+    parted "$DISK_PATH" -- set 1 esp on
+    parted "$DISK_PATH" -- mkpart primary ext4 512MiB 100%
     
     # Formatar partições
-    print_info "Formatando partições..."
+    mkfs.fat -F 32 -n NIXBOOT "${DISK_PATH}1"
+    mkfs.ext4 -L NIXROOT "${DISK_PATH}2"
     
-    if [ "$BOOT_MODE" = "UEFI" ]; then
-        mkfs.fat -F 32 "$BOOT_PART"
-        fatlabel "$BOOT_PART" NIXBOOT
-    else
-        mkfs.ext4 "$BOOT_PART"
-        e2label "$BOOT_PART" NIXBOOT
-    fi
-    
-    mkfs.ext4 "$ROOT_PART"
-    e2label "$ROOT_PART" NIXROOT
-    
-    # Montar
-    mount "$ROOT_PART" /mnt
-    mkdir -p /mnt/boot
-    mount "$BOOT_PART" /mnt/boot
-    
-    print_success "Disco particionado e montado"
+    log_success "Partições UEFI criadas"
 }
 
+partition_bios() {
+    # Limpar tabela de partições
+    wipefs -a "$DISK_PATH"
+    
+    # Criar partições MBR
+    parted "$DISK_PATH" -- mklabel msdos
+    parted "$DISK_PATH" -- mkpart primary ext4 1MiB 512MiB
+    parted "$DISK_PATH" -- set 1 boot on
+    parted "$DISK_PATH" -- mkpart primary ext4 512MiB 100%
+    
+    # Formatar partições
+    mkfs.ext4 -L NIXBOOT "${DISK_PATH}1"
+    mkfs.ext4 -L NIXROOT "${DISK_PATH}2"
+    
+    log_success "Partições BIOS criadas"
+}
+
+# Montar partições
+mount_partitions() {
+    log_info "Montando partições..."
+    
+    mount /dev/disk/by-label/NIXROOT /mnt
+    
+    if [ "$BOOT_MODE" = "UEFI" ]; then
+        mkdir -p /mnt/boot/efi
+        mount /dev/disk/by-label/NIXBOOT /mnt/boot/efi
+    else
+        mkdir -p /mnt/boot
+        mount /dev/disk/by-label/NIXBOOT /mnt/boot
+    fi
+    
+    log_success "Partições montadas"
+}
+
+# Criar arquivo de swap
 create_swap() {
-    if confirm "Criar arquivo swap de $SWAP_SIZE?"; then
-        print_info "Criando arquivo swap..."
+    if confirm "Criar arquivo de swap (2GB)?"; then
+        log_info "Criando arquivo de swap..."
         
-        # Calcular tamanho em MB
-        if [[ "$SWAP_SIZE" == *GB ]]; then
-            size_gb=${SWAP_SIZE%GB}
-            size_mb=$((size_gb * 1024))
-        else
-            size_mb=${SWAP_SIZE%MB}
-        fi
-        
-        dd if=/dev/zero of=/mnt/.swapfile bs=1M count="$size_mb" status=progress
+        # 2GB swap file
+        dd if=/dev/zero of=/mnt/.swapfile bs=1M count=2048
         chmod 600 /mnt/.swapfile
         mkswap /mnt/.swapfile
         swapon /mnt/.swapfile
         
-        print_success "Swap criado"
+        log_success "Swap criado"
     fi
 }
 
-get_user_info() {
-    while [ -z "$HOSTNAME" ]; do
-        read -p "Digite o hostname: " HOSTNAME
-    done
+# Gerar configuração
+generate_config() {
+    log_info "Gerando configuração base..."
     
-    while [ -z "$USERNAME" ]; do
-        read -p "Digite o nome de usuário: " USERNAME
-    done
-    
-    read -sp "Digite a senha para $USERNAME: " USER_PASSWORD
-    echo
-    read -sp "Confirme a senha: " USER_PASSWORD_CONFIRM
-    echo
-    
-    if [ "$USER_PASSWORD" != "$USER_PASSWORD_CONFIRM" ]; then
-        print_error "Senhas não coincidem!"
-        return 1
-    fi
-}
-
-select_desktop() {
-    clear
-    echo "=== Ambiente Desktop ==="
-    echo "1) Nenhum (apenas terminal)"
-    echo "2) GNOME"
-    echo "3) KDE Plasma"
-    echo "4) XFCE"
-    echo "5) Sway (Wayland)"
-    echo "6) Hyprland (Wayland compositor)"
-    echo "7) Cinnamon"
-    echo
-    
-    read -p "Selecione uma opção (1-7): " choice
-    
-    case $choice in
-        1) DESKTOP_ENV="none" ;;
-        2) DESKTOP_ENV="gnome" ;;
-        3) DESKTOP_ENV="plasma" ;;
-        4) DESKTOP_ENV="xfce" ;;
-        5) DESKTOP_ENV="sway" ;;
-        6) DESKTOP_ENV="hyprland" ;;
-        7) DESKTOP_ENV="cinnamon" ;;
-        *) DESKTOP_ENV="none" ;;
-    esac
-    
-    print_info "Desktop selecionado: $DESKTOP_ENV"
-}
-
-generate_base_config() {
-    print_info "Gerando configuração base..."
-    
-    # Gerar configuração inicial
     nixos-generate-config --root /mnt
     
-    # Configuração básica
-    cat > /mnt/etc/nixos/configuration.nix << EOF
-{ config, pkgs, ... }:
+    # Copiar configuração para edição
+    cp /mnt/etc/nixos/configuration.nix /mnt/etc/nixos/configuration.nix.backup
+    
+    log_success "Configuração gerada"
+}
 
-{
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-    ];
+# Selecionar ambiente desktop
+select_desktop() {
+    local config_file="/mnt/etc/nixos/configuration.nix"
+    local desktop_packages=""
+    local display_manager=""
+    
+    echo -e "\n${BLUE}=== Ambientes Desktop ===${NC}"
+    echo "1) GNOME"
+    echo "2) KDE Plasma"
+    echo "3) Xfce"
+    echo "4) Cinnamon"
+    echo "5) MATE"
+    echo "6) Hyprland (Wayland compositor)"
+    echo "7) Sway (Wayland compositor)"
+    echo "8) Nenhum (somente console)"
+    echo
+    
+    read -p "Selecione uma opção [1-8]: " choice
+    
+    case $choice in
+        1)
+            desktop_packages="pkgs.gnome.gnome-shell pkgs.gnome.gnome-terminal pkgs.gnome.gnome-control-center pkgs.gnome.gnome-tweaks"
+            display_manager="gdm"
+            DESKTOP_NAME="GNOME"
+            ;;
+        2)
+            desktop_packages="pkgs.plasma5.plasma-desktop pkgs.konsole pkgs.dolphin"
+            display_manager="sddm"
+            DESKTOP_NAME="KDE Plasma"
+            ;;
+        3)
+            desktop_packages="pkgs.xfce.xfce4"
+            display_manager="lightdm"
+            DESKTOP_NAME="Xfce"
+            ;;
+        4)
+            desktop_packages="pkgs.cinnamon"
+            display_manager="lightdm"
+            DESKTOP_NAME="Cinnamon"
+            ;;
+        5)
+            desktop_packages="pkgs.mate.mate-desktop"
+            display_manager="lightdm"
+            DESKTOP_NAME="MATE"
+            ;;
+        6)
+            desktop_packages="pkgs.hyprland"
+            display_manager=""
+            DESKTOP_NAME="Hyprland"
+            ;;
+        7)
+            desktop_packages="pkgs.sway"
+            display_manager=""
+            DESKTOP_NAME="Sway"
+            ;;
+        8)
+            DESKTOP_NAME="Console"
+            return
+            ;;
+        *)
+            log_warn "Opção inválida, usando console apenas"
+            DESKTOP_NAME="Console"
+            return
+            ;;
+    esac
+    
+    # Adicionar pacotes ao arquivo de configuração
+    sed -i '/environment.systemPackages = with pkgs; \[/a\'"  $desktop_packages" "$config_file"
+    
+    # Configurar display manager se necessário
+    if [ -n "$display_manager" ]; then
+        echo -e "\n  # Enable $DESKTOP_NAME display manager\n  services.$display_manager.enable = true;" >> "$config_file"
+    fi
+    
+    # Habilitar X11/Wayland
+    if [ "$choice" = "6" ] || [ "$choice" = "7" ]; then
+        echo -e "\n  # Wayland configuration\n  services.xserver.enable = true;\n  services.xserver.displayManager.startx.enable = true;" >> "$config_file"
+    elif [ "$choice" != "8" ]; then
+        echo -e "\n  # X11 configuration\n  services.xserver.enable = true;\n  services.xserver.displayManager.lightdm.enable = true if using lightdm;\n  services.xserver.desktopManager.$DESKTOP_NAME.enable = true;" >> "$config_file"
+    fi
+    
+    log_success "Ambiente $DESKTOP_NAME selecionado"
+}
 
-  # Bootloader
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  
-  # Network
-  networking.hostName = "$HOSTNAME";
-  networking.networkmanager.enable = true;
+# Configurar usuário
+setup_user() {
+    log_info "Configurando usuário..."
+    
+    read -p "Nome de usuário: " USERNAME
+    read -sp "Senha para $USERNAME: " PASSWORD
+    echo
+    
+    # Adicionar configuração do usuário
+    local config_file="/mnt/etc/nixos/configuration.nix"
+    
+    cat >> "$config_file" << EOF
 
-  # Timezone
-  time.timeZone = "America/Sao_Paulo";
-
-  # Locale
-  i18n.defaultLocale = "en_US.UTF-8";
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "pt_BR.UTF-8";
-    LC_IDENTIFICATION = "pt_BR.UTF-8";
-    LC_MEASUREMENT = "pt_BR.UTF-8";
-    LC_MONETARY = "pt_BR.UTF-8";
-    LC_NAME = "pt_BR.UTF-8";
-    LC_NUMERIC = "pt_BR.UTF-8";
-    LC_PAPER = "pt_BR.UTF-8";
-    LC_TELEPHONE = "pt_BR.UTF-8";
-    LC_TIME = "pt_BR.UTF-8";
-  };
-
-  # Console
-  console.keyMap = "br-abnt2";
-
-  # User
+  # User configuration
   users.users.$USERNAME = {
     isNormalUser = true;
     description = "$USERNAME";
-    extraGroups = [ "networkmanager" "wheel" ];
-    initialPassword = "$USER_PASSWORD";
+    extraGroups = [ "wheel" "networkmanager" ];
+    initialPassword = "$PASSWORD";
   };
 
-  # Sudo
-  security.sudo.enable = true;
-  security.sudo.wheelNeedsPassword = true;
+  # Enable sudo for wheel group
+  security.sudo.wheelNeedsPassword = false;
+EOF
+    
+    log_success "Usuário $USERNAME configurado"
+}
 
-  # Packages
+# Configurar localização
+setup_localization() {
+    log_info "Configurando localização..."
+    
+    read -p "Fuso horário (ex: America/Sao_Paulo, Europe/London): " TIMEZONE
+    read -p "Layout de teclado (ex: us, br, fr): " KEYBOARD_LAYOUT
+    
+    local config_file="/mnt/etc/nixos/configuration.nix"
+    
+    # Adicionar configuração de localização
+    sed -i '/^}$/i\
+  # Localization\
+  time.timeZone = "'"$TIMEZONE"'";\
+  i18n.defaultLocale = "en_US.UTF-8";\
+  console.keyMap = "'"$KEYBOARD_LAYOUT"'";\
+  services.xserver.xkb.layout = "'"$KEYBOARD_LAYOUT"'";' "$config_file"
+    
+    log_success "Localização configurada"
+}
+
+# Configurar rede no sistema instalado
+setup_network_config() {
+    local config_file="/mnt/etc/nixos/configuration.nix"
+    
+    cat >> "$config_file" << EOF
+
+  # Networking
+  networking.hostName = "nixos";
+  networking.networkmanager.enable = true;
+EOF
+    
+    log_success "Configuração de rede adicionada"
+}
+
+# Configurar bootloader
+setup_bootloader() {
+    local config_file="/mnt/etc/nixos/configuration.nix"
+    
+    if [ "$BOOT_MODE" = "UEFI" ]; then
+        cat >> "$config_file" << EOF
+
+  # Bootloader (UEFI)
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+EOF
+    else
+        cat >> "$config_file" << EOF
+
+  # Bootloader (BIOS)
+  boot.loader.grub.enable = true;
+  boot.loader.grub.device = "$DISK_PATH";
+  boot.loader.grub.useOSProber = true;
+EOF
+    fi
+    
+    log_success "Bootloader configurado"
+}
+
+# Configurar pacotes adicionais
+setup_additional_packages() {
+    local config_file="/mnt/etc/nixos/configuration.nix"
+    
+    cat >> "$config_file" << EOF
+
+  # Additional packages
   environment.systemPackages = with pkgs; [
     vim
     wget
@@ -276,229 +385,69 @@ generate_base_config() {
     git
     htop
   ];
-
-  # Swap file
-  swapDevices = [ { device = "/.swapfile"; } ];
-
-  # Esta opção permite substituições de pacotes não assinados
-  nixpkgs.config.allowUnfree = true;
-
-  # Habilitar o serviço OpenSSH se necessário
-  # services.openssh.enable = true;
-
-  # Esta opção define a versão do canal NixOS
-  system.stateVersion = "23.11"; # Não mude esta linha
-}
 EOF
+    
+    log_success "Pacotes adicionais configurados"
 }
 
-add_desktop_config() {
-    case $DESKTOP_ENV in
-        gnome)
-            cat >> /mnt/etc/nixos/configuration.nix << EOF
-
-  # GNOME Desktop
-  services.xserver.enable = true;
-  services.xserver.displayManager.gdm.enable = true;
-  services.xserver.desktopManager.gnome.enable = true;
-  
-  # GNOME extras
-  environment.gnome.excludePackages = with pkgs; [
-    gnome-photos
-    gnome-tour
-  ];
-  
-  environment.systemPackages = with pkgs; [
-    gnome.gnome-tweaks
-    gnome-extension-manager
-  ];
-EOF
-            ;;
-        plasma)
-            cat >> /mnt/etc/nixos/configuration.nix << EOF
-
-  # KDE Plasma
-  services.xserver.enable = true;
-  services.xserver.displayManager.sddm.enable = true;
-  services.xserver.desktopManager.plasma5.enable = true;
-  
-  # KDE applications
-  environment.systemPackages = with pkgs; [
-    kdePackages.konsole
-    kdePackages.dolphin
-    kdePackages.ark
-    kdeconnect
-  ];
-EOF
-            ;;
-        xfce)
-            cat >> /mnt/etc/nixos/configuration.nix << EOF
-
-  # XFCE
-  services.xserver.enable = true;
-  services.xserver.displayManager.lightdm.enable = true;
-  services.xserver.desktopManager.xfce.enable = true;
-  
-  environment.systemPackages = with pkgs; [
-    xfce.xfce4-terminal
-    xfce.thunar
-    xfce.ristretto
-  ];
-EOF
-            ;;
-        sway)
-            cat >> /mnt/etc/nixos/configuration.nix << EOF
-
-  # Sway (Wayland)
-  programs.sway = {
-    enable = true;
-    wrapperFeatures.gtk = true;
-  };
-  
-  environment.systemPackages = with pkgs; [
-    sway
-    swaylock
-    swayidle
-    waybar
-    wofi
-    alacritty
-  ];
-  
-  # Enable necessary services
-  security.polkit.enable = true;
-  services.dbus.enable = true;
-  xdg.portal = {
-    enable = true;
-    wlr.enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-  };
-EOF
-            ;;
-        hyprland)
-            cat >> /mnt/etc/nixos/configuration.nix << EOF
-
-  # Hyprland
-  programs.hyprland = {
-    enable = true;
-    nvidiaPatches = false;
-    xwayland.enable = true;
-  };
-  
-  environment.systemPackages = with pkgs; [
-    hyprland
-    waybar
-    rofi-wayland
-    alacritty
-    swaylock-effects
-  ];
-  
-  # Required for Hyprland
-  security.polkit.enable = true;
-  services.dbus.enable = true;
-  xdg.portal = {
-    enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-  };
-EOF
-            ;;
-        cinnamon)
-            cat >> /mnt/etc/nixos/configuration.nix << EOF
-
-  # Cinnamon
-  services.xserver.enable = true;
-  services.xserver.displayManager.lightdm.enable = true;
-  services.xserver.desktopManager.cinnamon.enable = true;
-  
-  environment.systemPackages = with pkgs; [
-    cinnamon.nemo
-    cinnamon.xed
-  ];
-EOF
-            ;;
-    esac
-}
-
+# Instalar sistema
 install_system() {
-    print_info "Instalando NixOS..."
+    log_info "Iniciando instalação do NixOS..."
     
-    # Adicionar configuração do desktop
-    add_desktop_config
-    
-    # Instalar
-    nixos-install --no-root-passwd
-    
-    print_success "NixOS instalado com sucesso!"
-}
-
-post_install() {
-    print_info "Configurações pós-instalação..."
-    
-    # Habilitar serviços comuns
-    if [ "$DESKTOP_ENV" != "none" ]; then
-        print_info "Habilitando NetworkManager..."
-        chroot /mnt systemctl enable NetworkManager
+    if confirm "Deseja prosseguir com a instalação?"; then
+        log_info "Isso pode levar alguns minutos..."
+        
+        # Instalar NixOS
+        nixos-install --no-root-passwd
+        
+        if [ $? -eq 0 ]; then
+            log_success "Instalação concluída com sucesso!"
+            
+            if confirm "Deseja reiniciar o sistema agora?"; then
+                log_info "Reiniciando..."
+                reboot
+            else
+                log_info "Reinicialize manualmente quando estiver pronto."
+            fi
+        else
+            log_error "Falha na instalação. Verifique os logs."
+            exit 1
+        fi
+    else
+        log_info "Instalação cancelada."
     fi
-    
-    print_success "Instalação completa!"
-    echo
-    echo "=========================================="
-    echo "Hostname: $HOSTNAME"
-    echo "Usuário: $USERNAME"
-    echo "Desktop: $DESKTOP_ENV"
-    echo "Modo de boot: $BOOT_MODE"
-    echo "=========================================="
-    echo
-    echo "Comandos úteis após o primeiro boot:"
-    echo "  sudo nixos-rebuild switch  # Aplicar mudanças"
-    echo "  sudo nixos-rebuild boot    # Aplicar para próximo boot"
-    echo "  nix-shell -p <pacote>      # Testar pacote temporariamente"
-    echo
 }
 
+# Menu principal
 main_menu() {
     clear
-    echo "=========================================="
-    echo "    INSTALADOR NIXOS MINIMAL"
-    echo "=========================================="
-    echo
-    echo "Este script irá:"
-    echo "1. Detectar modo de boot (UEFI/BIOS)"
-    echo "2. Particionar disco automaticamente"
-    echo "3. Configurar sistema base"
-    echo "4. Instalar ambiente desktop opcional"
-    echo "5. Criar usuário"
-    echo
-    echo "ATENÇÃO: Todos os dados no disco serão perdidos!"
+    echo -e "${BLUE}========================================${NC}"
+    echo -e "${BLUE}        Instalador NixOS Automatizado${NC}"
+    echo -e "${BLUE}========================================${NC}"
     echo
     
-    if ! confirm "Deseja continuar?"; then
+    check_environment
+    detect_hardware
+    
+    echo
+    if confirm "Iniciar instalação do NixOS?"; then
+        setup_network
+        partition_disk
+        mount_partitions
+        create_swap
+        generate_config
+        select_desktop
+        setup_user
+        setup_localization
+        setup_network_config
+        setup_bootloader
+        setup_additional_packages
+        install_system
+    else
+        log_info "Instalação cancelada."
         exit 0
     fi
-    
-    # Executar etapas
-    detect_boot_mode
-    select_disk
-    partition_disk
-    create_swap
-    get_user_info
-    select_desktop
-    generate_base_config
-    install_system
-    post_install
 }
 
-# Verificar se é root
-if [ "$EUID" -ne 0 ]; then
-    print_error "Execute como root: sudo $0"
-    exit 1
-fi
-
-# Verificar se estamos no ambiente de instalação
-if ! mount | grep -q "/mnt"; then
-    print_warning "Certifique-se de estar no ambiente de instalação do NixOS"
-    if confirm "Continuar mesmo assim?"; then
-        main_menu
-    fi
-else
-    main_menu
-fi
+# Executar menu principal
+main_menu
