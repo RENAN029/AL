@@ -351,3 +351,23 @@ de_plasma_installer() {
         fi
     fi
 }
+
+main_menu() {
+    while true; do
+        clear
+        echo "=== Arch Scripts ==="
+        echo "1) Ambientes desktop"
+        echo "2) Sair"
+        echo
+        read -p "Selecione uma opção: " opcao
+
+        case $opcao in
+            1) 
+            2) exit 0 ;;
+            *) ;;
+        esac
+        read -p "Pressione Enter para continuar..."
+    done
+}
+
+main_menu
