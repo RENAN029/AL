@@ -255,8 +255,7 @@ deb_multimedia_installer() {
             
             echo "deb https://www.deb-multimedia.org forky main non-free" | sudo tee /etc/apt/sources.list.d/dmo.list > /dev/null
             
-            sudo apt update --allow-insecure-repositories
-            sudo apt install -y --allow-unauthenticated deb-multimedia-keyring
+            sudo apt update
             touch "$state_file"
             echo "DebMultimedia instalado."
         fi
@@ -526,6 +525,8 @@ nvidia_proprietary_dkms_installer() {
             echo "Desinstalando Nvidia Proprietário..."
             sudo apt remove --purge -y nvidia-driver-* cuda-drivers cuda-keyring
             sudo rm -f /etc/apt/preferences.d/nvidia-repo
+            sudo rm -f /etc/apt/sources.list.d/cuda.list
+            sudo rm -f /usr/share/keyrings/nvidia-cuda-keyring.gpg
             sudo apt update
             cleanup_files "$state_file"
             echo "Nvidia Proprietário desinstalado."
@@ -537,14 +538,10 @@ nvidia_proprietary_dkms_installer() {
             sudo dpkg -i /tmp/cuda-keyring.deb
             rm -f /tmp/cuda-keyring.deb
             
-            sudo apt-key del EB693B3035CD5710E231E123A4B469963BF863CC 2>/dev/null || true
-            sudo apt update --allow-insecure-repositories
+            sudo rm -f /etc/apt/sources.list.d/cuda.list
+            echo "deb https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64 /" | sudo tee /etc/apt/sources.list.d/cuda.list > /dev/null
             
-            echo 'Package: *  
-Pin: origin https://developer.download.nvidia.com  
-Pin-Priority: 100' | sudo tee /etc/apt/preferences.d/nvidia-repo > /dev/null
-            
-            sudo apt update --allow-insecure-repositories
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated
             sudo apt install -y --allow-unauthenticated cuda-drivers
             sudo update-initramfs -u
             sudo update-grub
