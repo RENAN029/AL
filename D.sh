@@ -505,17 +505,20 @@ nvidia_proprietary_dkms_installer() {
         if confirm "Instalar Nvidia Proprietário (repositório oficial)?"; then
             echo "Instalando Nvidia Proprietário..."
             sudo apt install -y dkms libdw-dev clang lld llvm build-essential linux-headers-amd64 pipewire-audio-client-libraries
-            cd "$HOME"
-            curl -O https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
-            sudo dpkg -i cuda-keyring_1.1-1_all.deb
-            sudo apt update
+            
+            echo "Configurando repositório da NVIDIA sem verificação de assinatura..."
+            sudo rm -f /etc/apt/sources.list.d/cuda-*.list
+            echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" | sudo tee /etc/apt/sources.list.d/cuda-debian12-x86_64.list
+            
+            echo "Configurando prioridade do repositório da NVIDIA..."
             echo "Package: *
 Pin: origin https://developer.download.nvidia.com
 Pin-Priority: 900" | sudo tee /etc/apt/preferences.d/nvidia-repo
+            
+            sudo apt update
             sudo apt install -y cuda-drivers
             sudo update-initramfs -u
             sudo update-grub
-            rm -f cuda-keyring_1.1-1_all.deb
             touch "$state_file"
             echo "Nvidia Proprietário instalado. Reinicie para aplicar."
         fi
