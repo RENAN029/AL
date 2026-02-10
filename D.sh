@@ -52,17 +52,16 @@ affinity_installer() {
 
 apparmor_installer() {
     local state_file="$STATE_DIR/apparmor"
-    local pkg_apparmor="apparmor apparmor-utils"
+    local pkg_apparmor="apparmor apparmor-utils apparmor-profiles apparmor-profiles-extra"
 
-    if [ -f "$state_file" ] || dpkg -l apparmor &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*apparmor "; then
         if confirm "AppArmor detectado. Desinstalar?"; then
             echo "Desinstalando AppArmor..."
             sudo systemctl stop apparmor 2>/dev/null || true
             sudo systemctl disable apparmor 2>/dev/null || true
-            sudo rm -f /etc/default/grub.d/99-apparmor.cfg /etc/kernel/cmdline.d/99-apparmor.conf 2>/dev/null || true
-            sudo mkdir -p /boot/grub 2>/dev/null || true
-            sudo update-grub 2>/dev/null || true
-            sudo apt-get remove -y $pkg_apparmor
+            sudo apt-get remove --purge -y $pkg_apparmor
+            sudo sed -i '/GRUB_CMDLINE_LINUX.*apparmor/d' /etc/default/grub
+            sudo update-grub
             cleanup_files "$state_file"
             echo "AppArmor desinstalado."
         fi
@@ -71,14 +70,8 @@ apparmor_installer() {
             echo "Instalando AppArmor..."
             sudo apt-get update
             sudo apt-get install -y $pkg_apparmor
-            if dpkg -l grub-common &>/dev/null; then
-                sudo mkdir -p /etc/default/grub.d
-                echo 'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} apparmor=1 security=apparmor"' | sudo tee /etc/default/grub.d/99-apparmor.cfg
-                sudo update-grub
-            else
-                sudo mkdir -p /etc/kernel/cmdline.d
-                echo "apparmor=1 security=apparmor" | sudo tee /etc/kernel/cmdline.d/99-apparmor.conf
-            fi
+            sudo sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="apparmor=1 security=apparmor"/' /etc/default/grub
+            sudo update-grub
             sudo systemctl enable apparmor
             touch "$state_file"
             echo "AppArmor instalado. Reinicie para aplicar."
@@ -88,12 +81,12 @@ apparmor_installer() {
 
 appimage_fuse_installer() {
     local state_file="$STATE_DIR/appimage_fuse"
-    local pkg_fuse="fuse3 libfuse2"
+    local pkg_fuse="libfuse2"
 
-    if [ -f "$state_file" ] || dpkg -l fuse3 &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*libfuse2"; then
         if confirm "FUSE para AppImage detectado. Desinstalar?"; then
             echo "Desinstalando FUSE para AppImage..."
-            sudo apt-get remove -y $pkg_fuse
+            sudo apt-get remove --purge -y $pkg_fuse
             cleanup_files "$state_file"
             echo "FUSE para AppImage desinstalado."
         fi
@@ -112,10 +105,10 @@ archiving_compression_installer() {
     local state_file="$STATE_DIR/pessoal_compactacao"
     local pkg_compactacao="tar p7zip-full unrar unzip gzip lrzip xz-utils zip lzop"
 
-    if [ -f "$state_file" ] || dpkg -l p7zip-full &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*p7zip-full"; then
         if confirm "Pacotes de Compactação detectados. Desinstalar?"; then
             echo "Desinstalando Pacotes de Compactação..."
-            sudo apt-get remove -y $pkg_compactacao
+            sudo apt-get remove --purge -y $pkg_compactacao
             cleanup_files "$state_file"
             echo "Pacotes de Compactação desinstalados."
         fi
@@ -134,10 +127,10 @@ aria2_installer() {
     local state_file="$STATE_DIR/aria2"
     local pkg_aria2="aria2"
 
-    if [ -f "$state_file" ] || dpkg -l aria2 &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*aria2"; then
         if confirm "aria2 detectado. Desinstalar?"; then
             echo "Desinstalando aria2..."
-            sudo apt-get remove -y $pkg_aria2
+            sudo apt-get remove --purge -y $pkg_aria2
             cleanup_files "$state_file"
             echo "aria2 desinstalado."
         fi
@@ -155,40 +148,18 @@ aria2_installer() {
 cachyconfs_installer() {
     local state_file="$STATE_DIR/cachyconfs"
 
-    if [ -f "$state_file" ] || [ -f "/etc/sysctl.d/99-cachyos-settings.conf" ]; then
+    if [ -f "$state_file" ] || [ -f "/usr/lib/sysctl.d/99-cachyos-settings.conf" ]; then
         if confirm "CachyOS Configs detectado. Desinstalar?"; then
-            sudo rm -f /etc/sysctl.d/99-cachyos-settings.conf
+            sudo rm -f /usr/lib/sysctl.d/99-cachyos-settings.conf
             sudo sysctl --system
             cleanup_files "$state_file"
         fi
     else
         if confirm "Instalar CachyOS Configs?"; then
-            sudo mkdir -p /etc/sysctl.d
-            curl -s https://raw.githubusercontent.com/CachyOS/CachyOS-Settings/main/sysctl/99-cachyos-settings.conf | sudo tee /etc/sysctl.d/99-cachyos-settings.conf > /dev/null
+            sudo mkdir -p /usr/lib/sysctl.d
+            curl -s https://raw.githubusercontent.com/CachyOS/CachyOS-Settings/main/sysctl/99-cachyos-settings.conf | sudo tee /usr/lib/sysctl.d/99-cachyos-settings.conf > /dev/null
             sudo sysctl --system
             touch "$state_file"
-        fi
-    fi
-}
-
-contrib_nonfree_installer() {
-    local state_file="$STATE_DIR/contrib_nonfree"
-    
-    if [ -f "$state_file" ]; then
-        if confirm "Repositórios Contrib e Non-Free detectados. Remover?"; then
-            echo "Removendo repositórios Contrib e Non-Free..."
-            sudo sed -i 's/ main non-free-firmware contrib non-free/ main non-free-firmware/g' /etc/apt/sources.list
-            sudo apt-get update
-            cleanup_files "$state_file"
-            echo "Repositórios removidos."
-        fi
-    else
-        if confirm "Adicionar repositórios Contrib e Non-Free?"; then
-            echo "Adicionando repositórios Contrib e Non-Free..."
-            sudo sed -i 's/ main non-free-firmware/ main non-free-firmware contrib non-free/g' /etc/apt/sources.list
-            sudo apt-get update
-            touch "$state_file"
-            echo "Repositórios adicionados."
         fi
     fi
 }
@@ -197,10 +168,10 @@ curl_installer() {
     local state_file="$STATE_DIR/curl"
     local pkg_curl="curl"
 
-    if [ -f "$state_file" ] || dpkg -l curl &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*curl"; then
         if confirm "curl detectado. Desinstalar?"; then
             echo "Desinstalando curl..."
-            sudo apt-get remove -y $pkg_curl
+            sudo apt-get remove --purge -y $pkg_curl
             cleanup_files "$state_file"
             echo "curl desinstalado."
         fi
@@ -215,45 +186,15 @@ curl_installer() {
     fi
 }
 
-deb_multimedia_installer() {
-    local state_file="$STATE_DIR/deb_multimedia"
-
-    if [ -f "$state_file" ] || [ -f "/etc/apt/sources.list.d/dmo.sources" ]; then
-        if confirm "Repositório DebMultimedia detectado. Remover?"; then
-            echo "Removendo repositório DebMultimedia..."
-            sudo rm -f /etc/apt/sources.list.d/dmo.sources
-            sudo rm -f /usr/share/keyrings/deb-multimedia-keyring.pgp
-            sudo apt-get update
-            cleanup_files "$state_file"
-            echo "Repositório removido."
-        fi
-    else
-        if confirm "Adicionar repositório DebMultimedia?"; then
-            echo "Adicionando repositório DebMultimedia..."
-            curl -s https://www.deb-multimedia.org/pool/main/d/deb-multimedia-keyring/deb-multimedia-keyring_2024.9.1_all.deb -o /tmp/deb-multimedia-keyring.deb
-            sudo dpkg -i /tmp/deb-multimedia-keyring.deb
-            echo "Types: deb
-URIs: https://www.deb-multimedia.org
-Suites: forky
-Components: main non-free
-Signed-By: /usr/share/keyrings/deb-multimedia-keyring.pgp
-Enabled: yes" | sudo tee /etc/apt/sources.list.d/dmo.sources > /dev/null
-            sudo apt-get update
-            touch "$state_file"
-            echo "Repositório DebMultimedia adicionado."
-        fi
-    fi
-}
-
 de_gnome_installer() {
     local state_file="$STATE_DIR/de_gnome"
-    local pkg_gnome="gnome-shell gnome-terminal gnome-software gnome-tweaks gnome-disk-utility gnome-backgrounds gdm3"
+    local pkg_gnome="gnome-shell gnome-terminal gnome-software gnome-tweaks gnome-disk-utility gnome-backgrounds"
 
-    if [ -f "$state_file" ] || dpkg -l gnome-shell &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*gnome-shell"; then
         if confirm "Gnome detectado. Desinstalar?"; then
             echo "Desinstalando Gnome..."
             sudo systemctl disable gdm 2>/dev/null || true
-            sudo apt-get remove -y $pkg_gnome
+            sudo apt-get remove --purge -y $pkg_gnome
             cleanup_files "$state_file"
             echo "Gnome desinstalado."
         fi
@@ -271,13 +212,13 @@ de_gnome_installer() {
 
 de_plasma_installer() {
     local state_file="$STATE_DIR/de_plasma"
-    local pkg_plasma="plasma-desktop konsole dolphin kdeconnect partitionmanager ark sddm"
+    local pkg_plasma="plasma-desktop konsole dolphin kdeconnect partitionmanager ark"
 
-    if [ -f "$state_file" ] || dpkg -l plasma-desktop &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*plasma-desktop"; then
         if confirm "Plasma detectado. Desinstalar?"; then
             echo "Desinstalando Plasma..."
             sudo systemctl disable sddm 2>/dev/null || true
-            sudo apt-get remove -y $pkg_plasma
+            sudo apt-get remove --purge -y $pkg_plasma
             cleanup_files "$state_file"
             echo "Plasma desinstalado."
         fi
@@ -289,6 +230,39 @@ de_plasma_installer() {
             sudo systemctl enable sddm
             touch "$state_file"
             echo "Plasma instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+deb_multimedia_installer() {
+    local state_file="$STATE_DIR/deb_multimedia"
+
+    if [ -f "$state_file" ] || [ -f "/etc/apt/sources.list.d/dmo.sources" ]; then
+        if confirm "DebMultimedia detectado. Desinstalar?"; then
+            echo "Desinstalando DebMultimedia..."
+            sudo rm -f /etc/apt/sources.list.d/dmo.sources
+            sudo rm -f /usr/share/keyrings/deb-multimedia-keyring.gpg
+            sudo apt-get update
+            cleanup_files "$state_file"
+            echo "DebMultimedia desinstalado."
+        fi
+    else
+        if confirm "Instalar repositório DebMultimedia?"; then
+            echo "Instalando DebMultimedia..."
+            curl -L -o /tmp/deb-multimedia-keyring.deb https://www.deb-multimedia.org/pool/main/d/deb-multimedia-keyring/deb-multimedia-keyring_2024.9.1_all.deb
+            sudo dpkg -i /tmp/deb-multimedia-keyring.deb
+            rm -f /tmp/deb-multimedia-keyring.deb
+            
+            echo 'Types: deb
+URIs: https://www.deb-multimedia.org
+Suites: forky
+Components: main non-free
+Signed-By: /usr/share/keyrings/deb-multimedia-keyring.gpg
+Enabled: yes' | sudo tee /etc/apt/sources.list.d/dmo.sources > /dev/null
+            
+            sudo apt-get update
+            touch "$state_file"
+            echo "DebMultimedia instalado."
         fi
     fi
 }
@@ -322,13 +296,15 @@ fish_fisher_installer() {
     local fisher_state="$STATE_DIR/fisher"
     local pkg_fish="fish"
 
-    if [ -f "$fish_state" ] || dpkg -l fish &>/dev/null; then
+    if [ -f "$fish_state" ] || dpkg -l | grep -q "^ii.*fish"; then
         if confirm "Fish Shell detectado. Desinstalar?"; then
             echo "Desinstalando Fish Shell..."
-            if [ -f "$fisher_state" ]; then
+            if [ -f "$fisher_state" ] || command -v fisher >/dev/null 2>&1; then
+                rm -rf ~/.config/fish/functions/fisher.fish
+                rm -rf ~/.config/fish/completions/fisher.fish
                 cleanup_files "$fisher_state"
             fi
-            sudo apt-get remove -y $pkg_fish
+            sudo apt-get remove --purge -y $pkg_fish
             sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
             cleanup_files "$fish_state" "$HOME/.config/fish"
             echo "Fish Shell desinstalado."
@@ -344,21 +320,20 @@ fish_fisher_installer() {
         echo "Fish Shell instalado."
     fi
 
-    if [ -f "$fisher_state" ]; then
+    if [ -f "$fisher_state" ] || command -v fisher >/dev/null 2>&1; then
         if confirm "Fisher detectado. Desinstalar?"; then
             echo "Desinstalando Fisher..."
+            rm -rf ~/.config/fish/functions/fisher.fish
+            rm -rf ~/.config/fish/completions/fisher.fish
             cleanup_files "$fisher_state"
             echo "Fisher desinstalado."
         fi
     elif confirm "Instalar Fisher (plugin manager)?"; then
         echo "Instalando Fisher..."
-        if command -v fish >/dev/null 2>&1; then
-            fish -c "curl -sL https://git.io/fisher | source; fisher install jorgebucaran/fisher" 2>/dev/null || true
-            touch "$fisher_state"
-            echo "Fisher instalado."
-        else
-            echo "Fish Shell não está instalado. Instale primeiro o Fish Shell."
-        fi
+        curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish > ~/.config/fish/functions/fisher.fish
+        fish -c "curl -sL https://git.io/fisher | source; fisher install jorgebucaran/fisher" 2>/dev/null || true
+        touch "$fisher_state"
+        echo "Fisher instalado."
     fi
 }
 
@@ -367,10 +342,10 @@ flatpak_flathub_installer() {
     local flathub_state="$STATE_DIR/flathub"
     local pkg_flatpak="flatpak"
 
-    if [ -f "$flatpak_state" ] || dpkg -l flatpak &>/dev/null; then
+    if [ -f "$flatpak_state" ] || dpkg -l | grep -q "^ii.*flatpak"; then
         if confirm "Flatpak detectado. Desinstalar?"; then
             echo "Desinstalando Flatpak..."
-            sudo apt-get remove -y $pkg_flatpak
+            sudo apt-get remove --purge -y $pkg_flatpak
             rm -rf "$HOME/.local/share/flatpak" 2>/dev/null || true
             sudo rm -rf /var/lib/flatpak 2>/dev/null || true
             cleanup_files "$flatpak_state" "$flathub_state"
@@ -403,10 +378,10 @@ fwupd_installer() {
     local state_file="$STATE_DIR/fwupd"
     local pkg_fwupd="fwupd"
 
-    if [ -f "$state_file" ] || dpkg -l fwupd &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*fwupd"; then
         if confirm "Fwupd detectado. Desinstalar?"; then
             echo "Desinstalando Fwupd..."
-            sudo apt-get remove -y $pkg_fwupd
+            sudo apt-get remove --purge -y $pkg_fwupd
             cleanup_files "$state_file"
             echo "Fwupd desinstalado."
         fi
@@ -425,10 +400,10 @@ gamemode_installer() {
     local state_file="$STATE_DIR/gamemode"
     local pkg_gamemode="gamemode"
 
-    if [ -f "$state_file" ] || dpkg -l gamemode &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*gamemode"; then
         if confirm "Gamemode detectado. Desinstalar?"; then
             echo "Desinstalando Gamemode..."
-            sudo apt-get remove -y $pkg_gamemode
+            sudo apt-get remove --purge -y $pkg_gamemode
             cleanup_files "$state_file"
             echo "Gamemode desinstalado."
         fi
@@ -469,32 +444,33 @@ lazyvim_installer() {
 mise_installer() {
     local state_file="$STATE_DIR/mise"
 
-    if [ -f "$state_file" ]; then
+    if [ -f "$state_file" ] || command -v mise >/dev/null 2>&1; then
         if confirm "Mise detectado. Desinstalar?"; then
             echo "Desinstalando Mise..."
-            rm -f ~/.local/share/bash-completion/completions/mise 2>/dev/null || true
-            rm -f /usr/local/share/zsh/site-functions/_mise 2>/dev/null || true
-            rm -f ~/.config/fish/completions/mise.fish 2>/dev/null || true
+            rm -rf ~/.local/share/mise
+            sed -i '/mise init/d' ~/.bashrc 2>/dev/null || true
+            sed -i '/mise init/d' ~/.zshrc 2>/dev/null || true
+            [ -f ~/.config/fish/config.fish ] && sed -i '/mise init fish/d' ~/.config/fish/config.fish 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Mise desinstalado."
         fi
     else
         if confirm "Instalar Mise?"; then
             echo "Instalando Mise..."
-            if [ -f "$HOME/.bashrc" ]; then
+            if [ -f ~/.bashrc ]; then
                 curl https://mise.run/bash | sh
                 mkdir -p ~/.local/share/bash-completion/
-                mise completion bash --include-bash-completion-lib > ~/.local/share/bash-completion/completions/mise 2>/dev/null || true
+                mise completion bash --include-bash-completion-lib > ~/.local/share/bash-completion/completions/mise
             fi
-            if [ -f "$HOME/.zshrc" ]; then
+            if [ -f ~/.zshrc ]; then
                 curl https://mise.run/zsh | sh
-                mkdir -p /usr/local/share/zsh/site-functions
-                mise completion zsh > /usr/local/share/zsh/site-functions/_mise 2>/dev/null || true
+                mkdir -p ~/.local/share/zsh/site-functions
+                mise completion zsh > ~/.local/share/zsh/site-functions/_mise
             fi
-            if [ -f "$HOME/.config/fish/config.fish" ]; then
+            if [ -f ~/.config/fish/config.fish ]; then
                 curl https://mise.run/fish | sh
                 mkdir -p ~/.config/fish/completions
-                mise completion fish > ~/.config/fish/completions/mise.fish 2>/dev/null || true
+                mise completion fish > ~/.config/fish/completions/mise.fish
             fi
             touch "$state_file"
             echo "Mise instalado."
@@ -506,10 +482,10 @@ nala_installer() {
     local state_file="$STATE_DIR/nala"
     local pkg_nala="nala"
 
-    if [ -f "$state_file" ] || dpkg -l nala &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*nala"; then
         if confirm "Nala detectado. Desinstalar?"; then
             echo "Desinstalando Nala..."
-            sudo apt-get remove -y $pkg_nala
+            sudo apt-get remove --purge -y $pkg_nala
             cleanup_files "$state_file"
             echo "Nala desinstalado."
         fi
@@ -528,10 +504,10 @@ neovim_installer() {
     local state_file="$STATE_DIR/nvim"
     local pkg_neovim="neovim"
 
-    if [ -f "$state_file" ] || dpkg -l neovim &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*neovim"; then
         if confirm "NeoVim detectado. Desinstalar?"; then
             echo "Desinstalando NeoVim..."
-            sudo apt-get remove -y $pkg_neovim
+            sudo apt-get remove --purge -y $pkg_neovim
             cleanup_files "$state_file"
             echo "NeoVim desinstalado."
         fi
@@ -549,56 +525,30 @@ neovim_installer() {
 nvidia_proprietary_dkms_installer() {
     local state_file="$STATE_DIR/nvidia_proprietary"
 
-    if [ -f "$state_file" ] || dpkg -l nvidia-driver &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*nvidia-driver"; then
         if confirm "Nvidia Proprietário detectado. Desinstalar?"; then
             echo "Desinstalando Nvidia Proprietário..."
-            sudo apt-get remove -y nvidia-driver cuda-drivers cuda-toolkit
+            sudo apt-get remove --purge -y nvidia-driver-* cuda-drivers cuda-keyring
             sudo rm -f /etc/apt/preferences.d/nvidia-repo
-            sudo rm -f /etc/apt/sources.list.d/cuda-*.list
-            sudo apt-key del EB693B3035CD5710E231E123A4B469963BF863CC 2>/dev/null || true
             sudo apt-get update
             cleanup_files "$state_file"
             echo "Nvidia Proprietário desinstalado."
         fi
     else
-        if confirm "Instalar Nvidia Proprietário (Driver Oficial)?"; then
+        if confirm "Instalar Nvidia Proprietário?"; then
             echo "Instalando Nvidia Proprietário..."
-            sudo apt-get update
-            sudo apt-get install -y dkms libdw-dev clang lld llvm build-essential linux-headers-amd64 pipewire-audio-client-libraries
-            
-            echo "Baixando e instalando o driver Nvidia oficial..."
-            sudo apt-get install -y linux-headers-$(uname -r)
-            
-            local nvidia_installer="/tmp/nvidia.run"
-            echo "Obtendo o link de download mais recente do driver Nvidia..."
-            local download_page=$(curl -s "https://www.nvidia.com/Download/processFind.aspx?psid=95&pfid=695&rpf=1&osid=12&lid=1&lang=en-us")
-            local download_link=$(echo "$download_page" | grep -o 'https://[^"]*\.run' | head -1)
-            
-            if [ -z "$download_link" ]; then
-                download_link="https://us.download.nvidia.com/XFree86/Linux-x86_64/550.90.07/NVIDIA-Linux-x86_64-550.90.07.run"
-            fi
-            
-            echo "Baixando driver Nvidia de: $download_link"
-            curl -L -o "$nvidia_installer" "$download_link"
-            chmod +x "$nvidia_installer"
-            
-            echo "Instalando driver Nvidia..."
-            sudo $nvidia_installer --silent --dkms --no-cc-version-check
-            
-            echo "Instalando CUDA toolkit..."
-            curl -s https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb -o /tmp/cuda-keyring.deb
+            curl -L -o /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
             sudo dpkg -i /tmp/cuda-keyring.deb
+            rm -f /tmp/cuda-keyring.deb
             
-            echo "Package: *
-Pin: origin https://developer.download.nvidia.com
-Pin-Priority: 600" | sudo tee /etc/apt/preferences.d/nvidia-repo > /dev/null
+            echo 'Package: *  
+Pin: origin https://developer.download.nvidia.com  
+Pin-Priority: 900' | sudo tee /etc/apt/preferences.d/nvidia-repo > /dev/null
             
             sudo apt-get update
-            sudo apt-get install -y cuda-toolkit-12-8 cuda-drivers
-            
+            sudo apt-get install -y cuda-drivers
             sudo update-initramfs -u
             sudo update-grub
-            
             touch "$state_file"
             echo "Nvidia Proprietário instalado. Reinicie para aplicar."
         fi
@@ -612,11 +562,13 @@ oh_my_bash_installer() {
         if confirm "Oh My Bash detectado. Desinstalar?"; then
             [ -d "$HOME/.oh-my-bash" ] && yes | "$HOME/.oh-my-bash"/tools/uninstall.sh
             cleanup_files "$state_file"
+            echo "Oh My Bash desinstalado."
         fi
     else
         if confirm "Instalar Oh My Bash?"; then
             bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh)" --unattended
             touch "$state_file"
+            echo "Oh My Bash instalado."
         fi
     fi
 }
@@ -624,17 +576,17 @@ oh_my_bash_installer() {
 pacstall_installer() {
     local state_file="$STATE_DIR/pacstall"
 
-    if [ -f "$state_file" ] || command -v pacstall &>/dev/null; then
+    if [ -f "$state_file" ] || command -v pacstall >/dev/null 2>&1; then
         if confirm "Pacstall detectado. Desinstalar?"; then
             echo "Desinstalando Pacstall..."
-            sudo bash -c "$(curl -s https://pacstall.dev/q/uninstall -O -)"
+            bash -c "$(curl -fsSL https://pacstall.dev/q/uninstall -o -)"
             cleanup_files "$state_file"
             echo "Pacstall desinstalado."
         fi
     else
         if confirm "Instalar Pacstall?"; then
             echo "Instalando Pacstall..."
-            sudo bash -c "$(curl -s https://pacstall.dev/q/install -O -)"
+            sudo bash -c "$(curl -fsSL https://pacstall.dev/q/install -o -)"
             touch "$state_file"
             echo "Pacstall instalado."
         fi
@@ -643,12 +595,12 @@ pacstall_installer() {
 
 pessoal_base_installer() {
     local state_file="$STATE_DIR/pessoal_base"
-    local pkg_base="fonts-noto fonts-noto-cjk fonts-noto-color-emoji fonts-noto-extra fonts-noto-cjk-extra fonts-jetbrains-mono"
+    local pkg_base="fonts-noto fonts-noto-cjk fonts-noto-color-emoji fonts-noto-extra fonts-jetbrains-mono fonts-bebas-neue"
 
-    if [ -f "$state_file" ] || dpkg -l fonts-jetbrains-mono &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*fonts-jetbrains-mono"; then
         if confirm "Pacotes Base detectados. Desinstalar?"; then
             echo "Desinstalando Pacotes Base..."
-            sudo apt-get remove -y $pkg_base
+            sudo apt-get remove --purge -y $pkg_base
             cleanup_files "$state_file"
             echo "Pacotes Base desinstalados."
         fi
@@ -667,10 +619,10 @@ pessoal_media_installer() {
     local state_file="$STATE_DIR/pessoal_media"
     local pkg_media="ffmpeg gstreamer1.0-plugins-ugly gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-alsa"
 
-    if [ -f "$state_file" ] || dpkg -l ffmpeg &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*ffmpeg"; then
         if confirm "Pacotes de Mídia detectados. Desinstalar?"; then
             echo "Desinstalando Pacotes de Mídia..."
-            sudo apt-get remove -y $pkg_media
+            sudo apt-get remove --purge -y $pkg_media
             cleanup_files "$state_file"
             echo "Pacotes de Mídia desinstalados."
         fi
@@ -689,10 +641,10 @@ podman_installer() {
     local state_file="$STATE_DIR/podman"
     local pkg_podman="podman podman-compose"
 
-    if [ -f "$state_file" ] || dpkg -l podman &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*podman"; then
         if confirm "Podman detectado. Desinstalar?"; then
             echo "Desinstalando Podman..."
-            sudo apt-get remove -y $pkg_podman
+            sudo apt-get remove --purge -y $pkg_podman
             cleanup_files "$state_file"
             echo "Podman desinstalado."
         fi
@@ -707,6 +659,29 @@ podman_installer() {
     fi
 }
 
+repos_nonfree_installer() {
+    local state_file="$STATE_DIR/repos_nonfree"
+
+    if [ -f "$state_file" ]; then
+        if confirm "Repositórios non-free detectados. Desinstalar?"; then
+            echo "Desinstalando repositórios non-free..."
+            sudo sed -i 's/ main non-free-firmware/ main/' /etc/apt/sources.list
+            sudo sed -i 's/ main non-free-firmware/ main/' /etc/apt/sources.list.d/*.list 2>/dev/null || true
+            sudo apt-get update
+            cleanup_files "$state_file"
+            echo "Repositórios non-free desinstalados."
+        fi
+    else
+        if confirm "Instalar repositórios non-free e non-free-firmware?"; then
+            echo "Instalando repositórios non-free..."
+            sudo sed -i 's/ main/ main non-free non-free-firmware contrib/' /etc/apt/sources.list
+            sudo apt-get update
+            touch "$state_file"
+            echo "Repositórios non-free instalados."
+        fi
+    fi
+}
+
 shader_booster_installer() {
     local state_file="$STATE_DIR/shader_booster"
     local boost_file="$HOME/.booster"
@@ -717,6 +692,7 @@ shader_booster_installer() {
                 [ -f "$shell_file" ] && sed -i '/# Shader Booster patches/,/# End Shader Booster/d' "$shell_file"
             done
             cleanup_files "$state_file" "$boost_file" "$HOME/patch-nvidia" "$HOME/patch-mesa"
+            echo "Shader Booster desinstalado."
         fi
     else
         if confirm "Instalar Shader Booster?"; then
@@ -736,6 +712,7 @@ shader_booster_installer() {
             echo "# End Shader Booster" >> "$dest_file"
 
             [ $patch_applied -eq 1 ] && echo "1" > "$boost_file" && touch "$state_file"
+            echo "Shader Booster instalado."
         fi
     fi
 }
@@ -744,12 +721,12 @@ snapd_installer() {
     local state_file="$STATE_DIR/snapd"
     local pkg_snapd="snapd"
 
-    if [ -f "$state_file" ] || dpkg -l snapd &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*snapd"; then
         if confirm "Snapd detectado. Desinstalar?"; then
             echo "Desinstalando Snapd..."
             sudo systemctl stop snapd.socket 2>/dev/null || true
             sudo systemctl disable snapd.socket 2>/dev/null || true
-            sudo apt-get remove -y $pkg_snapd
+            sudo apt-get remove --purge -y $pkg_snapd
             cleanup_files "$state_file"
             echo "Snapd desinstalado."
         fi
@@ -767,21 +744,23 @@ snapd_installer() {
 
 starship_installer() {
     local state_file="$STATE_DIR/starship"
+    local pkg_starship="starship"
 
-    if [ -f "$state_file" ] || command -v starship &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*starship"; then
         if confirm "Starship detectado. Desinstalar?"; then
             echo "Desinstalando Starship..."
+            sudo apt-get remove --purge -y $pkg_starship
             sed -i '/starship init/d' ~/.bashrc 2>/dev/null || true
             sed -i '/starship init/d' ~/.zshrc 2>/dev/null || true
             [ -f ~/.config/fish/config.fish ] && sed -i '/starship init fish/d' ~/.config/fish/config.fish 2>/dev/null || true
-            rm -f $(command -v starship) 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Starship desinstalado."
         fi
     else
         if confirm "Instalar Starship?"; then
             echo "Instalando Starship..."
-            curl -sS https://starship.rs/install.sh | sh -s -- -y
+            sudo apt-get update
+            sudo apt-get install -y $pkg_starship
             [ -f ~/.bashrc ] && grep -q "starship init" ~/.bashrc || echo -e "\neval \"\$(starship init bash)\"" >> ~/.bashrc
             [ -f ~/.zshrc ] && grep -q "starship init" ~/.zshrc || echo -e "\neval \"\$(starship init zsh)\"" >> ~/.zshrc
             command -v fish &>/dev/null && mkdir -p ~/.config/fish && if [ -f ~/.config/fish/config.fish ]; then grep -q "starship init fish" ~/.config/fish/config.fish || echo -e "\nstarship init fish | source" >> ~/.config/fish/config.fish; else echo -e "starship init fish | source" >> ~/.config/fish/config.fish; fi
@@ -816,13 +795,13 @@ ufw_installer() {
     local state_file="$STATE_DIR/ufw"
     local pkg_ufw="ufw"
 
-    if [ -f "$state_file" ] || dpkg -l ufw &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*ufw"; then
         if confirm "UFW detectado. Desinstalar?"; then
             echo "Desinstalando UFW..."
-            systemctl is-active --quiet ufw 2>/dev/null && sudo systemctl stop ufw || true
-            systemctl is-enabled --quiet ufw 2>/dev/null && sudo systemctl disable ufw || true
-            sudo apt-get remove -y $pkg_ufw
-            sudo rm -rf /etc/ufw /lib/ufw /usr/share/ufw /var/lib/ufw /usr/bin/ufw /usr/sbin/ufw 2>/dev/null || true
+            sudo ufw --force disable
+            sudo systemctl stop ufw 2>/dev/null || true
+            sudo systemctl disable ufw 2>/dev/null || true
+            sudo apt-get remove --purge -y $pkg_ufw
             cleanup_files "$state_file"
             echo "UFW desinstalado."
         fi
@@ -837,6 +816,9 @@ ufw_installer() {
             sudo ufw allow 53317/tcp
             sudo ufw allow 1714:1764/udp
             sudo ufw allow 1714:1764/tcp
+            sudo ufw allow 12135/tcp
+            sudo ufw allow 42000:42001/udp
+            sudo ufw allow 42000:42001/tcp
             sudo systemctl enable ufw
             sudo ufw --force enable
             sudo ufw status verbose
@@ -872,10 +854,10 @@ xdg_base_installer() {
     local state_file="$STATE_DIR/xdg_base"
     local pkg_xdg="xdg-user-dirs xdg-utils"
 
-    if [ -f "$state_file" ] || dpkg -l xdg-user-dirs &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*xdg-user-dirs"; then
         if confirm "XDG Base detectado. Desinstalar?"; then
             echo "Desinstalando XDG Base..."
-            sudo apt-get remove -y $pkg_xdg
+            sudo apt-get remove --purge -y $pkg_xdg
             cleanup_files "$state_file"
             echo "XDG Base desinstalado."
         fi
@@ -894,10 +876,10 @@ yt_dlp_installer() {
     local state_file="$STATE_DIR/yt_dlp"
     local pkg_ytdlp="yt-dlp"
 
-    if [ -f "$state_file" ] || dpkg -l yt-dlp &>/dev/null; then
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*yt-dlp"; then
         if confirm "yt-dlp detectado. Desinstalar?"; then
             echo "Desinstalando yt-dlp..."
-            sudo apt-get remove -y $pkg_ytdlp
+            sudo apt-get remove --purge -y $pkg_ytdlp
             cleanup_files "$state_file"
             echo "yt-dlp desinstalado."
         fi
@@ -912,12 +894,33 @@ yt_dlp_installer() {
     fi
 }
 
+zen_browser_installer() {
+    local state_file="$STATE_DIR/zen_browser"
+    local pkg_zen="app.zen_browser.zen"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q app.zen_browser.zen 2>/dev/null; then
+        if confirm "Zen Browser detectado. Desinstalar?"; then
+            echo "Desinstalando Zen Browser..."
+            flatpak uninstall --user -y $pkg_zen 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Zen Browser desinstalado."
+        fi
+    else
+        if confirm "Instalar Zen Browser?"; then
+            echo "Instalando Zen Browser..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_zen
+            touch "$state_file"
+            echo "Zen Browser instalado."
+        fi
+    fi
+}
+
 zsh_ohmyzsh_installer() {
     local zsh_state="$STATE_DIR/zsh"
     local ohmyzsh_state="$STATE_DIR/ohmyzsh"
     local pkg_zsh="zsh"
 
-    if [ -f "$zsh_state" ] || dpkg -l zsh &>/dev/null; then
+    if [ -f "$zsh_state" ] || dpkg -l | grep -q "^ii.*zsh"; then
         if confirm "Zsh detectado. Desinstalar?"; then
             echo "Desinstalando Zsh..."
             if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
@@ -927,7 +930,7 @@ zsh_ohmyzsh_installer() {
                 }
                 cleanup_files "$ohmyzsh_state"
             fi
-            sudo apt-get remove -y $pkg_zsh
+            sudo apt-get remove --purge -y $pkg_zsh
             sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
             cleanup_files "$zsh_state" "$HOME/.zshrc" "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc.backup"
             echo "Zsh desinstalado."
@@ -968,39 +971,18 @@ zswap_installer() {
     if [ -f "$state_file" ]; then
         if confirm "ZSWAP detectado. Desinstalar?"; then
             echo "Desinstalando ZSWAP..."
-            sudo sed -i '/zswap\.enabled=1/d' /etc/default/grub
+            sudo sed -i '/zswap\.enabled/d' /etc/default/grub
             sudo update-grub
             cleanup_files "$state_file"
             echo "ZSWAP desinstalado."
         fi
     else
-        if confirm "Instalar ZSWAP?"; then
-            echo "Instalando ZSWAP..."
-            sudo sed -i '/GRUB_CMDLINE_LINUX_DEFAULT=/ s/"$/ zswap.enabled=1"/' /etc/default/grub
+        if confirm "Ativar ZSWAP?"; then
+            echo "Ativando ZSWAP..."
+            sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="[^"]*/& zswap.enabled=1/' /etc/default/grub
             sudo update-grub
             touch "$state_file"
-            echo "ZSWAP instalado. Reinicie para aplicar."
-        fi
-    fi
-}
-
-zen_browser_installer() {
-    local state_file="$STATE_DIR/zen_browser"
-    local pkg_zen="app.zen_browser.zen"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q app.zen_browser.zen 2>/dev/null; then
-        if confirm "Zen Browser detectado. Desinstalar?"; then
-            echo "Desinstalando Zen Browser..."
-            flatpak uninstall --user -y $pkg_zen 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Zen Browser desinstalado."
-        fi
-    else
-        if confirm "Instalar Zen Browser?"; then
-            echo "Instalando Zen Browser..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_zen
-            touch "$state_file"
-            echo "Zen Browser instalado."
+            echo "ZSWAP ativado. Reinicie para aplicar."
         fi
     fi
 }
@@ -1012,40 +994,40 @@ main_menu() {
         echo "1) Affinity Photo"
         echo "2) AppArmor"
         echo "3) AppImage FUSE"
-        echo "4) Arquivos e Compactação"
+        echo "4) Archiving/Compression"
         echo "5) aria2"
         echo "6) CachyOS Configs"
-        echo "7) Contrib e Non-Free"
-        echo "8) curl"
-        echo "9) DebMultimedia"
-        echo "10) Fish Shell + Fisher"
-        echo "11) Flatpak + Flathub"
-        echo "12) Fwupd"
-        echo "13) Gamemode"
-        echo "14) GNOME Desktop"
-        echo "15) LazyVim"
-        echo "16) Mise"
-        echo "17) Nala"
-        echo "18) NeoVim"
-        echo "19) Nvidia Drivers"
-        echo "20) Oh My Bash"
-        echo "21) Oh My Zsh"
-        echo "22) Pacotes Base"
-        echo "23) Pacotes de Mídia"
-        echo "24) Pacstall"
-        echo "25) Plasma Desktop"
-        echo "26) Podman"
+        echo "7) curl"
+        echo "8) GNOME Desktop"
+        echo "9) KDE Plasma Desktop"
+        echo "10) DebMultimedia Repository"
+        echo "11) Faugus Launcher"
+        echo "12) Fish Shell + Fisher"
+        echo "13) Flatpak + Flathub"
+        echo "14) Fwupd"
+        echo "15) Gamemode"
+        echo "16) LazyVim"
+        echo "17) Mise"
+        echo "18) Nala"
+        echo "19) NeoVim"
+        echo "20) Nvidia Drivers"
+        echo "21) Oh My Bash"
+        echo "22) Pacstall"
+        echo "23) Base Packages (Fonts)"
+        echo "24) Media Packages"
+        echo "25) Podman"
+        echo "26) Non-free Repositories"
         echo "27) Shader Booster"
         echo "28) Snapd"
         echo "29) Starship"
         echo "30) Steam"
         echo "31) UFW"
-        echo "32) XDG Base"
-        echo "33) yt-dlp"
-        echo "34) ZSWAP"
-        echo "35) Faugus Launcher"
-        echo "36) Fjord Launcher"
-        echo "37) Zen Browser"
+        echo "32) Unmojang (Fjord Launcher)"
+        echo "33) XDG Base"
+        echo "34) yt-dlp"
+        echo "35) Zen Browser"
+        echo "36) Zsh + Oh My Zsh"
+        echo "37) ZSWAP"
         echo "38) Sair"
         echo
         read -p "Selecione uma opção: " opcao
@@ -1057,37 +1039,37 @@ main_menu() {
             4) archiving_compression_installer ;;
             5) aria2_installer ;;
             6) cachyconfs_installer ;;
-            7) contrib_nonfree_installer ;;
-            8) curl_installer ;;
-            9) deb_multimedia_installer ;;
-            10) fish_fisher_installer ;;
-            11) flatpak_flathub_installer ;;
-            12) fwupd_installer ;;
-            13) gamemode_installer ;;
-            14) de_gnome_installer ;;
-            15) lazyvim_installer ;;
-            16) mise_installer ;;
-            17) nala_installer ;;
-            18) neovim_installer ;;
-            19) nvidia_proprietary_dkms_installer ;;
-            20) oh_my_bash_installer ;;
-            21) zsh_ohmyzsh_installer ;;
-            22) pessoal_base_installer ;;
-            23) pessoal_media_installer ;;
-            24) pacstall_installer ;;
-            25) de_plasma_installer ;;
-            26) podman_installer ;;
+            7) curl_installer ;;
+            8) de_gnome_installer ;;
+            9) de_plasma_installer ;;
+            10) deb_multimedia_installer ;;
+            11) faugus_launcher_installer ;;
+            12) fish_fisher_installer ;;
+            13) flatpak_flathub_installer ;;
+            14) fwupd_installer ;;
+            15) gamemode_installer ;;
+            16) lazyvim_installer ;;
+            17) mise_installer ;;
+            18) nala_installer ;;
+            19) neovim_installer ;;
+            20) nvidia_proprietary_dkms_installer ;;
+            21) oh_my_bash_installer ;;
+            22) pacstall_installer ;;
+            23) pessoal_base_installer ;;
+            24) pessoal_media_installer ;;
+            25) podman_installer ;;
+            26) repos_nonfree_installer ;;
             27) shader_booster_installer ;;
             28) snapd_installer ;;
             29) starship_installer ;;
             30) steam_installer ;;
             31) ufw_installer ;;
-            32) xdg_base_installer ;;
-            33) yt_dlp_installer ;;
-            34) zswap_installer ;;
-            35) faugus_launcher_installer ;;
-            36) unmojang_installer ;;
-            37) zen_browser_installer ;;
+            32) unmojang_installer ;;
+            33) xdg_base_installer ;;
+            34) yt_dlp_installer ;;
+            35) zen_browser_installer ;;
+            36) zsh_ohmyzsh_installer ;;
+            37) zswap_installer ;;
             38) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
