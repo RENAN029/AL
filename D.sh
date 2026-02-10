@@ -59,7 +59,7 @@ apparmor_installer() {
             echo "Desinstalando AppArmor..."
             sudo systemctl stop apparmor 2>/dev/null || true
             sudo systemctl disable apparmor 2>/dev/null || true
-            sudo apt-get remove --purge -y $pkg_apparmor
+            sudo apt remove --purge -y $pkg_apparmor
             sudo sed -i '/GRUB_CMDLINE_LINUX.*apparmor/d' /etc/default/grub
             sudo update-grub
             cleanup_files "$state_file"
@@ -68,8 +68,8 @@ apparmor_installer() {
     else
         if confirm "Instalar AppArmor?"; then
             echo "Instalando AppArmor..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_apparmor
+            sudo apt update
+            sudo apt install -y $pkg_apparmor
             sudo sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="apparmor=1 security=apparmor"/' /etc/default/grub
             sudo update-grub
             sudo systemctl enable apparmor
@@ -86,15 +86,15 @@ appimage_fuse_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*libfuse2"; then
         if confirm "FUSE para AppImage detectado. Desinstalar?"; then
             echo "Desinstalando FUSE para AppImage..."
-            sudo apt-get remove --purge -y $pkg_fuse
+            sudo apt remove --purge -y $pkg_fuse
             cleanup_files "$state_file"
             echo "FUSE para AppImage desinstalado."
         fi
     else
         if confirm "Instalar FUSE para AppImage?"; then
             echo "Instalando FUSE para AppImage..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_fuse
+            sudo apt update
+            sudo apt install -y $pkg_fuse
             touch "$state_file"
             echo "FUSE para AppImage instalado."
         fi
@@ -108,15 +108,15 @@ archiving_compression_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*p7zip-full"; then
         if confirm "Pacotes de Compactação detectados. Desinstalar?"; then
             echo "Desinstalando Pacotes de Compactação..."
-            sudo apt-get remove --purge -y $pkg_compactacao
+            sudo apt remove --purge -y $pkg_compactacao
             cleanup_files "$state_file"
             echo "Pacotes de Compactação desinstalados."
         fi
     else
         if confirm "Instalar Pacotes de Compactação?"; then
             echo "Instalando Pacotes de Compactação..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_compactacao
+            sudo apt update
+            sudo apt install -y $pkg_compactacao
             touch "$state_file"
             echo "Pacotes de Compactação instalados."
         fi
@@ -130,15 +130,15 @@ aria2_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*aria2"; then
         if confirm "aria2 detectado. Desinstalar?"; then
             echo "Desinstalando aria2..."
-            sudo apt-get remove --purge -y $pkg_aria2
+            sudo apt remove --purge -y $pkg_aria2
             cleanup_files "$state_file"
             echo "aria2 desinstalado."
         fi
     else
         if confirm "Instalar aria2?"; then
             echo "Instalando aria2..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_aria2
+            sudo apt update
+            sudo apt install -y $pkg_aria2
             touch "$state_file"
             echo "aria2 instalado."
         fi
@@ -153,6 +153,7 @@ cachyconfs_installer() {
             sudo rm -f /usr/lib/sysctl.d/99-cachyos-settings.conf
             sudo sysctl --system
             cleanup_files "$state_file"
+            echo "CachyOS Configs desinstalado."
         fi
     else
         if confirm "Instalar CachyOS Configs?"; then
@@ -160,6 +161,7 @@ cachyconfs_installer() {
             curl -s https://raw.githubusercontent.com/CachyOS/CachyOS-Settings/main/sysctl/99-cachyos-settings.conf | sudo tee /usr/lib/sysctl.d/99-cachyos-settings.conf > /dev/null
             sudo sysctl --system
             touch "$state_file"
+            echo "CachyOS Configs instalado."
         fi
     fi
 }
@@ -171,15 +173,15 @@ curl_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*curl"; then
         if confirm "curl detectado. Desinstalar?"; then
             echo "Desinstalando curl..."
-            sudo apt-get remove --purge -y $pkg_curl
+            sudo apt remove --purge -y $pkg_curl
             cleanup_files "$state_file"
             echo "curl desinstalado."
         fi
     else
         if confirm "Instalar curl?"; then
             echo "Instalando curl..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_curl
+            sudo apt update
+            sudo apt install -y $pkg_curl
             touch "$state_file"
             echo "curl instalado."
         fi
@@ -194,15 +196,15 @@ de_gnome_installer() {
         if confirm "Gnome detectado. Desinstalar?"; then
             echo "Desinstalando Gnome..."
             sudo systemctl disable gdm 2>/dev/null || true
-            sudo apt-get remove --purge -y $pkg_gnome
+            sudo apt remove --purge -y $pkg_gnome
             cleanup_files "$state_file"
             echo "Gnome desinstalado."
         fi
     else
         if confirm "Instalar Gnome?"; then
             echo "Instalando Gnome..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_gnome
+            sudo apt update
+            sudo apt install -y $pkg_gnome
             sudo systemctl enable gdm
             touch "$state_file"
             echo "Gnome instalado. Reinicie para aplicar."
@@ -218,15 +220,15 @@ de_plasma_installer() {
         if confirm "Plasma detectado. Desinstalar?"; then
             echo "Desinstalando Plasma..."
             sudo systemctl disable sddm 2>/dev/null || true
-            sudo apt-get remove --purge -y $pkg_plasma
+            sudo apt remove --purge -y $pkg_plasma
             cleanup_files "$state_file"
             echo "Plasma desinstalado."
         fi
     else
         if confirm "Instalar Plasma?"; then
             echo "Instalando Plasma..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_plasma
+            sudo apt update
+            sudo apt install -y $pkg_plasma
             sudo systemctl enable sddm
             touch "$state_file"
             echo "Plasma instalado. Reinicie para aplicar."
@@ -242,7 +244,7 @@ deb_multimedia_installer() {
             echo "Desinstalando DebMultimedia..."
             sudo rm -f /etc/apt/sources.list.d/dmo.sources
             sudo rm -f /usr/share/keyrings/deb-multimedia-keyring.gpg
-            sudo apt-get update
+            sudo apt update
             cleanup_files "$state_file"
             echo "DebMultimedia desinstalado."
         fi
@@ -260,7 +262,7 @@ Components: main non-free
 Signed-By: /usr/share/keyrings/deb-multimedia-keyring.gpg
 Enabled: yes' | sudo tee /etc/apt/sources.list.d/dmo.sources > /dev/null
             
-            sudo apt-get update
+            sudo apt update
             touch "$state_file"
             echo "DebMultimedia instalado."
         fi
@@ -304,15 +306,15 @@ fish_fisher_installer() {
                 rm -rf ~/.config/fish/completions/fisher.fish
                 cleanup_files "$fisher_state"
             fi
-            sudo apt-get remove --purge -y $pkg_fish
+            sudo apt remove --purge -y $pkg_fish
             sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
             cleanup_files "$fish_state" "$HOME/.config/fish"
             echo "Fish Shell desinstalado."
         fi
     elif confirm "Instalar Fish Shell?"; then
         echo "Instalando Fish Shell..."
-        sudo apt-get update
-        sudo apt-get install -y $pkg_fish
+        sudo apt update
+        sudo apt install -y $pkg_fish
         sudo chsh -s "$(which fish)" "$USER"
         mkdir -p ~/.config/fish
         echo "set fish_greeting" > ~/.config/fish/config.fish
@@ -345,7 +347,7 @@ flatpak_flathub_installer() {
     if [ -f "$flatpak_state" ] || dpkg -l | grep -q "^ii.*flatpak"; then
         if confirm "Flatpak detectado. Desinstalar?"; then
             echo "Desinstalando Flatpak..."
-            sudo apt-get remove --purge -y $pkg_flatpak
+            sudo apt remove --purge -y $pkg_flatpak
             rm -rf "$HOME/.local/share/flatpak" 2>/dev/null || true
             sudo rm -rf /var/lib/flatpak 2>/dev/null || true
             cleanup_files "$flatpak_state" "$flathub_state"
@@ -353,8 +355,8 @@ flatpak_flathub_installer() {
         fi
     elif confirm "Instalar Flatpak?"; then
         echo "Instalando Flatpak..."
-        sudo apt-get update
-        sudo apt-get install -y $pkg_flatpak
+        sudo apt update
+        sudo apt install -y $pkg_flatpak
         touch "$flatpak_state"
         echo "Flatpak instalado."
     fi
@@ -381,15 +383,15 @@ fwupd_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*fwupd"; then
         if confirm "Fwupd detectado. Desinstalar?"; then
             echo "Desinstalando Fwupd..."
-            sudo apt-get remove --purge -y $pkg_fwupd
+            sudo apt remove --purge -y $pkg_fwupd
             cleanup_files "$state_file"
             echo "Fwupd desinstalado."
         fi
     else
         if confirm "Instalar Fwupd?"; then
             echo "Instalando Fwupd..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_fwupd
+            sudo apt update
+            sudo apt install -y $pkg_fwupd
             touch "$state_file"
             echo "Fwupd instalado."
         fi
@@ -403,15 +405,15 @@ gamemode_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*gamemode"; then
         if confirm "Gamemode detectado. Desinstalar?"; then
             echo "Desinstalando Gamemode..."
-            sudo apt-get remove --purge -y $pkg_gamemode
+            sudo apt remove --purge -y $pkg_gamemode
             cleanup_files "$state_file"
             echo "Gamemode desinstalado."
         fi
     else
         if confirm "Instalar Gamemode?"; then
             echo "Instalando Gamemode..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_gamemode
+            sudo apt update
+            sudo apt install -y $pkg_gamemode
             touch "$state_file"
             echo "Gamemode instalado."
         fi
@@ -485,15 +487,15 @@ nala_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*nala"; then
         if confirm "Nala detectado. Desinstalar?"; then
             echo "Desinstalando Nala..."
-            sudo apt-get remove --purge -y $pkg_nala
+            sudo apt remove --purge -y $pkg_nala
             cleanup_files "$state_file"
             echo "Nala desinstalado."
         fi
     else
         if confirm "Instalar Nala?"; then
             echo "Instalando Nala..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_nala
+            sudo apt update
+            sudo apt install -y $pkg_nala
             touch "$state_file"
             echo "Nala instalado."
         fi
@@ -507,15 +509,15 @@ neovim_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*neovim"; then
         if confirm "NeoVim detectado. Desinstalar?"; then
             echo "Desinstalando NeoVim..."
-            sudo apt-get remove --purge -y $pkg_neovim
+            sudo apt remove --purge -y $pkg_neovim
             cleanup_files "$state_file"
             echo "NeoVim desinstalado."
         fi
     else
         if confirm "Instalar NeoVim?"; then
             echo "Instalando NeoVim..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_neovim
+            sudo apt update
+            sudo apt install -y $pkg_neovim
             touch "$state_file"
             echo "NeoVim instalado."
         fi
@@ -528,27 +530,40 @@ nvidia_proprietary_dkms_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*nvidia-driver"; then
         if confirm "Nvidia Proprietário detectado. Desinstalar?"; then
             echo "Desinstalando Nvidia Proprietário..."
-            sudo apt-get remove --purge -y nvidia-driver-* cuda-drivers cuda-keyring
+            sudo apt remove --purge -y nvidia-driver-* cuda-drivers cuda-keyring
             sudo rm -f /etc/apt/preferences.d/nvidia-repo
-            sudo apt-get update
+            sudo apt update
             cleanup_files "$state_file"
             echo "Nvidia Proprietário desinstalado."
         fi
     else
         if confirm "Instalar Nvidia Proprietário?"; then
             echo "Instalando Nvidia Proprietário..."
+            
+            sudo apt update
+            sudo apt install -y wget dkms build-essential linux-headers-amd64
+            
             curl -L -o /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
-            sudo dpkg -i /tmp/cuda-keyring.deb
+            sudo dpkg -i /tmp/cuda-keyring.deb || true
             rm -f /tmp/cuda-keyring.deb
             
             echo 'Package: *  
 Pin: origin https://developer.download.nvidia.com  
 Pin-Priority: 900' | sudo tee /etc/apt/preferences.d/nvidia-repo > /dev/null
             
-            sudo apt-get update
-            sudo apt-get install -y cuda-drivers
+            echo "Desabilitando verificação SHA1 para o repositório NVIDIA..."
+            sudo mkdir -p /etc/apt/apt.conf.d
+            echo 'Acquire::Check-Valid-Until "false";' | sudo tee /etc/apt/apt.conf.d/99-no-check-valid-until > /dev/null
+            echo 'Acquire::AllowInsecureRepositories "true";' | sudo tee -a /etc/apt/apt.conf.d/99-no-check-valid-until > /dev/null
+            
+            sudo apt update --allow-insecure-repositories
+            
+            sudo apt install -y cuda-drivers
             sudo update-initramfs -u
             sudo update-grub
+            
+            sudo rm -f /etc/apt/apt.conf.d/99-no-check-valid-until
+            
             touch "$state_file"
             echo "Nvidia Proprietário instalado. Reinicie para aplicar."
         fi
@@ -600,15 +615,15 @@ pessoal_base_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*fonts-jetbrains-mono"; then
         if confirm "Pacotes Base detectados. Desinstalar?"; then
             echo "Desinstalando Pacotes Base..."
-            sudo apt-get remove --purge -y $pkg_base
+            sudo apt remove --purge -y $pkg_base
             cleanup_files "$state_file"
             echo "Pacotes Base desinstalados."
         fi
     else
         if confirm "Instalar Pacotes Base?"; then
             echo "Instalando Pacotes Base..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_base
+            sudo apt update
+            sudo apt install -y $pkg_base
             touch "$state_file"
             echo "Pacotes Base instalados."
         fi
@@ -622,15 +637,15 @@ pessoal_media_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*ffmpeg"; then
         if confirm "Pacotes de Mídia detectados. Desinstalar?"; then
             echo "Desinstalando Pacotes de Mídia..."
-            sudo apt-get remove --purge -y $pkg_media
+            sudo apt remove --purge -y $pkg_media
             cleanup_files "$state_file"
             echo "Pacotes de Mídia desinstalados."
         fi
     else
         if confirm "Instalar Pacotes de Mídia?"; then
             echo "Instalando Pacotes de Mídia..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_media
+            sudo apt update
+            sudo apt install -y $pkg_media
             touch "$state_file"
             echo "Pacotes de Mídia instalados."
         fi
@@ -644,15 +659,15 @@ podman_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*podman"; then
         if confirm "Podman detectado. Desinstalar?"; then
             echo "Desinstalando Podman..."
-            sudo apt-get remove --purge -y $pkg_podman
+            sudo apt remove --purge -y $pkg_podman
             cleanup_files "$state_file"
             echo "Podman desinstalado."
         fi
     else
         if confirm "Instalar Podman?"; then
             echo "Instalando Podman..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_podman
+            sudo apt update
+            sudo apt install -y $pkg_podman
             touch "$state_file"
             echo "Podman instalado."
         fi
@@ -665,19 +680,19 @@ repos_nonfree_installer() {
     if [ -f "$state_file" ]; then
         if confirm "Repositórios non-free detectados. Desinstalar?"; then
             echo "Desinstalando repositórios non-free..."
-            sudo sed -i 's/ main non-free-firmware/ main/' /etc/apt/sources.list
-            sudo sed -i 's/ main non-free-firmware/ main/' /etc/apt/sources.list.d/*.list 2>/dev/null || true
-            sudo apt-get update
+            sudo sed -i 's/ main non-free non-free-firmware contrib/ main non-free-firmware/' /etc/apt/sources.list
+            sudo sed -i 's/ main non-free non-free-firmware contrib/ main non-free-firmware/' /etc/apt/sources.list.d/*.list 2>/dev/null || true
+            sudo apt update
             cleanup_files "$state_file"
             echo "Repositórios non-free desinstalados."
         fi
     else
-        if confirm "Instalar repositórios non-free e non-free-firmware?"; then
-            echo "Instalando repositórios non-free..."
-            sudo sed -i 's/ main/ main non-free non-free-firmware contrib/' /etc/apt/sources.list
-            sudo apt-get update
+        if confirm "Instalar repositórios non-free e contrib?"; then
+            echo "Instalando repositórios non-free e contrib..."
+            sudo sed -i 's/ main non-free-firmware/ main non-free non-free-firmware contrib/' /etc/apt/sources.list
+            sudo apt update
             touch "$state_file"
-            echo "Repositórios non-free instalados."
+            echo "Repositórios non-free e contrib instalados."
         fi
     fi
 }
@@ -726,15 +741,15 @@ snapd_installer() {
             echo "Desinstalando Snapd..."
             sudo systemctl stop snapd.socket 2>/dev/null || true
             sudo systemctl disable snapd.socket 2>/dev/null || true
-            sudo apt-get remove --purge -y $pkg_snapd
+            sudo apt remove --purge -y $pkg_snapd
             cleanup_files "$state_file"
             echo "Snapd desinstalado."
         fi
     else
         if confirm "Instalar Snapd?"; then
             echo "Instalando Snapd..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_snapd
+            sudo apt update
+            sudo apt install -y $pkg_snapd
             sudo systemctl enable --now snapd.socket
             touch "$state_file"
             echo "Snapd instalado."
@@ -749,7 +764,7 @@ starship_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*starship"; then
         if confirm "Starship detectado. Desinstalar?"; then
             echo "Desinstalando Starship..."
-            sudo apt-get remove --purge -y $pkg_starship
+            sudo apt remove --purge -y $pkg_starship
             sed -i '/starship init/d' ~/.bashrc 2>/dev/null || true
             sed -i '/starship init/d' ~/.zshrc 2>/dev/null || true
             [ -f ~/.config/fish/config.fish ] && sed -i '/starship init fish/d' ~/.config/fish/config.fish 2>/dev/null || true
@@ -759,8 +774,8 @@ starship_installer() {
     else
         if confirm "Instalar Starship?"; then
             echo "Instalando Starship..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_starship
+            sudo apt update
+            sudo apt install -y $pkg_starship
             [ -f ~/.bashrc ] && grep -q "starship init" ~/.bashrc || echo -e "\neval \"\$(starship init bash)\"" >> ~/.bashrc
             [ -f ~/.zshrc ] && grep -q "starship init" ~/.zshrc || echo -e "\neval \"\$(starship init zsh)\"" >> ~/.zshrc
             command -v fish &>/dev/null && mkdir -p ~/.config/fish && if [ -f ~/.config/fish/config.fish ]; then grep -q "starship init fish" ~/.config/fish/config.fish || echo -e "\nstarship init fish | source" >> ~/.config/fish/config.fish; else echo -e "starship init fish | source" >> ~/.config/fish/config.fish; fi
@@ -801,15 +816,15 @@ ufw_installer() {
             sudo ufw --force disable
             sudo systemctl stop ufw 2>/dev/null || true
             sudo systemctl disable ufw 2>/dev/null || true
-            sudo apt-get remove --purge -y $pkg_ufw
+            sudo apt remove --purge -y $pkg_ufw
             cleanup_files "$state_file"
             echo "UFW desinstalado."
         fi
     else
         if confirm "Instalar UFW?"; then
             echo "Instalando UFW..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_ufw
+            sudo apt update
+            sudo apt install -y $pkg_ufw
             sudo ufw default deny incoming
             sudo ufw default allow outgoing
             sudo ufw allow 53317/udp
@@ -857,15 +872,15 @@ xdg_base_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*xdg-user-dirs"; then
         if confirm "XDG Base detectado. Desinstalar?"; then
             echo "Desinstalando XDG Base..."
-            sudo apt-get remove --purge -y $pkg_xdg
+            sudo apt remove --purge -y $pkg_xdg
             cleanup_files "$state_file"
             echo "XDG Base desinstalado."
         fi
     else
         if confirm "Instalar XDG Base?"; then
             echo "Instalando XDG Base..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_xdg
+            sudo apt update
+            sudo apt install -y $pkg_xdg
             touch "$state_file"
             echo "XDG Base instalado."
         fi
@@ -879,15 +894,15 @@ yt_dlp_installer() {
     if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*yt-dlp"; then
         if confirm "yt-dlp detectado. Desinstalar?"; then
             echo "Desinstalando yt-dlp..."
-            sudo apt-get remove --purge -y $pkg_ytdlp
+            sudo apt remove --purge -y $pkg_ytdlp
             cleanup_files "$state_file"
             echo "yt-dlp desinstalado."
         fi
     else
         if confirm "Instalar yt-dlp?"; then
             echo "Instalando yt-dlp..."
-            sudo apt-get update
-            sudo apt-get install -y $pkg_ytdlp
+            sudo apt update
+            sudo apt install -y $pkg_ytdlp
             touch "$state_file"
             echo "yt-dlp instalado."
         fi
@@ -930,15 +945,15 @@ zsh_ohmyzsh_installer() {
                 }
                 cleanup_files "$ohmyzsh_state"
             fi
-            sudo apt-get remove --purge -y $pkg_zsh
+            sudo apt remove --purge -y $pkg_zsh
             sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
             cleanup_files "$zsh_state" "$HOME/.zshrc" "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc.backup"
             echo "Zsh desinstalado."
         fi
     elif confirm "Instalar Zsh?"; then
         echo "Instalando Zsh..."
-        sudo apt-get update
-        sudo apt-get install -y $pkg_zsh
+        sudo apt update
+        sudo apt install -y $pkg_zsh
         sudo chsh -s "$(which zsh)" "$USER"
         touch "$HOME/.zshrc"
         touch "$zsh_state"
