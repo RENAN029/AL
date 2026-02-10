@@ -153,7 +153,6 @@ cachyconfs_installer() {
             sudo rm -f /usr/lib/sysctl.d/99-cachyos-settings.conf
             sudo sysctl --system
             cleanup_files "$state_file"
-            echo "CachyOS Configs desinstalado."
         fi
     else
         if confirm "Instalar CachyOS Configs?"; then
@@ -161,7 +160,6 @@ cachyconfs_installer() {
             curl -s https://raw.githubusercontent.com/CachyOS/CachyOS-Settings/main/sysctl/99-cachyos-settings.conf | sudo tee /usr/lib/sysctl.d/99-cachyos-settings.conf > /dev/null
             sudo sysctl --system
             touch "$state_file"
-            echo "CachyOS Configs instalado."
         fi
     fi
 }
@@ -539,31 +537,21 @@ nvidia_proprietary_dkms_installer() {
     else
         if confirm "Instalar Nvidia Proprietário?"; then
             echo "Instalando Nvidia Proprietário..."
-            
-            sudo apt update
-            sudo apt install -y wget dkms build-essential linux-headers-amd64
-            
             curl -L -o /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
-            sudo dpkg -i /tmp/cuda-keyring.deb || true
+            sudo dpkg -i /tmp/cuda-keyring.deb
             rm -f /tmp/cuda-keyring.deb
+            
+            sudo apt-key del EB693B3035CD5710E231E123A4B469963BF863CC 2>/dev/null || true
+            curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/3bf863cc.pub | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-cuda-keyring.gpg
             
             echo 'Package: *  
 Pin: origin https://developer.download.nvidia.com  
 Pin-Priority: 900' | sudo tee /etc/apt/preferences.d/nvidia-repo > /dev/null
             
-            echo "Desabilitando verificação SHA1 para o repositório NVIDIA..."
-            sudo mkdir -p /etc/apt/apt.conf.d
-            echo 'Acquire::Check-Valid-Until "false";' | sudo tee /etc/apt/apt.conf.d/99-no-check-valid-until > /dev/null
-            echo 'Acquire::AllowInsecureRepositories "true";' | sudo tee -a /etc/apt/apt.conf.d/99-no-check-valid-until > /dev/null
-            
             sudo apt update --allow-insecure-repositories
-            
-            sudo apt install -y cuda-drivers
+            sudo apt install -y --allow-unauthenticated cuda-drivers
             sudo update-initramfs -u
             sudo update-grub
-            
-            sudo rm -f /etc/apt/apt.conf.d/99-no-check-valid-until
-            
             touch "$state_file"
             echo "Nvidia Proprietário instalado. Reinicie para aplicar."
         fi
@@ -680,19 +668,19 @@ repos_nonfree_installer() {
     if [ -f "$state_file" ]; then
         if confirm "Repositórios non-free detectados. Desinstalar?"; then
             echo "Desinstalando repositórios non-free..."
-            sudo sed -i 's/ main non-free non-free-firmware contrib/ main non-free-firmware/' /etc/apt/sources.list
-            sudo sed -i 's/ main non-free non-free-firmware contrib/ main non-free-firmware/' /etc/apt/sources.list.d/*.list 2>/dev/null || true
+            sudo sed -i 's/ main non-free-firmware/ main/' /etc/apt/sources.list
+            sudo sed -i 's/ main non-free-firmware/ main/' /etc/apt/sources.list.d/*.list 2>/dev/null || true
             sudo apt update
             cleanup_files "$state_file"
             echo "Repositórios non-free desinstalados."
         fi
     else
-        if confirm "Instalar repositórios non-free e contrib?"; then
-            echo "Instalando repositórios non-free e contrib..."
-            sudo sed -i 's/ main non-free-firmware/ main non-free non-free-firmware contrib/' /etc/apt/sources.list
+        if confirm "Instalar repositórios non-free e non-free-firmware?"; then
+            echo "Instalando repositórios non-free..."
+            sudo sed -i 's/ main/ main non-free non-free-firmware contrib/' /etc/apt/sources.list
             sudo apt update
             touch "$state_file"
-            echo "Repositórios non-free e contrib instalados."
+            echo "Repositórios non-free instalados."
         fi
     fi
 }
