@@ -30,6 +30,71 @@ update_system() {
     echo "Sistema atualizado e NTP configurado."
 }
 
+nvidia_proprietary_dkms_installer() {
+    local state_file="$STATE_DIR/nvidia_proprietary"
+
+    if [ -f "$state_file" ] || dpkg -l nvidia-driver &>/dev/null; then
+        if confirm "Nvidia Proprietário detectado. Desinstalar?"; then
+            echo "Desinstalando Nvidia Proprietário..."
+            sudo apt remove -y --purge cuda-drivers nvidia-driver nvidia-open
+            sudo rm -f /etc/apt/preferences.d/nvidia-repo
+            sudo rm -f /etc/apt/sources.list.d/cuda-*.list
+            sudo rm -f /usr/share/keyrings/cuda-archive-keyring.gpg
+            sudo rm -f /etc/apt/apt.conf.d/99allow-sha1
+            sudo update-grub
+            sudo update-initramfs -u
+            cleanup_files "$state_file"
+            echo "Nvidia Proprietário desinstalado."
+        fi
+    else
+        if confirm "Instalar Nvidia Proprietário (repositório oficial)?"; then
+            echo "Instalando Nvidia Proprietário..."
+            sudo apt install -y dkms libdw-dev clang lld llvm build-essential linux-headers-amd64 pipewire-audio-client-libraries
+            
+            echo "Removendo configurações anteriores..."
+            sudo rm -f /etc/apt/sources.list.d/cuda-*.list
+            sudo rm -f /usr/share/keyrings/cuda-archive-keyring.gpg
+            sudo rm -f /etc/apt/preferences.d/nvidia-repo
+            sudo rm -f /etc/apt/apt.conf.d/99allow-sha1
+            
+            echo "Desativando verificação de assinatura SHA1 temporariamente..."
+            echo 'Acquire::Check-Valid-Until "false";
+Acquire::AllowInsecureRepositories "true";
+Acquire::AllowDowngradeToInsecureRepositories "true";
+Acquire::Check-Date "false";
+APT::Get::AllowUnauthenticated "true";' | sudo tee /etc/apt/apt.conf.d/99allow-insecure
+            
+            echo "Baixando e instalando cuda-keyring manualmente..."
+            cd /tmp
+            wget --no-check-certificate https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
+            sudo dpkg -i --force-all cuda-keyring_1.1-1_all.deb
+            
+            echo "Adicionando repositório sem verificação de assinatura..."
+            echo "deb [trusted=yes allow-insecure=yes] https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" | sudo tee /etc/apt/sources.list.d/cuda-debian12-x86_64.list
+            
+            echo "Configurando prioridade do repositório da NVIDIA..."
+            echo "Package: *
+Pin: origin https://developer.download.nvidia.com
+Pin-Priority: 900" | sudo tee /etc/apt/preferences.d/nvidia-repo
+            
+            echo "Atualizando repositórios..."
+            sudo apt update --allow-insecure-repositories --allow-unauthenticated
+            
+            echo "Instalando drivers NVIDIA..."
+            sudo apt install -y cuda-drivers --allow-unauthenticated --allow-downgrades
+            
+            echo "Restaurando configurações de segurança do APT..."
+            sudo rm -f /etc/apt/apt.conf.d/99allow-insecure
+            
+            sudo update-initramfs -u
+            sudo update-grub
+            rm -f cuda-keyring_1.1-1_all.deb
+            touch "$state_file"
+            echo "Nvidia Proprietário instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 affinity_installer() {
     local state_file="$STATE_DIR/affinity"
     local affinity_dir="$HOME/Affinity"
@@ -482,45 +547,6 @@ neovim_installer() {
             sudo apt install -y $pkg_neovim
             touch "$state_file"
             echo "NeoVim instalado."
-        fi
-    fi
-}
-
-nvidia_proprietary_dkms_installer() {
-    local state_file="$STATE_DIR/nvidia_proprietary"
-
-    if [ -f "$state_file" ] || dpkg -l nvidia-driver &>/dev/null; then
-        if confirm "Nvidia Proprietário detectado. Desinstalar?"; then
-            echo "Desinstalando Nvidia Proprietário..."
-            sudo apt remove -y --purge cuda-drivers nvidia-driver nvidia-open
-            sudo rm -f /etc/apt/preferences.d/nvidia-repo
-            sudo rm -f /etc/apt/sources.list.d/cuda-*.list
-            sudo rm -f /usr/share/keyrings/cuda-archive-keyring.gpg
-            sudo update-grub
-            sudo update-initramfs -u
-            cleanup_files "$state_file"
-            echo "Nvidia Proprietário desinstalado."
-        fi
-    else
-        if confirm "Instalar Nvidia Proprietário (repositório oficial)?"; then
-            echo "Instalando Nvidia Proprietário..."
-            sudo apt install -y dkms libdw-dev clang lld llvm build-essential linux-headers-amd64 pipewire-audio-client-libraries
-            
-            echo "Configurando repositório da NVIDIA sem verificação de assinatura..."
-            sudo rm -f /etc/apt/sources.list.d/cuda-*.list
-            echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" | sudo tee /etc/apt/sources.list.d/cuda-debian12-x86_64.list
-            
-            echo "Configurando prioridade do repositório da NVIDIA..."
-            echo "Package: *
-Pin: origin https://developer.download.nvidia.com
-Pin-Priority: 900" | sudo tee /etc/apt/preferences.d/nvidia-repo
-            
-            sudo apt update
-            sudo apt install -y cuda-drivers
-            sudo update-initramfs -u
-            sudo update-grub
-            touch "$state_file"
-            echo "Nvidia Proprietário instalado. Reinicie para aplicar."
         fi
     fi
 }
