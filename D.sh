@@ -555,25 +555,47 @@ nvidia_proprietary_dkms_installer() {
             sudo apt-get remove -y nvidia-driver cuda-drivers cuda-toolkit
             sudo rm -f /etc/apt/preferences.d/nvidia-repo
             sudo rm -f /etc/apt/sources.list.d/cuda-*.list
+            sudo apt-key del EB693B3035CD5710E231E123A4B469963BF863CC 2>/dev/null || true
             sudo apt-get update
             cleanup_files "$state_file"
             echo "Nvidia Proprietário desinstalado."
         fi
     else
-        if confirm "Instalar Nvidia Proprietário?"; then
+        if confirm "Instalar Nvidia Proprietário (Driver Oficial)?"; then
             echo "Instalando Nvidia Proprietário..."
             sudo apt-get update
             sudo apt-get install -y dkms libdw-dev clang lld llvm build-essential linux-headers-amd64 pipewire-audio-client-libraries
             
+            echo "Baixando e instalando o driver Nvidia oficial..."
+            sudo apt-get install -y linux-headers-$(uname -r)
+            
+            local nvidia_installer="/tmp/nvidia.run"
+            echo "Obtendo o link de download mais recente do driver Nvidia..."
+            local download_page=$(curl -s "https://www.nvidia.com/Download/processFind.aspx?psid=95&pfid=695&rpf=1&osid=12&lid=1&lang=en-us")
+            local download_link=$(echo "$download_page" | grep -o 'https://[^"]*\.run' | head -1)
+            
+            if [ -z "$download_link" ]; then
+                download_link="https://us.download.nvidia.com/XFree86/Linux-x86_64/550.90.07/NVIDIA-Linux-x86_64-550.90.07.run"
+            fi
+            
+            echo "Baixando driver Nvidia de: $download_link"
+            curl -L -o "$nvidia_installer" "$download_link"
+            chmod +x "$nvidia_installer"
+            
+            echo "Instalando driver Nvidia..."
+            sudo $nvidia_installer --silent --dkms --no-cc-version-check
+            
+            echo "Instalando CUDA toolkit..."
             curl -s https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb -o /tmp/cuda-keyring.deb
             sudo dpkg -i /tmp/cuda-keyring.deb
             
-            echo "Package: *  
-Pin: origin https://developer.download.nvidia.com  
-Pin-Priority: 900" | sudo tee /etc/apt/preferences.d/nvidia-repo > /dev/null
+            echo "Package: *
+Pin: origin https://developer.download.nvidia.com
+Pin-Priority: 600" | sudo tee /etc/apt/preferences.d/nvidia-repo > /dev/null
             
             sudo apt-get update
-            sudo apt-get install -y cuda-drivers
+            sudo apt-get install -y cuda-toolkit-12-8 cuda-drivers
+            
             sudo update-initramfs -u
             sudo update-grub
             
