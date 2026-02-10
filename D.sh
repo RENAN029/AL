@@ -237,10 +237,10 @@ de_plasma_installer() {
 deb_multimedia_installer() {
     local state_file="$STATE_DIR/deb_multimedia"
 
-    if [ -f "$state_file" ] || [ -f "/etc/apt/sources.list.d/dmo.sources" ]; then
+    if [ -f "$state_file" ] || [ -f "/etc/apt/sources.list.d/dmo.list" ]; then
         if confirm "DebMultimedia detectado. Desinstalar?"; then
             echo "Desinstalando DebMultimedia..."
-            sudo rm -f /etc/apt/sources.list.d/dmo.sources
+            sudo rm -f /etc/apt/sources.list.d/dmo.list
             sudo rm -f /usr/share/keyrings/deb-multimedia-keyring.gpg
             sudo apt update
             cleanup_files "$state_file"
@@ -253,14 +253,10 @@ deb_multimedia_installer() {
             sudo dpkg -i /tmp/deb-multimedia-keyring.deb
             rm -f /tmp/deb-multimedia-keyring.deb
             
-            echo 'Types: deb
-URIs: https://www.deb-multimedia.org
-Suites: forky
-Components: main non-free
-Signed-By: /usr/share/keyrings/deb-multimedia-keyring.gpg
-Enabled: yes' | sudo tee /etc/apt/sources.list.d/dmo.sources > /dev/null
+            echo "deb https://www.deb-multimedia.org forky main non-free" | sudo tee /etc/apt/sources.list.d/dmo.list > /dev/null
             
-            sudo apt update
+            sudo apt update --allow-insecure-repositories
+            sudo apt install -y --allow-unauthenticated deb-multimedia-keyring
             touch "$state_file"
             echo "DebMultimedia instalado."
         fi
@@ -542,11 +538,11 @@ nvidia_proprietary_dkms_installer() {
             rm -f /tmp/cuda-keyring.deb
             
             sudo apt-key del EB693B3035CD5710E231E123A4B469963BF863CC 2>/dev/null || true
-            curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/3bf863cc.pub | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-cuda-keyring.gpg
+            sudo apt update --allow-insecure-repositories
             
             echo 'Package: *  
 Pin: origin https://developer.download.nvidia.com  
-Pin-Priority: 900' | sudo tee /etc/apt/preferences.d/nvidia-repo > /dev/null
+Pin-Priority: 100' | sudo tee /etc/apt/preferences.d/nvidia-repo > /dev/null
             
             sudo apt update --allow-insecure-repositories
             sudo apt install -y --allow-unauthenticated cuda-drivers
