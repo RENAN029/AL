@@ -526,7 +526,6 @@ nvidia_proprietary_dkms_installer() {
             sudo apt remove --purge -y nvidia-driver-* cuda-drivers cuda-keyring
             sudo rm -f /etc/apt/preferences.d/nvidia-repo
             sudo rm -f /etc/apt/sources.list.d/cuda.list
-            sudo rm -f /usr/share/keyrings/nvidia-cuda-keyring.gpg
             sudo apt update
             cleanup_files "$state_file"
             echo "Nvidia Proprietário desinstalado."
@@ -534,12 +533,17 @@ nvidia_proprietary_dkms_installer() {
     else
         if confirm "Instalar Nvidia Proprietário?"; then
             echo "Instalando Nvidia Proprietário..."
+            sudo apt update
+            sudo apt install -y ntpsec
+            sudo timedatectl set-ntp true
+            
             curl -L -o /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
             sudo dpkg -i /tmp/cuda-keyring.deb
             rm -f /tmp/cuda-keyring.deb
             
-            sudo rm -f /etc/apt/sources.list.d/cuda.list
-            echo "deb https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64 /" | sudo tee /etc/apt/sources.list.d/cuda.list > /dev/null
+            echo 'Package: *  
+Pin: origin https://developer.download.nvidia.com  
+Pin-Priority: 100' | sudo tee /etc/apt/preferences.d/nvidia-repo > /dev/null
             
             sudo apt update --allow-insecure-repositories --allow-unauthenticated
             sudo apt install -y --allow-unauthenticated cuda-drivers
@@ -547,6 +551,33 @@ nvidia_proprietary_dkms_installer() {
             sudo update-grub
             touch "$state_file"
             echo "Nvidia Proprietário instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+ntpsec_installer() {
+    local state_file="$STATE_DIR/ntpsec"
+    local pkg_ntpsec="ntpsec"
+
+    if [ -f "$state_file" ] || dpkg -l | grep -q "^ii.*ntpsec"; then
+        if confirm "NTPsec detectado. Desinstalar?"; then
+            echo "Desinstalando NTPsec..."
+            sudo systemctl stop ntpsec 2>/dev/null || true
+            sudo systemctl disable ntpsec 2>/dev/null || true
+            sudo apt remove --purge -y $pkg_ntpsec
+            cleanup_files "$state_file"
+            echo "NTPsec desinstalado."
+        fi
+    else
+        if confirm "Instalar NTPsec para sincronização de horário?"; then
+            echo "Instalando NTPsec..."
+            sudo apt update
+            sudo apt install -y $pkg_ntpsec
+            sudo systemctl enable ntpsec
+            sudo systemctl start ntpsec
+            sudo timedatectl set-ntp true
+            touch "$state_file"
+            echo "NTPsec instalado e sincronização ativada."
         fi
     fi
 }
@@ -1007,24 +1038,25 @@ main_menu() {
         echo "18) Nala"
         echo "19) NeoVim"
         echo "20) Nvidia Drivers"
-        echo "21) Oh My Bash"
-        echo "22) Pacstall"
-        echo "23) Base Packages (Fonts)"
-        echo "24) Media Packages"
-        echo "25) Podman"
-        echo "26) Non-free Repositories"
-        echo "27) Shader Booster"
-        echo "28) Snapd"
-        echo "29) Starship"
-        echo "30) Steam"
-        echo "31) UFW"
-        echo "32) Unmojang (Fjord Launcher)"
-        echo "33) XDG Base"
-        echo "34) yt-dlp"
-        echo "35) Zen Browser"
-        echo "36) Zsh + Oh My Zsh"
-        echo "37) ZSWAP"
-        echo "38) Sair"
+        echo "21) NTPsec (Sincronização Horário)"
+        echo "22) Oh My Bash"
+        echo "23) Pacstall"
+        echo "24) Base Packages (Fonts)"
+        echo "25) Media Packages"
+        echo "26) Podman"
+        echo "27) Non-free Repositories"
+        echo "28) Shader Booster"
+        echo "29) Snapd"
+        echo "30) Starship"
+        echo "31) Steam"
+        echo "32) UFW"
+        echo "33) Unmojang (Fjord Launcher)"
+        echo "34) XDG Base"
+        echo "35) yt-dlp"
+        echo "36) Zen Browser"
+        echo "37) Zsh + Oh My Zsh"
+        echo "38) ZSWAP"
+        echo "39) Sair"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -1049,24 +1081,25 @@ main_menu() {
             18) nala_installer ;;
             19) neovim_installer ;;
             20) nvidia_proprietary_dkms_installer ;;
-            21) oh_my_bash_installer ;;
-            22) pacstall_installer ;;
-            23) pessoal_base_installer ;;
-            24) pessoal_media_installer ;;
-            25) podman_installer ;;
-            26) repos_nonfree_installer ;;
-            27) shader_booster_installer ;;
-            28) snapd_installer ;;
-            29) starship_installer ;;
-            30) steam_installer ;;
-            31) ufw_installer ;;
-            32) unmojang_installer ;;
-            33) xdg_base_installer ;;
-            34) yt_dlp_installer ;;
-            35) zen_browser_installer ;;
-            36) zsh_ohmyzsh_installer ;;
-            37) zswap_installer ;;
-            38) exit 0 ;;
+            21) ntpsec_installer ;;
+            22) oh_my_bash_installer ;;
+            23) pacstall_installer ;;
+            24) pessoal_base_installer ;;
+            25) pessoal_media_installer ;;
+            26) podman_installer ;;
+            27) repos_nonfree_installer ;;
+            28) shader_booster_installer ;;
+            29) snapd_installer ;;
+            30) starship_installer ;;
+            31) steam_installer ;;
+            32) ufw_installer ;;
+            33) unmojang_installer ;;
+            34) xdg_base_installer ;;
+            35) yt_dlp_installer ;;
+            36) zen_browser_installer ;;
+            37) zsh_ohmyzsh_installer ;;
+            38) zswap_installer ;;
+            39) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
