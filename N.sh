@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-[ ! -f /etc/nixos ] && { echo "Apenas NixOS é suportado."; exit 1; }
-
 STATE_DIR="/tmp/nixos_install"
 mkdir -p "$STATE_DIR"
 
