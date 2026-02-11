@@ -248,14 +248,7 @@ generate_config() {
   
   $([ "$desktop" = "gnome" ] && echo '
   services.xserver.desktopManager.gnome.enable = true;
-  services.displayManager.gdm.enable = true;
-  environment.gnome.excludePackages = with pkgs; [
-    gnome-tour
-    epiphany
-    geary
-    evince
-    totem
-  ];')
+  services.displayManager.gdm.enable = true;')
   
   $([ "$desktop" = "plasma" ] && echo '
   services.xserver.desktopManager.plasma5.enable = true;
@@ -271,7 +264,8 @@ generate_config() {
     neofetch
     firefox
     $([ "$desktop" = "cosmic" ] && echo '
-    cosmic-term
+    cosmic-session
+    cosmic-terminal
     cosmic-files
     cosmic-store
     cosmic-wallpapers
@@ -285,6 +279,7 @@ generate_config() {
     gnome-backgrounds
     ')
     $([ "$desktop" = "plasma" ] && echo '
+    plasma-meta
     konsole
     dolphin
     kdeconnect
