@@ -1,6 +1,7 @@
 Quero que vc altere e adapte esse script para funcionar no fedora atomico. Os ambientes desktop devem ser usados os rebuilds por nao ter como instalar o ambiente desktop em si em um fedora atomico, entao 
 ao selecionar um de ele deve rebuildar para aquele de selecionado, a nao ser que ja esteja no de selecionado. Por conta disso, vc tambem deve remover manualmente os pacotes que nao sao necessarios pelo usuario 
 para um ambiente mais limpo, (ex: firefox, gnome-photos, kate). Os unicos pacotes que devem ficar sao os apresentados no script para arch. Nas respostas vc deve mandar o script completo sem comentarios.
+O script e voltado para simplicidade e minimalismo, tente dexalo com uma estrutura parecida com essa original do arch.
 
 #!/bin/bash
 set -e
