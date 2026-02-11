@@ -1140,4 +1140,4 @@ deb-src http://deb.debian.org/debian/ forky-updates main non-free-firmware
 # entries were disabled at the end of the installation process.
 # For information about how to configure apt package sources,
 # see the sources.list(5) manual.
-
+As respostas sempre devem ser o script completo sem nenhum comentario.
