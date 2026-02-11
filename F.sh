@@ -23,16 +23,16 @@ cleanup_files() {
 cachyconfs_installer() {
     local state_file="$STATE_DIR/cachyconfs"
 
-    if [ -f "$state_file" ] || [ -f "/usr/lib/sysctl.d/99-cachyos-settings.conf" ]; then
+    if [ -f "$state_file" ] || [ -f "/etc/sysctl.d/99-cachyos-settings.conf" ]; then
         if confirm "CachyOS Configs detectado. Desinstalar?"; then
-            sudo rm -f /usr/lib/sysctl.d/99-cachyos-settings.conf
+            sudo rm -f /etc/sysctl.d/99-cachyos-settings.conf
             sudo sysctl --system
             cleanup_files "$state_file"
         fi
     else
         if confirm "Instalar CachyOS Configs?"; then
-            sudo mkdir -p /usr/lib/sysctl.d
-            curl -s https://raw.githubusercontent.com/CachyOS/CachyOS-Settings/main/sysctl/99-cachyos-settings.conf | sudo tee /usr/lib/sysctl.d/99-cachyos-settings.conf > /dev/null
+            sudo mkdir -p /etc/sysctl.d
+            curl -s https://raw.githubusercontent.com/CachyOS/CachyOS-Settings/main/sysctl/99-cachyos-settings.conf | sudo tee /etc/sysctl.d/99-cachyos-settings.conf > /dev/null
             sudo sysctl --system
             touch "$state_file"
         fi
@@ -353,7 +353,7 @@ main_menu() {
         echo "2) Terra Repository"
         echo "3) Ostree Auto-updates"
         echo "4) CachyOS Configs"
-        echo "5) Xpadneo (Xbox Controller) - COPR"
+        echo "5) Xpadneo (Xbox Controller)"
         echo "6) Faugus Launcher"
         echo "7) Zen Browser"
         echo "8) Flatpak/Flathub"
