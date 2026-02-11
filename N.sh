@@ -219,7 +219,7 @@ EOF
     esac
     
     cat >> /mnt/etc/nixos/configuration.nix << EOF
-  system.stateVersion = "23.11";
+  system.stateVersion = "25.11";
 }
 EOF
 
