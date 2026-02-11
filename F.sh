@@ -319,11 +319,59 @@ xpadneo_installer() {
     else
         if confirm "Instalar Xpadneo?"; then
             echo "Instalando Xpadneo..."
-            sudo rpm-ostree install dkms make bluez bluez-tools kernel-devel kernel-headers
+            
+            # Cancel any pending transactions
+            sudo rpm-ostree cancel 2>/dev/null || true
+            
+            # Reboot if there are pending changes
+            if rpm-ostree status | grep -q "Changes queued"; then
+                echo "Há alterações pendentes. Reinicie o sistema antes de instalar o Xpadneo."
+                read -p "Pressione Enter para voltar ao menu..."
+                return
+            fi
+            
+            # Install dkms individually with --allow-inactive
+            sudo rpm-ostree install --allow-inactive dkms || true
+            sudo rpm-ostree install --allow-inactive kernel-devel || true
+            sudo rpm-ostree install --allow-inactive kernel-headers || true
+            sudo rpm-ostree install --allow-inactive make || true
+            
+            # Check if reboot is needed
+            if rpm-ostree status | grep -q "Changes queued"; then
+                echo "DKMS e dependências instalados. Reinicie o sistema para continuar com a instalação do Xpadneo."
+                touch "$state_file"
+                return
+            fi
+            
+            # If no reboot needed, proceed with installation
             cd $HOME
+            if [ -d "xpadneo" ]; then
+                rm -rf xpadneo
+            fi
             git clone https://github.com/atar-axis/xpadneo.git
             cd xpadneo
-            sudo ./install.sh
+            
+            # Create dkms.conf file if it doesn't exist
+            if [ ! -f dkms.conf ]; then
+                cat > dkms.conf << 'EOF'
+PACKAGE_NAME="xpadneo"
+PACKAGE_VERSION="@PKGVER@"
+BUILT_MODULE_NAME[0]="hid-xpadneo"
+DEST_MODULE_LOCATION[0]="/kernel/drivers/hid"
+MAKE[0]="make -C ${kernel_source_dir} M=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build"
+CLEAN="make -C ${kernel_source_dir} M=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build clean"
+AUTOINSTALL="yes"
+EOF
+                sed -i "s/@PKGVER@/$(git describe --tags | sed 's/^v//')/" dkms.conf
+            fi
+            
+            # Install manually
+            sudo mkdir -p /usr/src/xpadneo-$(git describe --tags | sed 's/^v//')
+            sudo cp -r * /usr/src/xpadneo-$(git describe --tags | sed 's/^v//')
+            sudo dkms add xpadneo-$(git describe --tags | sed 's/^v//')
+            sudo dkms build xpadneo/$(git describe --tags | sed 's/^v//')
+            sudo dkms install xpadneo/$(git describe --tags | sed 's/^v//')
+            
             cd ..
             rm -rf xpadneo
             touch "$state_file"
