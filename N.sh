@@ -13,9 +13,9 @@ confirm() {
 
 select_language() {
     echo "Selecione o idioma do sistema / Select system language:"
-    echo "1) Portugues Brasileiro (pt_BR.UTF-8)"
+    echo "1) Português Brasileiro (pt_BR.UTF-8)"
     echo "2) English US (en_US.UTF-8)"
-    read -p "Opcao: " lang_opt
+    read -p "Opção: " lang_opt
     case $lang_opt in
         1) echo "pt_BR.UTF-8" > "$STATE_DIR/lang" ;;
         2) echo "en_US.UTF-8" > "$STATE_DIR/lang" ;;
@@ -25,9 +25,9 @@ select_language() {
 
 select_keyboard() {
     echo "Selecione o layout do teclado / Select keyboard layout:"
-    echo "1) Portugues Brasileiro (br)"
+    echo "1) Português Brasileiro (br)"
     echo "2) English US (us)"
-    read -p "Opcao: " kb_opt
+    read -p "Opção: " kb_opt
     case $kb_opt in
         1) echo "br" > "$STATE_DIR/keyboard" ;;
         2) echo "us" > "$STATE_DIR/keyboard" ;;
@@ -42,7 +42,7 @@ select_swap_size() {
     echo "3) 8GB"
     echo "4) 16GB"
     echo "5) 32GB"
-    read -p "Opcao: " swap_opt
+    read -p "Opção: " swap_opt
     case $swap_opt in
         1) echo "2G" > "$STATE_DIR/swap" ;;
         2) echo "4G" > "$STATE_DIR/swap" ;;
@@ -59,7 +59,7 @@ select_desktop() {
     echo "2) GNOME"
     echo "3) KDE Plasma"
     echo "4) Nenhum (apenas terminal)"
-    read -p "Opcao: " de_opt
+    read -p "Opção: " de_opt
     case $de_opt in
         1) echo "cosmic" > "$STATE_DIR/desktop" ;;
         2) echo "gnome" > "$STATE_DIR/desktop" ;;
@@ -78,7 +78,7 @@ select_bluetooth() {
 }
 
 select_cups() {
-    if confirm "Habilitar suporte a impressao (CUPS)? / Enable printing support (CUPS)?"; then
+    if confirm "Habilitar suporte a impressão (CUPS)? / Enable printing support (CUPS)?"; then
         echo "yes" > "$STATE_DIR/cups"
     else
         echo "no" > "$STATE_DIR/cups"
@@ -86,22 +86,22 @@ select_cups() {
 }
 
 detect_disk() {
-    echo "Discos disponiveis / Available disks:"
+    echo "Discos disponíveis / Available disks:"
     lsblk -d -o NAME,SIZE,MODEL | grep -v loop
     echo
-    read -p "Digite o disco para instalacao (ex: sda, nvme0n1): " disk_name
+    read -p "Digite o disco para instalação (ex: sda, nvme0n1): " disk_name
     echo "/dev/$disk_name" > "$STATE_DIR/disk"
 }
 
 select_username() {
-    read -p "Digite o nome do usuario / Enter username: " username
+    read -p "Digite o nome do usuário / Enter username: " username
     echo "$username" > "$STATE_DIR/username"
     read -s -p "Digite a senha / Enter password: " userpass
     echo
     read -s -p "Confirme a senha / Confirm password: " userpass2
     echo
     if [ "$userpass" != "$userpass2" ]; then
-        echo "Senhas nao conferem / Passwords do not match!"
+        echo "Senhas não conferem / Passwords do not match!"
         exit 1
     fi
     echo "$userpass" > "$STATE_DIR/userpass"
@@ -109,32 +109,19 @@ select_username() {
 
 show_summary() {
     clear
-    echo "=== RESUMO DA INSTALACAO / INSTALLATION SUMMARY ==="
+    echo "=== RESUMO DA INSTALAÇÃO / INSTALLATION SUMMARY ==="
     echo "Idioma / Language: $(cat $STATE_DIR/lang 2>/dev/null)"
     echo "Teclado / Keyboard: $(cat $STATE_DIR/keyboard 2>/dev/null)"
     echo "Disco / Disk: $(cat $STATE_DIR/disk 2>/dev/null)"
-    
-    local desktop_val=$(cat $STATE_DIR/desktop 2>/dev/null)
-    if [ "$desktop_val" = "cosmic" ]; then
-        echo "Desktop: Cosmic"
-    elif [ "$desktop_val" = "gnome" ]; then
-        echo "Desktop: GNOME"
-    elif [ "$desktop_val" = "plasma" ]; then
-        echo "Desktop: KDE Plasma"
-    elif [ "$desktop_val" = "none" ]; then
-        echo "Desktop: Nenhum / None"
-    else
-        echo "Desktop: Nao selecionado"
-    fi
-    
+    echo "Desktop: $(case $(cat $STATE_DIR/desktop 2>/dev/null) in cosmic) echo "Cosmic";; gnome) echo "GNOME";; plasma) echo "KDE Plasma";; none) echo "Nenhum / None";; esac)"
     echo "Swap: $(cat $STATE_DIR/swap 2>/dev/null)"
     echo "Bluetooth: $(cat $STATE_DIR/bluetooth 2>/dev/null)"
     echo "CUPS: $(cat $STATE_DIR/cups 2>/dev/null)"
-    echo "Usuario / Username: $(cat $STATE_DIR/username 2>/dev/null)"
+    echo "Usuário / Username: $(cat $STATE_DIR/username 2>/dev/null)"
     echo "============================================"
     echo
-    if ! confirm "Continuar com a instalacao? / Continue with installation?"; then
-        echo "Instalacao cancelada / Installation canceled."
+    if ! confirm "Continuar com a instalação? / Continue with installation?"; then
+        echo "Instalação cancelada / Installation canceled."
         exit 0
     fi
 }
@@ -178,10 +165,9 @@ mount_partitions() {
 
 create_swap() {
     local swap_size=$(cat "$STATE_DIR/swap")
-    local swap_gb=$(echo $swap_size | sed 's/G//')
     
     echo "Criando arquivo swap de $swap_size..."
-    sudo dd if=/dev/zero of=/mnt/.swapfile bs=1G count=$swap_gb status=progress
+    sudo dd if=/dev/zero of=/mnt/.swapfile bs=1G count=$(echo $swap_size | sed 's/G//') status=progress
     sudo chmod 600 /mnt/.swapfile
     sudo mkswap /mnt/.swapfile
     sudo swapon /mnt/.swapfile
@@ -203,25 +189,15 @@ generate_config() {
     
     local pass_hash=$(mkpasswd -m sha-512 "$userpass")
     
-    sudo tee /mnt/etc/nixos/configuration.nix > /dev/null << 'NIXEOF'
+    sudo tee /mnt/etc/nixos/configuration.nix > /dev/null << EOF
 { config, pkgs, lib, ... }:
 
 {
   imports = [ ./hardware-configuration.nix ];
-NIXEOF
 
-    if [ "$boot_mode" = "uefi" ]; then
-        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << 'NIXEOF'
-  boot.loader.systemd-boot.enable = true;
-NIXEOF
-    else
-        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << EOF
-  boot.loader.grub.enable = true;
-  boot.loader.grub.device = "$disk";
-EOF
-    fi
-
-    sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << EOF
+  boot.loader = {
+    $([ "$boot_mode" = "uefi" ] && echo 'systemd-boot.enable = true;' || echo 'grub.enable = true; grub.device = "'$disk'";')
+  };
 
   i18n.defaultLocale = "$lang";
   console.keyMap = "$keyboard";
@@ -245,23 +221,11 @@ EOF
     alsa.support32Bit = true;
     pulse.enable = true;
   };
-EOF
-
-    if [ "$bluetooth" = "yes" ]; then
-        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << 'NIXEOF'
-  hardware.bluetooth.enable = true;
-  services.blueman.enable = true;
-NIXEOF
-    fi
-
-    if [ "$cups" = "yes" ]; then
-        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << 'NIXEOF'
-  services.printing.enable = true;
-NIXEOF
-    fi
-
-    sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << EOF
-
+  
+  $([ "$bluetooth" = "yes" ] && echo 'hardware.bluetooth.enable = true; services.blueman.enable = true;')
+  
+  $([ "$cups" = "yes" ] && echo 'services.printing.enable = true;')
+  
   users.users.$username = {
     isNormalUser = true;
     description = "$username";
@@ -277,86 +241,82 @@ NIXEOF
       options = [ "SETENV" "NOPASSWD" ];
     }];
   }];
-EOF
-
-    if [ "$desktop" = "cosmic" ]; then
-        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << 'NIXEOF'
+  
+  $([ "$desktop" = "cosmic" ] && echo '
   services.desktopManager.cosmic.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
-NIXEOF
-    fi
-
-    if [ "$desktop" = "plasma" ]; then
-        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << 'NIXEOF'
+  environment.cosmic.excludePackages = with pkgs; [
+    cosmic-edit
+    cosmic-screenshot
+    cosmic-workspaces-epoch
+  ];')
+  
+  $([ "$desktop" = "gnome" ] && echo '
+  services.xserver.desktopManager.gnome.enable = true;
+  services.displayManager.gdm.enable = true;
+  environment.gnome.excludePackages = with pkgs; [
+    atomix
+    cheese
+    epiphany
+    evince
+    geary
+    gedit
+    gnome-characters
+    gnome-music
+    gnome-photos
+    gnome-terminal
+    gnome-tour
+    hitori
+    iagno
+    tali
+    totem
+    gnome-software
+    gnome-initial-setup
+    simple-scan
+    yelp
+    gnome-clocks
+    gnome-maps
+    gnome-weather
+    gnome-contacts
+    gnome-calendar
+  ];')
+  
+  $([ "$desktop" = "plasma" ] && echo '
   services.xserver.desktopManager.plasma5.enable = true;
   services.displayManager.sddm.enable = true;
-NIXEOF
-    fi
-
-    if [ "$desktop" = "gnome" ]; then
-        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << 'NIXEOF'
-  services.xserver.enable = true;
-  services.displayManager.gdm.enable = true;
-NIXEOF
-    fi
-
-    sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << 'NIXEOF'
-  environment.systemPackages = with pkgs; [
-    vim
-    nano
-    git
-    wget
-    curl
-    htop
-    neofetch
-    firefox
-NIXEOF
-
-    if [ "$desktop" = "cosmic" ]; then
-        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << 'NIXEOF'
-    cosmic-session
-    cosmic-terminal
-    cosmic-files
-    cosmic-store
-    cosmic-wallpapers
-NIXEOF
-    fi
-
-    if [ "$desktop" = "gnome" ]; then
-        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << 'NIXEOF'
-    gnome-initial-setup
-    gnome-console
-    gnome-software
-    gnome-tweaks
-    gnome-disk-utility
-    gnome-backgrounds
-    mutter
-    gnome-shell
-    gtk3
-    adwaita-icon-theme
-NIXEOF
-    fi
-
-    if [ "$desktop" = "plasma" ]; then
-        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << 'NIXEOF'
-    plasma5.desktop
+  environment.plasma5.excludePackages = with pkgs.libsForQt5; [
+    elisa
+    gwenview
+    okular
+    kate
+    khelpcenter
     konsole
-    dolphin
-    kdeconnect
-    partition-manager
+    kwrited
     ark
-NIXEOF
-    fi
-
-    sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << 'NIXEOF'
+    dolphin
+    kdenlive
+    kate
+    kcalc
+    kmail
+    kontact
+    korganizer
+    ksystemlog
+    kwalletmanager
+    spectacle
+  ];')
+  
+  environment.systemPackages = with pkgs; [
+    firefox
+    fastfetch
+    neovim
   ];
   
   system.stateVersion = "25.11";
 }
-NIXEOF
+EOF
 
-    sudo sed -i 's|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXROOT|g' /mnt/etc/nixos/hardware-configuration.nix
-    sudo sed -i 's|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXBOOT|g' /mnt/etc/nixos/hardware-configuration.nix
+    sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXROOT|g" /mnt/etc/nixos/hardware-configuration.nix
+    sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXBOOT|g" /mnt/etc/nixos/hardware-configuration.nix
 }
 
 install_system() {
@@ -385,12 +345,12 @@ main() {
     create_swap
     generate_config
     
-    if confirm "Iniciar instalacao do NixOS? / Start NixOS installation?"; then
+    if confirm "Iniciar instalação do NixOS? / Start NixOS installation?"; then
         install_system
-        echo "Instalacao concluida! Reinicie o sistema. / Installation complete! Reboot the system."
+        echo "Instalação concluída! Reinicie o sistema. / Installation complete! Reboot the system."
         echo "Digite 'reboot' para reiniciar. / Type 'reboot' to restart."
     else
-        echo "Instalacao cancelada / Installation canceled."
+        echo "Instalação cancelada / Installation canceled."
         exit 1
     fi
 }
