@@ -303,77 +303,21 @@ terra_installer() {
 xpadneo_installer() {
     local state_file="$STATE_DIR/xpadneo"
 
-    if [ -f "$state_file" ] || [ -d "/usr/src/xpadneo"* ] 2>/dev/null; then
+    if [ -f "$state_file" ] || rpm -q xpadneo &>/dev/null; then
         if confirm "Xpadneo detectado. Desinstalar?"; then
             echo "Desinstalando Xpadneo..."
-            cd $HOME
-            if [ -d "xpadneo" ]; then
-                cd xpadneo
-                sudo ./uninstall.sh
-                cd ..
-                rm -rf xpadneo
-            fi
+            sudo rpm-ostree uninstall xpadneo 2>/dev/null || true
+            sudo rm -f /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:shdwchn10:xpadneo.repo
             cleanup_files "$state_file"
-            echo "Xpadneo desinstalado."
+            echo "Xpadneo desinstalado. Reinicie para aplicar."
         fi
     else
         if confirm "Instalar Xpadneo?"; then
             echo "Instalando Xpadneo..."
-            
-            # Cancel any pending transactions
-            sudo rpm-ostree cancel 2>/dev/null || true
-            
-            # Reboot if there are pending changes
-            if rpm-ostree status | grep -q "Changes queued"; then
-                echo "Há alterações pendentes. Reinicie o sistema antes de instalar o Xpadneo."
-                read -p "Pressione Enter para voltar ao menu..."
-                return
-            fi
-            
-            # Install dkms individually with --allow-inactive
-            sudo rpm-ostree install --allow-inactive dkms || true
-            sudo rpm-ostree install --allow-inactive kernel-devel || true
-            sudo rpm-ostree install --allow-inactive kernel-headers || true
-            sudo rpm-ostree install --allow-inactive make || true
-            
-            # Check if reboot is needed
-            if rpm-ostree status | grep -q "Changes queued"; then
-                echo "DKMS e dependências instalados. Reinicie o sistema para continuar com a instalação do Xpadneo."
-                touch "$state_file"
-                return
-            fi
-            
-            # If no reboot needed, proceed with installation
-            cd $HOME
-            if [ -d "xpadneo" ]; then
-                rm -rf xpadneo
-            fi
-            git clone https://github.com/atar-axis/xpadneo.git
-            cd xpadneo
-            
-            # Create dkms.conf file if it doesn't exist
-            if [ ! -f dkms.conf ]; then
-                cat > dkms.conf << 'EOF'
-PACKAGE_NAME="xpadneo"
-PACKAGE_VERSION="@PKGVER@"
-BUILT_MODULE_NAME[0]="hid-xpadneo"
-DEST_MODULE_LOCATION[0]="/kernel/drivers/hid"
-MAKE[0]="make -C ${kernel_source_dir} M=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build"
-CLEAN="make -C ${kernel_source_dir} M=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build clean"
-AUTOINSTALL="yes"
-EOF
-                sed -i "s/@PKGVER@/$(git describe --tags | sed 's/^v//')/" dkms.conf
-            fi
-            
-            # Install manually
-            sudo mkdir -p /usr/src/xpadneo-$(git describe --tags | sed 's/^v//')
-            sudo cp -r * /usr/src/xpadneo-$(git describe --tags | sed 's/^v//')
-            sudo dkms add xpadneo-$(git describe --tags | sed 's/^v//')
-            sudo dkms build xpadneo/$(git describe --tags | sed 's/^v//')
-            sudo dkms install xpadneo/$(git describe --tags | sed 's/^v//')
-            
-            cd ..
-            rm -rf xpadneo
+            local fedora_version=$(rpm -E %fedora)
+            sudo curl -L -o /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:shdwchn10:xpadneo.repo \
+                https://copr.fedorainfracloud.org/coprs/shdwchn10/xpadneo/repo/fedora-${fedora_version}/shdwchn10-xpadneo-fedora-${fedora_version}.repo
+            sudo rpm-ostree install xpadneo
             touch "$state_file"
             echo "Xpadneo instalado. Reinicie para aplicar."
         fi
@@ -409,7 +353,7 @@ main_menu() {
         echo "2) Terra Repository"
         echo "3) Ostree Auto-updates"
         echo "4) CachyOS Configs"
-        echo "5) Xpadneo (Xbox Controller)"
+        echo "5) Xpadneo (Xbox Controller) - COPR"
         echo "6) Faugus Launcher"
         echo "7) Zen Browser"
         echo "8) Flatpak/Flathub"
