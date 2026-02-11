@@ -1,14 +1,9 @@
-Quero que vc altere e adapte esse script para funcionar no fedora atomico. Os ambientes desktop devem ser usados o rebase por nao ter como instalar o ambiente desktop em si em um fedora atomico, entao 
-ao selecionar um de ele deve fazer rebase para aquele de selecionado, a nao ser que ja esteja no de selecionado. Por conta disso, vc tambem deve remover manualmente os pacotes que nao sao necessarios pelo usuario 
-para um ambiente mais limpo, (ex: firefox, gnome-photos, kate). Os unicos pacotes que devem ficar sao os apresentados no script para arch. O script e voltado para simplicidade e minimalismo, 
-tente deixalo com uma estrutura parecida com essa original do arch. Organize os metodos em ordem alfabetica
-
 #!/bin/bash
 set -e
 
-[ ! -f /etc/arch-release ] && { echo "Apenas Arch Linux é suportado."; exit 1; }
+[ ! -f /etc/fedora-release ] && [ ! -f /etc/ostree ] && { echo "Apenas Fedora Atomic é suportado."; exit 1; }
 
-STATE_DIR="$HOME/.config/arch_scripts"
+STATE_DIR="$HOME/.config/fedora_atomic_scripts"
 mkdir -p "$STATE_DIR"
 
 confirm() {
@@ -25,95 +20,24 @@ cleanup_files() {
     done
 }
 
-Crie um metodo installer para o rpm-fusion:
-#!/bin/bash
-# name: RPM Fusion
-# version: 1.0
-# description: rpmfusion_desc
-# icon: rpmfusion.svg
-# compat: fedora, ostree
-# repo: https://rpmfusion.org
-
-# --- Start of the script code ---
-#SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-source "$SCRIPT_DIR/libs/linuxtoys.lib"
-# language
-_lang_
-source "$SCRIPT_DIR/libs/lang/${langfile}.lib"
-source "$SCRIPT_DIR/libs/helpers.lib"
-sudo_rq
-rpmfusion_chk
-zeninf "$msg018"
-Crie um metodo installer para o terra:
-#!/bin/bash
-# name: Terra
-# version: 1.0
-# description: terra_desc
-# icon: terra.png
-# repo: https://github.com/terrapkg/packages
-# compat: fedora, ostree
-
-# --- Start of the script code ---
-source "$SCRIPT_DIR/libs/linuxtoys.lib"
-source "$SCRIPT_DIR/libs/helpers.lib"
-_lang_
-source "$SCRIPT_DIR/libs/lang/${langfile}.lib"
-
-if [ -f /etc/yum.repos.d/terra.repo ]; then
-    zeninf "Terra repository is already installed!"
-    exit 0
-fi
-
-sudo_rq
-
-if is_fedora; then
-    if sudo dnf install -y --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' terra-release; then
-        zeninf "Terra successfully installed!"
-    else
-        fatal "Installation failed."
-    fi
-elif is_ostree; then
-    curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo | sudo tee /etc/yum.repos.d/terra.repo
-    if sudo rpm-ostree install -y terra-release; then
-        zeninf "Terra successfully installed!"
-    else
-        fatal "Installation failed."
-    fi
-fi
-Adicione um metodo instaler para esse script:
-#!/bin/bash
-# name: ostree-autoupd
-# version: 1.0
-# description: ostree-autoupd_desc
-# icon: grubtrfs.svg
-# compat: ostree, ublue
-# nocontainer
-# optimized-only: yes
-
-# --- Start of the script code ---
-#SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-source "$SCRIPT_DIR/libs/linuxtoys.lib"
-_lang_
-source "$SCRIPT_DIR/libs/lang/${langfile}.lib"
-sudo_rq
-AUTOPOLICY="stage"
-sudo cp /etc/rpm-ostreed.conf /etc/rpm-ostreed.conf.bak
-if grep -q "^AutomaticUpdatePolicy=" /etc/rpm-ostreed.conf; then
-    sudo sed -i "s/^AutomaticUpdatePolicy=.*/AutomaticUpdatePolicy=${AUTOPOLICY}/" /etc/rpm-ostreed.conf
-else
-    sudo awk -v policy="$AUTOPOLICY" '
-    /^\[Daemon\]/ {
-        print
-        print "AutomaticUpdatePolicy=" policy
-        next
-    }
-    { print }
-    ' /etc/rpm-ostreed.conf | sudo tee /etc/rpm-ostreed.conf > /dev/null
-fi
-echo "AutomaticUpdatePolicy set to: $AUTOPOLICY"
-sudo systemctl enable rpm-ostreed-automatic.timer --now
-unset $AUTOPOLICY
-zeninf "$msg018"
+cleanup_de_packages() {
+    local de_type="$1"
+    
+    case $de_type in
+        gnome)
+            echo "Removendo pacotes desnecessários do GNOME..."
+            sudo rpm-ostree override remove firefox gnome-photos gnome-contacts gnome-maps gnome-weather gnome-calendar totem rhythmbox || true
+            ;;
+        plasma)
+            echo "Removendo pacotes desnecessários do KDE Plasma..."
+            sudo rpm-ostree override remove firefox kate konversation kwrite dragon elisa-player juk k3b krdc krfb ktorrent || true
+            ;;
+        cosmic)
+            echo "Removendo pacotes desnecessários do COSMIC..."
+            sudo rpm-ostree override remove firefox || true
+            ;;
+    esac
+}
 
 cachyconfs_installer() {
     local state_file="$STATE_DIR/cachyconfs"
@@ -134,60 +58,69 @@ cachyconfs_installer() {
     fi
 }
 
-xpadneo_installer() {
-    local state_file="$STATE_DIR/xpadneo"
-    local pkg_xpadneo="xpadneo-dkms"
-
-    if [ -f "$state_file" ] || pacman -Q xpadneo-dkms &>/dev/null; then
-        if confirm "Xpadneo detectado. Desinstalar?"; then
-            echo "Desinstalando Xpadneo..."
-            pacman -Qq xpadneo-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_xpadneo || true
+de_cosmic_installer() {
+    local state_file="$STATE_DIR/de_cosmic"
+    
+    if [ -f "$state_file" ] || rpm-ostree status | grep -q "cosmic" 2>/dev/null; then
+        if confirm "COSMIC Desktop detectado. Desinstalar?"; then
+            echo "Revertendo para imagem anterior..."
+            sudo rpm-ostree rollback
             cleanup_files "$state_file"
-            echo "Xpadneo desinstalado."
+            echo "COSMIC removido. Reinicie para aplicar."
         fi
     else
-        if confirm "Instalar Xpadneo?"; then
-            echo "Instalando Xpadneo..."
-            sudo pacman -S --noconfirm $pkg_xpadneo
+        if confirm "Instalar COSMIC Desktop? (rebase para ublue/cosmic)"; then
+            echo "Instalando COSMIC Desktop..."
+            sudo rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/cosmic:latest
+            cleanup_de_packages "cosmic"
             touch "$state_file"
-            echo "Xpadneo instalado."
+            echo "COSMIC instalado. Reinicie para aplicar."
         fi
     fi
-Modifique esse xpadneo com base nesse:
-#!/bin/bash
-# name: Xpadneo
-# version: 1.0
-# description: xneo_desc
-# icon: gaming.svg
-# compat: fedora, ubuntu, debian, ostree, suse, arch
-# reboot: yes
-# nocontainer
-# repo: https://github.com/atar-axis/xpadneo
+}
 
-# --- Start of the script code ---
-#SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-source "$SCRIPT_DIR/libs/linuxtoys.lib"
-# language
-_lang_
-source "$SCRIPT_DIR/libs/lang/${langfile}.lib"
-sudo_rq
-if [[ "$ID_LIKE" == *debian* ]] || [[ "$ID_LIKE" == *ubuntu* ]] || [ "$ID" == "debian" ] || [ "$ID" == "ubuntu" ]; then
-    _packages=(dkms linux-headers-$(uname -r))
-elif [[ "$ID_LIKE" =~ (rhel|fedora) ]] || [[ "$ID" =~ (fedora) ]]; then
-    _packages=(dkms make bluez bluez-tools kernel-devel kernel-headers)
-elif [[ "$ID" =~ "arch" ]] || [[ "$ID_LIKE" == *arch* ]] || [[ "$ID_LIKE" == *archlinux* ]]; then
-    _packages=(dkms linux-headers bluez bluez-utils)
-elif [[ "$ID" =~ "suse" ]] || [[ "$ID_LIKE" =~ *suse* ]]; then
-    _packages=(dkms make bluez kernel-devel kernel-source)
-fi
-_install_
-cd $HOME
-git clone https://github.com/atar-axis/xpadneo.git
-cd xpadneo
-sudo ./install.sh
-cd ..
-rm -r xpadneo
-zeninf "$msg036"
+de_gnome_installer() {
+    local state_file="$STATE_DIR/de_gnome"
+    local current_image=$(rpm-ostree status --json | grep -o '"deploy-pending":\?"checksum": "[^"]*"')
+    
+    if [ -f "$state_file" ] || echo "$current_image" | grep -q "gnome" 2>/dev/null; then
+        if confirm "GNOME Desktop detectado. Desinstalar?"; then
+            echo "Revertendo para imagem anterior..."
+            sudo rpm-ostree rollback
+            cleanup_files "$state_file"
+            echo "GNOME removido. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar GNOME Desktop? (rebase para ublue/gnome)"; then
+            echo "Instalando GNOME Desktop..."
+            sudo rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/gnome:latest
+            cleanup_de_packages "gnome"
+            touch "$state_file"
+            echo "GNOME instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+de_plasma_installer() {
+    local state_file="$STATE_DIR/de_plasma"
+    local current_image=$(rpm-ostree status --json | grep -o '"deploy-pending":\?"checksum": "[^"]*"')
+    
+    if [ -f "$state_file" ] || echo "$current_image" | grep -q "kinoite" 2>/dev/null || echo "$current_image" | grep -q "plasma" 2>/dev/null; then
+        if confirm "Plasma Desktop detectado. Desinstalar?"; then
+            echo "Revertendo para imagem anterior..."
+            sudo rpm-ostree rollback
+            cleanup_files "$state_file"
+            echo "Plasma removido. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Plasma Desktop? (rebase para ublue/kinoite)"; then
+            echo "Instalando Plasma Desktop..."
+            sudo rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/kinoite:latest
+            cleanup_de_packages "plasma"
+            touch "$state_file"
+            echo "Plasma instalado. Reinicie para aplicar."
+        fi
+    fi
 }
 
 faugus_launcher_installer() {
@@ -214,124 +147,42 @@ faugus_launcher_installer() {
     fi
 }
 
-zen_browser_installer() {
-    local state_file="$STATE_DIR/zen_browser"
-    local pkg_zen="app.zen_browser.zen"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q app.zen_browser.zen 2>/dev/null; then
-        if confirm "Zen Browser detectado. Desinstalar?"; then
-            echo "Desinstalando Zen Browser..."
-            flatpak uninstall --user -y $pkg_zen 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Zen Browser desinstalado."
-        fi
-    else
-        if confirm "Instalar Zen Browser?"; then
-            echo "Instalando Zen Browser..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_zen
-            touch "$state_file"
-            echo "Zen Browser instalado."
-        fi
-    fi
-}
-
-nvidia_proprietary_dkms_installer() {
-    local state_file="$STATE_DIR/nvidia_proprietary"
-    local pkg_nvidia="nvidia-dkms nvidia-utils nvidia-settings"
-
-    if [ -f "$state_file" ] || pacman -Q nvidia-dkms &>/dev/null; then
-        if confirm "Nvidia Proprietário com DKMS detectado. Desinstalar?"; then
-            echo "Desinstalando Nvidia Proprietário com DKMS..."
-            pacman -Qq nvidia-dkms &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_nvidia || true
-            cleanup_files "$state_file"
-            echo "Nvidia Proprietário desinstalado."
-        fi
-    else
-        echo "Instalando Nvidia Proprietário com DKMS..."
-        sudo pacman -S --noconfirm $pkg_nvidia
-        sudo mkinitcpio -P
-        touch "$state_file"
-        echo "Nvidia Proprietário instalado. Reinicie para aplicar."
-    fi
-Vc deve modificar esse metodo nvidia instaler usando esse script do linuxtoys como base:
-#!/bin/bash
-# name: Nvidia Drivers
-# version: 1.0
-# description: nv_desc
-# icon: nvidia.svg
-# compat: ostree
-# reboot: ostree
-# nocontainer
-# gpu: Nvidia
-
-# --- Start of the script code ---
-#SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-source "$SCRIPT_DIR/libs/linuxtoys.lib"
-# language
-_lang_
-source "$SCRIPT_DIR/libs/lang/${langfile}.lib"
-source "$SCRIPT_DIR/libs/helpers.lib"
-# check for rpmfusion repos before proceeding
-sudo_rq
-rpmfusion_chk
-if sudo mokutil --sb-state | grep -q "SecureBoot enabled"; then
-    # enable secure boot support by signing the Nvidia driver modules like in standard Fedora
-    if ! rpm -qi "akmods-keys" &>/dev/null; then
-        _packages=(rpmdevtools akmods)
-        _install_
-        sudo kmodgenca
-        sudo mokutil --import /etc/pki/akmods/certs/public_key.der
-        cd $HOME
-        git clone https://github.com/CheariX/silverblue-akmods-keys
-        cd silverblue-akmods-keys
-        sudo bash setup.sh
-        sudo rpm-ostree install -yA akmods-keys-0.0.2-8.fc$(rpm -E %fedora).noarch.rpm
-        cd ..
-        rm -r silverblue-akmods-keys
-    fi
-fi
-sudo rpm-ostree install akmod-nvidia xorg-x11-drv-nvidia-cuda
-sudo tee /etc/modprobe.d/blacklist-nouveau-nova.conf <<EOF
-blacklist nouveau
-blacklist nova_core
-EOF
-sudo rpm-ostree kargs --append=rd.driver.blacklist=nova_core --append=modprobe.blacklist=nova_core --append=rd.driver.blacklist=nouveau --append=modprobe.blacklist=nouveau --append=nvidia-drm.modeset=1
-zenity --info --title "Nvidia Drivers" --text "$msg036" --width 300 --height 300.
-}
-
 flatpak_flathub_installer() {
     local flatpak_state="$STATE_DIR/flatpak"
     local flathub_state="$STATE_DIR/flathub"
-    local pkg_flatpak="flatpak"
 
-    if [ -f "$flatpak_state" ] || pacman -Q flatpak &>/dev/null; then
+    if ! command -v flatpak &>/dev/null; then
+        if confirm "Instalar Flatpak?"; then
+            echo "Instalando Flatpak..."
+            sudo rpm-ostree install flatpak
+            touch "$flatpak_state"
+            echo "Flatpak instalado. Reinicie para aplicar."
+        fi
+    else
         if confirm "Flatpak detectado. Desinstalar?"; then
             echo "Desinstalando Flatpak..."
-            pacman -Qq flatpak &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_flatpak || true
+            sudo rpm-ostree uninstall flatpak
             rm -rf "$HOME/.local/share/flatpak" 2>/dev/null || true
             sudo rm -rf /var/lib/flatpak 2>/dev/null || true
             cleanup_files "$flatpak_state" "$flathub_state"
-            echo "Flatpak desinstalado."
+            echo "Flatpak desinstalado. Reinicie para aplicar."
         fi
-    elif confirm "Instalar Flatpak?"; then
-        echo "Instalando Flatpak..."
-        sudo pacman -S --noconfirm $pkg_flatpak
-        touch "$flatpak_state"
-        echo "Flatpak instalado."
     fi
 
-    if [ -f "$flathub_state" ] || flatpak remote-list | grep -q flathub 2>/dev/null; then
-        if confirm "Flathub detectado. Remover?"; then
-            echo "Removendo Flathub..."
-            flatpak remote-delete flathub 2>/dev/null || true
-            cleanup_files "$flathub_state"
-            echo "Flathub removido."
+    if command -v flatpak &>/dev/null; then
+        if [ -f "$flathub_state" ] || flatpak remote-list | grep -q flathub 2>/dev/null; then
+            if confirm "Flathub detectado. Remover?"; then
+                echo "Removendo Flathub..."
+                flatpak remote-delete flathub 2>/dev/null || true
+                cleanup_files "$flathub_state"
+                echo "Flathub removido."
+            fi
+        elif confirm "Adicionar repositório Flathub?"; then
+            echo "Adicionando Flathub..."
+            flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+            touch "$flathub_state"
+            echo "Flathub adicionado."
         fi
-    elif confirm "Adicionar repositório Flathub?"; then
-        echo "Adicionando Flathub..."
-        flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-        touch "$flathub_state"
-        echo "Flathub adicionado."
     fi
 }
 
@@ -360,71 +211,163 @@ homebrew_installer() {
     fi
 }
 
-de_cosmic_installer() {
-    local state_file="$STATE_DIR/de_cosmic"
-    local pkg_cosmic="cosmic-session cosmic-terminal cosmic-files cosmic-store cosmic-wallpapers"
+nvidia_proprietary_installer() {
+    local state_file="$STATE_DIR/nvidia_proprietary"
 
-    if [ -f "$state_file" ] || pacman -Q cosmic-session &>/dev/null; then
-        if confirm "Cosmic detectado. Desinstalar?"; then
-            echo "Desinstalando Cosmic..."
-            sudo systemctl disable cosmic-greeter 2>/dev/null || true
-            pacman -Qq cosmic-session &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_cosmic || true
+    if [ -f "$state_file" ] || rpm-ostree status | grep -q "akmod-nvidia" 2>/dev/null; then
+        if confirm "Nvidia Proprietário detectado. Desinstalar?"; then
+            echo "Desinstalando Nvidia Proprietário..."
+            sudo rpm-ostree uninstall akmod-nvidia xorg-x11-drv-nvidia-cuda || true
+            sudo sed -i '/nvidia-drm.modeset=1/d' /etc/default/grub 2>/dev/null || true
+            sudo sed -i '/rd.driver.blacklist=nouveau/d' /etc/default/grub 2>/dev/null || true
+            sudo sed -i '/modprobe.blacklist=nouveau/d' /etc/default/grub 2>/dev/null || true
             cleanup_files "$state_file"
-            echo "Cosmic desinstalado."
+            echo "Nvidia Proprietário desinstalado. Reinicie para aplicar."
         fi
     else
-        if confirm "Instalar Cosmic?"; then
-            echo "Instalando Cosmic..."
-            sudo pacman -S --noconfirm $pkg_cosmic
-            sudo systemctl enable cosmic-greeter
+        if confirm "Instalar Nvidia Proprietário?"; then
+            echo "Instalando Nvidia Proprietário..."
+            
+            if sudo mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
+                echo "SecureBoot detectado. Configurando chaves..."
+                sudo rpm-ostree install kmodgenca akmods
+                sudo kmodgenca
+                sudo mokutil --import /etc/pki/akmods/certs/public_key.der
+            fi
+            
+            sudo rpm-ostree install akmod-nvidia xorg-x11-drv-nvidia-cuda
+            sudo rpm-ostree kargs \
+                --append=rd.driver.blacklist=nouveau \
+                --append=modprobe.blacklist=nouveau \
+                --append=nvidia-drm.modeset=1
+            
             touch "$state_file"
-            echo "Cosmic instalado. Reinicie para aplicar."
+            echo "Nvidia Proprietário instalado. Reinicie para aplicar."
         fi
     fi
 }
 
-de_gnome_installer() {
-    local state_file="$STATE_DIR/de_gnome"
-    local pkg_gnome="gnome-initial-setup gnome-console gnome-software gnome-tweaks gnome-disk-utility gnome-backgrounds"
+ostree_autoupd_installer() {
+    local state_file="$STATE_DIR/ostree_autoupd"
 
-    if [ -f "$state_file" ] || pacman -Q gnome-shell &>/dev/null; then
-        if confirm "Gnome detectado. Desinstalar?"; then
-            echo "Desinstalando Gnome..."
-            sudo systemctl disable gdm 2>/dev/null || true
-            pacman -Qq gnome-shell &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_gnome || true
+    if [ -f "$state_file" ] || grep -q "^AutomaticUpdatePolicy=" /etc/rpm-ostreed.conf 2>/dev/null; then
+        if confirm "Atualizações automáticas detectadas. Desativar?"; then
+            sudo cp /etc/rpm-ostreed.conf /etc/rpm-ostreed.conf.bak
+            sudo sed -i 's/^AutomaticUpdatePolicy=.*/AutomaticUpdatePolicy=none/' /etc/rpm-ostreed.conf
+            sudo systemctl disable rpm-ostreed-automatic.timer --now
             cleanup_files "$state_file"
-            echo "Gnome desinstalado."
+            echo "Atualizações automáticas desativadas."
         fi
     else
-        if confirm "Instalar Gnome?"; then
-            echo "Instalando Gnome..."
-            sudo pacman -S --noconfirm $pkg_gnome
-            sudo systemctl enable gdm
+        if confirm "Ativar atualizações automáticas?"; then
+            sudo cp /etc/rpm-ostreed.conf /etc/rpm-ostreed.conf.bak
+            if grep -q "^AutomaticUpdatePolicy=" /etc/rpm-ostreed.conf; then
+                sudo sed -i 's/^AutomaticUpdatePolicy=.*/AutomaticUpdatePolicy=stage/' /etc/rpm-ostreed.conf
+            else
+                sudo awk '/^\[Daemon\]/ {print; print "AutomaticUpdatePolicy=stage"; next} {print}' /etc/rpm-ostreed.conf | sudo tee /etc/rpm-ostreed.conf > /dev/null
+            fi
+            sudo systemctl enable rpm-ostreed-automatic.timer --now
             touch "$state_file"
-            echo "Gnome instalado. Reinicie para aplicar."
+            echo "Atualizações automáticas ativadas."
         fi
     fi
 }
 
-de_plasma_installer() {
-    local state_file="$STATE_DIR/de_plasma"
-    local pkg_plasma="plasma-meta konsole dolphin kdeconnect partitionmanager ark"
+rpm_fusion_installer() {
+    local state_file="$STATE_DIR/rpm_fusion"
+    local fedora_version=$(rpm -E %fedora)
 
-    if [ -f "$state_file" ] || pacman -Q plasma-meta &>/dev/null; then
-        if confirm "Plasma detectado. Desinstalar?"; then
-            echo "Desinstalando Plasma..."
-            sudo systemctl disable sddm 2>/dev/null || true
-            pacman -Qq plasma-meta &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_plasma || true
+    if [ -f "$state_file" ] || rpm -q rpmfusion-free-release &>/dev/null 2>/dev/null; then
+        if confirm "RPM Fusion detectado. Desinstalar?"; then
+            sudo rpm-ostree uninstall rpmfusion-free-release rpmfusion-nonfree-release || true
+            sudo rpm -e rpmfusion-free-release rpmfusion-nonfree-release 2>/dev/null || true
             cleanup_files "$state_file"
-            echo "Plasma desinstalado."
+            echo "RPM Fusion desinstalado. Reinicie para aplicar."
         fi
     else
-        if confirm "Instalar Plasma?"; then
-            echo "Instalando Plasma..."
-            sudo pacman -S --noconfirm $pkg_plasma
-            sudo systemctl enable sddm
+        if confirm "Instalar RPM Fusion?"; then
+            echo "Instalando RPM Fusion..."
+            sudo rpm-ostree install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${fedora_version}.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${fedora_version}.noarch.rpm
             touch "$state_file"
-            echo "Plasma instalado. Reinicie para aplicar."
+            echo "RPM Fusion instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+terra_installer() {
+    local state_file="$STATE_DIR/terra"
+
+    if [ -f "$state_file" ] || [ -f /etc/yum.repos.d/terra.repo ]; then
+        if confirm "Terra repository detectado. Desinstalar?"; then
+            sudo rpm-ostree uninstall terra-release || true
+            sudo rm -f /etc/yum.repos.d/terra.repo
+            cleanup_files "$state_file"
+            echo "Terra repository desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Terra repository?"; then
+            echo "Instalando Terra repository..."
+            curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo | sudo tee /etc/yum.repos.d/terra.repo
+            sudo rpm-ostree install terra-release
+            touch "$state_file"
+            echo "Terra repository instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+xpadneo_installer() {
+    local state_file="$STATE_DIR/xpadneo"
+
+    if [ -f "$state_file" ] || [ -d "/usr/src/xpadneo"* ] 2>/dev/null; then
+        if confirm "Xpadneo detectado. Desinstalar?"; then
+            echo "Desinstalando Xpadneo..."
+            if [ -d "/usr/src/xpadneo"* ]; then
+                cd /tmp
+                git clone https://github.com/atar-axis/xpadneo.git || true
+                cd xpadneo
+                sudo ./uninstall.sh || true
+                cd ..
+                rm -rf xpadneo
+            fi
+            sudo rpm-ostree uninstall dkms bluez bluez-tools kernel-devel kernel-headers || true
+            cleanup_files "$state_file"
+            echo "Xpadneo desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Xpadneo?"; then
+            echo "Instalando Xpadneo..."
+            sudo rpm-ostree install dkms make bluez bluez-tools kernel-devel kernel-headers
+            
+            cd $HOME
+            git clone https://github.com/atar-axis/xpadneo.git
+            cd xpadneo
+            sudo ./install.sh
+            cd ..
+            rm -rf xpadneo
+            
+            touch "$state_file"
+            echo "Xpadneo instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+zen_browser_installer() {
+    local state_file="$STATE_DIR/zen_browser"
+    local pkg_zen="app.zen_browser.zen"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q app.zen_browser.zen 2>/dev/null; then
+        if confirm "Zen Browser detectado. Desinstalar?"; then
+            echo "Desinstalando Zen Browser..."
+            flatpak uninstall --user -y $pkg_zen 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Zen Browser desinstalado."
+        fi
+    else
+        if confirm "Instalar Zen Browser?"; then
+            echo "Instalando Zen Browser..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_zen
+            touch "$state_file"
+            echo "Zen Browser instalado."
         fi
     fi
 }
@@ -432,82 +375,43 @@ de_plasma_installer() {
 main_menu() {
     while true; do
         clear
-        echo "=== Arch Scripts ==="
-        echo "1) "
-        echo "2) "
+        echo "=== Fedora Atomic Scripts ==="
+        echo "1)  RPM Fusion"
+        echo "2)  Terra Repository"
+        echo "3)  Nvidia Proprietary"
+        echo "4)  Xpadneo"
+        echo "5)  Faugus Launcher"
+        echo "6)  Zen Browser"
+        echo "7)  Flatpak/Flathub"
+        echo "8)  Homebrew"
+        echo "9)  GNOME Desktop (rebase)"
+        echo "10) KDE Plasma Desktop (rebase)"
+        echo "11) COSMIC Desktop (rebase)"
+        echo "12) CachyOS Configs"
+        echo "13) OSTree Auto Updates"
+        echo "0)  Sair"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
-            1) ;;
-            2) exit 0 ;;
-            *) ;;
+            1) rpm_fusion_installer ;;
+            2) terra_installer ;;
+            3) nvidia_proprietary_installer ;;
+            4) xpadneo_installer ;;
+            5) faugus_launcher_installer ;;
+            6) zen_browser_installer ;;
+            7) flatpak_flathub_installer ;;
+            8) homebrew_installer ;;
+            9) de_gnome_installer ;;
+            10) de_plasma_installer ;;
+            11) de_cosmic_installer ;;
+            12) cachyconfs_installer ;;
+            13) ostree_autoupd_installer ;;
+            0) exit 0 ;;
+            *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
     done
 }
 
 main_menu
-Aqui esta um exemplo mas esse e com o fedora normal, oque eu quero e o ostree, mas vc pode se basear nele para o nome das coisas por exemplo:
-#!/bin/bash
-
-# Instalar o RPM Fusion
-sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
-
-# Instalar o driver da NVIDIA e CUDA
-sudo dnf install akmod-nvidia xorg-x11-drv-nvidia-cuda xorg-x11-drv-nvidia-cuda-libs -y
-sudo dnf install nvidia-vaapi-driver -y
-
-# Corrigir os problemas de codec
-sudo dnf swap ffmpeg-free ffmpeg --allowerasing -y
-sudo dnf install amrnb amrwb faad2 flac gpac-libs lame libde265 libfc14audiodecoder mencoder x264 x265 ffmpegthumbnailer -y
-
-# Instalar o 1Password
-sudo rpm --import https://downloads.1password.com/linux/keys/1password.asc
-sudo sh -c 'echo -e "[1password]\nname=1Password Stable Channel\nbaseurl=https://downloads.1password.com/linux/rpm/stable/\$basearch\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=\"https://downloads.1password.com/linux/keys/1password.asc\"" > /etc/yum.repos.d/1password.repo'
-sudo dnf install 1password -y
-
-# Instalar o Piper para gerenciar o MX Master 3
-sudo dnf install piper -y
-
-# Instalar o GNOME Tweaks para configurar o botão de minimizar
-sudo dnf install gnome-tweaks -y
-
-# Instalar o Google Chrome (e remover o aviso de gerenciado pela organização)
-sudo dnf install google-chrome-stable -y
-sudo dnf remove fedora-chromium-config -y
-
-# Instalar as fontes da Microsoft
-sudo dnf install https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm -y
-
-# Instalar ferramentas para jogos
-sudo dnf install steam -y
-flatpak install flathub com.vysp3r.ProtonPlus
-flatpak install flathub com.steamgriddb.steam-rom-manager
-flatpak install flathub com.steamgriddb.SGDBoop
-flatpak install flathub info.cemu.Cemu
-flatpak install flathub com.usebottles.bottles
-flatpak install flathub com.heroicgameslauncher.hgl
-flatpak install flathub dev.lizardbyte.app.Sunshine
-
-# Instalar aplicativos em flatpak
-flatpak install flathub com.discordapp.Discord
-flatpak install flathub com.spotify.Client
-flatpak install flathub tech.feliciano.pocket-casts
-flatpak install flathub com.obsproject.Studio
-flatpak install flathub io.github.celluloid_player.Celluloid
-flatpak install flathub org.gnome.Boxes
-flatpak install flathub com.mattjakeman.ExtensionManager
-flatpak install flathub com.github.tchx84.Flatseal
-flatpak install flathub org.nickvision.tubeconverter
-flatpak install flathub org.localsend.localsend_app
-flatpak install flathub page.codeberg.libre_menu_editor.LibreMenuEditor
-flatpak install flathub de.haeckerfelix.Fragments
-flatpak install flathub com.rtosta.zapzap
-flatpak install flathub com.todoist.Todoist
-
-# Instalar as fontes que estão na pasta: Fontes
-# Aplicativos para instalar depois manualmente: DaVinci Resolve, Insync
-# O que adicionar como webapp depois: Trello
-# Ajustar os problemas do DaVinci Resolve segundo esse tutorial: https://github.com/H3rz3n/Davinci-Resolve-Fedora-38-39-40-Fix
-Sempre mande o script completo sem comentarios.
