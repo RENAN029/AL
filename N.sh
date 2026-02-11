@@ -11,297 +11,447 @@ confirm() {
     [[ "$resposta" = "s" || "$resposta" = "S" ]]
 }
 
-cleanup_files() {
-    local files=("$@")
-    for file in "${files[@]}"; do
-        [ -e "$file" ] && rm -rf "$file" || true
-    done
-}
-
-select_language() {
+menu_language() {
     echo "Selecione o idioma do sistema / Select system language:"
-    echo "1) Português Brasileiro"
-    echo "2) English US"
+    echo "1) Português do Brasil"
+    echo "2) English (US)"
     read -p "Opção / Option: " lang_opt
     case $lang_opt in
-        1) echo "pt_BR.UTF-8" > "$STATE_DIR/language"
-           echo "br" > "$STATE_DIR/keyboard" ;;
-        2) echo "en_US.UTF-8" > "$STATE_DIR/language"
-           echo "us" > "$STATE_DIR/keyboard" ;;
-        *) echo "us" > "$STATE_DIR/keyboard"
-           echo "en_US.UTF-8" > "$STATE_DIR/language" ;;
+        1) echo "pt_BR" > "$STATE_DIR/language" ;;
+        2) echo "en_US" > "$STATE_DIR/language" ;;
+        *) echo "pt_BR" > "$STATE_DIR/language" ;;
     esac
 }
 
-select_desktop() {
+menu_keyboard() {
+    echo "Selecione o layout do teclado / Select keyboard layout:"
+    echo "1) Português do Brasil (br)"
+    echo "2) English (US) (us)"
+    read -p "Opção / Option: " key_opt
+    case $key_opt in
+        1) echo "br" > "$STATE_DIR/keyboard" ;;
+        2) echo "us" > "$STATE_DIR/keyboard" ;;
+        *) echo "us" > "$STATE_DIR/keyboard" ;;
+    esac
+}
+
+menu_desktop() {
     echo "Selecione o ambiente desktop / Select desktop environment:"
-    echo "1) Nenhum / None (somente terminal)"
-    echo "2) GNOME"
-    echo "3) KDE Plasma"
-    echo "4) Cosmic"
-    read -p "Opção / Option: " desktop_opt
-    case $desktop_opt in
-        2) echo "gnome" > "$STATE_DIR/desktop" ;;
-        3) echo "plasma" > "$STATE_DIR/desktop" ;;
-        4) echo "cosmic" > "$STATE_DIR/desktop" ;;
+    echo "1) GNOME (gnome-console, gnome-software, gnome-tweaks, gnome-disk-utility)"
+    echo "2) KDE Plasma (konsole, dolphin, kdeconnect, ark, partitionmanager)"
+    echo "3) COSMIC (cosmic-session, cosmic-terminal, cosmic-files, cosmic-store, cosmic-wallpapers)"
+    echo "4) Nenhum / None (apenas terminal)"
+    read -p "Opção / Option: " de_opt
+    case $de_opt in
+        1) echo "gnome" > "$STATE_DIR/desktop" ;;
+        2) echo "plasma" > "$STATE_DIR/desktop" ;;
+        3) echo "cosmic" > "$STATE_DIR/desktop" ;;
         *) echo "none" > "$STATE_DIR/desktop" ;;
     esac
 }
 
-select_swap() {
+menu_swap() {
     echo "Tamanho do arquivo swap / Swap file size:"
-    echo "1) 1GB"
-    echo "2) 2GB"
-    echo "3) 4GB"
-    echo "4) 8GB"
+    echo "1) 2GB"
+    echo "2) 4GB"
+    echo "3) 8GB"
+    echo "4) Nenhum / None"
     read -p "Opção / Option: " swap_opt
     case $swap_opt in
-        1) echo "1048576" > "$STATE_DIR/swapsize" ;;
-        2) echo "2097152" > "$STATE_DIR/swapsize" ;;
-        3) echo "4194304" > "$STATE_DIR/swapsize" ;;
-        4) echo "8388608" > "$STATE_DIR/swapsize" ;;
-        *) echo "2097152" > "$STATE_DIR/swapsize" ;;
+        1) echo "2G" > "$STATE_DIR/swap" ;;
+        2) echo "4G" > "$STATE_DIR/swap" ;;
+        3) echo "8G" > "$STATE_DIR/swap" ;;
+        *) echo "none" > "$STATE_DIR/swap" ;;
     esac
 }
 
-select_disk() {
-    echo "Discos disponíveis / Available disks:"
-    lsblk -d -o NAME,SIZE,MODEL | grep -v "loop"
-    echo ""
-    read -p "Digite o disco para instalação (ex: sda): " install_disk
-    echo "/dev/$install_disk" > "$STATE_DIR/disk"
+menu_network() {
+    echo "Configuração de rede / Network configuration:"
+    echo "1) iwd (recomendado para WiFi)"
+    echo "2) NetworkManager (gerenciamento completo)"
+    read -p "Opção / Option: " net_opt
+    case $net_opt in
+        1) echo "iwd" > "$STATE_DIR/network" ;;
+        2) echo "networkmanager" > "$STATE_DIR/network" ;;
+        *) echo "networkmanager" > "$STATE_DIR/network" ;;
+    esac
 }
 
-collect_user_info() {
-    read -p "Nome do usuário / Username: " username
+menu_bluetooth() {
+    echo "Ativar suporte a Bluetooth? / Enable Bluetooth support?"
+    echo "1) Sim"
+    echo "2) Não"
+    read -p "Opção / Option: " bt_opt
+    case $bt_opt in
+        1) echo "yes" > "$STATE_DIR/bluetooth" ;;
+        *) echo "no" > "$STATE_DIR/bluetooth" ;;
+    esac
+}
+
+menu_cups() {
+    echo "Instalar suporte a impressão (CUPS)? / Install printing support (CUPS)?"
+    echo "1) Sim"
+    echo "2) Não"
+    read -p "Opção / Option: " cups_opt
+    case $cups_opt in
+        1) echo "yes" > "$STATE_DIR/cups" ;;
+        *) echo "no" > "$STATE_DIR/cups" ;;
+    esac
+}
+
+menu_pipewire() {
+    echo "Configurar áudio com PipeWire? / Configure audio with PipeWire?"
+    echo "1) Sim"
+    echo "2) Não"
+    read -p "Opção / Option: " pw_opt
+    case $pw_opt in
+        1) echo "yes" > "$STATE_DIR/pipewire" ;;
+        *) echo "no" > "$STATE_DIR/pipewire" ;;
+    esac
+}
+
+menu_disk() {
+    echo "Discos disponíveis / Available disks:"
+    lsblk -d -o NAME,SIZE,MODEL | grep -v loop
+    echo
+    read -p "Digite o disco para instalação (ex: sda, nvme0n1): " disk_name
+    echo "$disk_name" > "$STATE_DIR/disk"
+    
+    echo "Modo de boot / Boot mode:"
+    echo "1) UEFI (GPT)"
+    echo "2) Legacy (DOS/MBR)"
+    read -p "Opção / Option: " boot_opt
+    case $boot_opt in
+        1) echo "uefi" > "$STATE_DIR/bootmode" ;;
+        2) echo "legacy" > "$STATE_DIR/bootmode" ;;
+        *) echo "uefi" > "$STATE_DIR/bootmode" ;;
+    esac
+}
+
+menu_user() {
+    read -p "Nome de usuário / Username: " username
     echo "$username" > "$STATE_DIR/username"
+    
     read -s -p "Senha / Password: " password
-    echo ""
+    echo
     read -s -p "Confirme a senha / Confirm password: " password2
-    echo ""
+    echo
+    
     if [ "$password" != "$password2" ]; then
         echo "Senhas não coincidem / Passwords do not match"
         exit 1
     fi
+    
     echo "$password" > "$STATE_DIR/password"
+}
+
+menu_timezone() {
+    echo "Fuso horário / Timezone:"
+    echo "1) America/Sao_Paulo"
+    echo "2) America/New_York"
+    echo "3) America/Chicago"
+    echo "4) America/Denver"
+    echo "5) America/Los_Angeles"
+    echo "6) Outro / Other (especifique)"
+    read -p "Opção / Option: " tz_opt
+    
+    case $tz_opt in
+        1) echo "America/Sao_Paulo" > "$STATE_DIR/timezone" ;;
+        2) echo "America/New_York" > "$STATE_DIR/timezone" ;;
+        3) echo "America/Chicago" > "$STATE_DIR/timezone" ;;
+        4) echo "America/Denver" > "$STATE_DIR/timezone" ;;
+        5) echo "America/Los_Angeles" > "$STATE_DIR/timezone" ;;
+        6) 
+            read -p "Digite o fuso horário / Enter timezone: " custom_tz
+            echo "$custom_tz" > "$STATE_DIR/timezone"
+            ;;
+        *) echo "America/Sao_Paulo" > "$STATE_DIR/timezone" ;;
+    esac
 }
 
 show_summary() {
     clear
     echo "=== RESUMO DA INSTALAÇÃO / INSTALLATION SUMMARY ==="
-    echo ""
+    echo
     echo "Idioma / Language: $(cat $STATE_DIR/language)"
     echo "Teclado / Keyboard: $(cat $STATE_DIR/keyboard)"
+    echo "Disco / Disk: /dev/$(cat $STATE_DIR/disk)"
+    echo "Modo de boot / Boot mode: $(cat $STATE_DIR/bootmode)"
+    echo "Swap: $(cat $STATE_DIR/swap)"
+    echo "Rede / Network: $(cat $STATE_DIR/network)"
+    echo "Bluetooth: $(cat $STATE_DIR/bluetooth)"
+    echo "CUPS: $(cat $STATE_DIR/cups)"
+    echo "PipeWire: $(cat $STATE_DIR/pipewire)"
     echo "Desktop: $(cat $STATE_DIR/desktop)"
-    echo "Swap: $(cat $STATE_DIR/swapsize) KB"
-    echo "Disco / Disk: $(cat $STATE_DIR/disk)"
     echo "Usuário / User: $(cat $STATE_DIR/username)"
-    echo ""
-    if ! confirm "Continuar com a instalação? / Continue with installation?"; then
-        echo "Instalação cancelada / Installation cancelled"
-        exit 0
-    fi
+    echo "Fuso horário / Timezone: $(cat $STATE_DIR/timezone)"
+    echo
+    echo "AVISO: Este script irá APAGAR TODOS OS DADOS DO DISCO /dev/$(cat $STATE_DIR/disk)"
+    echo "WARNING: This script will ERASE ALL DATA ON DISK /dev/$(cat $STATE_DIR/disk)"
+    echo
 }
 
-partition_disk() {
-    local disk=$(cat $STATE_DIR/disk)
+do_partition() {
+    local disk="/dev/$(cat $STATE_DIR/disk)"
+    local bootmode=$(cat $STATE_DIR/bootmode)
     
-    if [ -d /sys/firmware/efi ]; then
+    echo "Particionando disco $disk..."
+    
+    if [ "$bootmode" = "uefi" ]; then
         parted $disk -- mklabel gpt
-        parted $disk -- mkpart primary 2048s 500MB
+        parted $disk -- mkpart primary 2048s 500MiB
+        parted $disk -- mkpart primary 500MiB 100%
         parted $disk -- set 1 esp on
-        parted $disk -- mkpart primary 500MB 100%
-        mkfs.fat -F 32 ${disk}1
-        fatlabel ${disk}1 NIXBOOT
-        mkfs.ext4 -F ${disk}2 -L NIXROOT
+        mkfs.fat -F 32 "${disk}1"
+        fatlabel "${disk}1" NIXBOOT
+        mkfs.ext4 -L NIXROOT "${disk}2"
     else
         parted $disk -- mklabel msdos
-        parted $disk -- mkpart primary 2048s 500MB
+        parted $disk -- mkpart primary 2048s 500MiB
+        parted $disk -- mkpart primary 500MiB 100%
         parted $disk -- set 1 boot on
-        parted $disk -- mkpart primary 500MB 100%
-        mkfs.ext4 -F ${disk}1 -L NIXBOOT
-        mkfs.ext4 -F ${disk}2 -L NIXROOT
+        mkfs.ext4 -L NIXBOOT "${disk}1"
+        mkfs.ext4 -L NIXROOT "${disk}2"
     fi
 }
 
-mount_partitions() {
+do_mount() {
+    local disk="/dev/$(cat $STATE_DIR/disk)"
+    
     mount /dev/disk/by-label/NIXROOT /mnt
     mkdir -p /mnt/boot
     mount /dev/disk/by-label/NIXBOOT /mnt/boot
 }
 
-create_swap() {
-    local swapsize=$(cat $STATE_DIR/swapsize)
-    dd if=/dev/zero of=/mnt/.swapfile bs=1024 count=$swapsize status=none
-    chmod 600 /mnt/.swapfile
-    mkswap /mnt/.swapfile
-    swapon /mnt/.swapfile
+do_swap() {
+    local swap_size=$(cat $STATE_DIR/swap)
+    
+    if [ "$swap_size" != "none" ]; then
+        dd if=/dev/zero of=/mnt/.swapfile bs=1G count=${swap_size%G} status=progress
+        chmod 600 /mnt/.swapfile
+        mkswap /mnt/.swapfile
+        swapon /mnt/.swapfile
+    fi
 }
 
-generate_config() {
-    nixos-generate-config --root /mnt
-    
-    local language=$(cat $STATE_DIR/language)
-    local keyboard=$(cat $STATE_DIR/keyboard)
-    local desktop=$(cat $STATE_DIR/desktop)
+do_config() {
     local username=$(cat $STATE_DIR/username)
     local password=$(cat $STATE_DIR/password)
-    local disk=$(cat $STATE_DIR/disk)
+    local keyboard=$(cat $STATE_DIR/keyboard)
+    local language=$(cat $STATE_DIR/language)
+    local timezone=$(cat $STATE_DIR/timezone)
+    local desktop=$(cat $STATE_DIR/desktop)
+    local network=$(cat $STATE_DIR/network)
+    local bluetooth=$(cat $STATE_DIR/bluetooth)
+    local cups=$(cat $STATE_DIR/cups)
+    local pipewire=$(cat $STATE_DIR/pipewire)
+    local swap_size=$(cat $STATE_DIR/swap)
+    local disk="/dev/$(cat $STATE_DIR/disk)"
+    local bootmode=$(cat $STATE_DIR/bootmode)
+    
+    nixos-generate-config --root /mnt
     
     cat > /mnt/etc/nixos/configuration.nix << EOF
 { config, pkgs, lib, ... }:
 
 {
   imports = [ ./hardware-configuration.nix ];
+  
+  boot.loader.grub.enable = true;
+  boot.loader.grub.version = 2;
+EOF
 
-  boot.loader = {
-    grub = {
-      enable = true;
-      device = "$disk";
-    };
-  };
+    if [ "$bootmode" = "uefi" ]; then
+        cat >> /mnt/etc/nixos/configuration.nix << EOF
+  boot.loader.grub.efiSupport = true;
+  boot.loader.grub.efiInstallAsRemovable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader.grub.device = "nodev";
+EOF
+    else
+        cat >> /mnt/etc/nixos/configuration.nix << EOF
+  boot.loader.grub.device = "$disk";
+EOF
+    fi
 
-  i18n.defaultLocale = "$language";
+    cat >> /mnt/etc/nixos/configuration.nix << EOF
+  
+  i18n.defaultLocale = "$language.UTF-8";
   console.keyMap = "$keyboard";
-  services.xserver.xkb.layout = "$keyboard";
-  time.timeZone = "America/Sao_Paulo";
+  
+  time.timeZone = "$timezone";
   services.ntp.enable = true;
+  
+  users.users.$username = {
+    isNormalUser = true;
+    description = "$username";
+    extraGroups = [ "wheel" "networkmanager" "audio" "video" ];
+    shell = pkgs.bash;
+    hashedPassword = lib.mkForce "";
+    password = "$password";
+  };
+  
+  security.sudo.wheelNeedsPassword = false;
+  
+EOF
+
+    if [ "$swap_size" != "none" ]; then
+        cat >> /mnt/etc/nixos/configuration.nix << EOF
+  swapDevices = [ { device = "/.swapfile"; } ];
+  
+EOF
+    fi
+
+    if [ "$network" = "iwd" ]; then
+        cat >> /mnt/etc/nixos/configuration.nix << EOF
+  networking.wireless.enable = true;
+  networking.wireless.iwd.enable = true;
+  
+EOF
+    else
+        cat >> /mnt/etc/nixos/configuration.nix << EOF
   networking.networkmanager.enable = true;
-  services.bluetooth.enable = true;
+  
+EOF
+    fi
+
+    if [ "$bluetooth" = "yes" ]; then
+        cat >> /mnt/etc/nixos/configuration.nix << EOF
+  hardware.bluetooth.enable = true;
+  services.blueman.enable = true;
+  
+EOF
+    fi
+
+    if [ "$cups" = "yes" ]; then
+        cat >> /mnt/etc/nixos/configuration.nix << EOF
+  services.printing.enable = true;
+  
+EOF
+    fi
+
+    if [ "$pipewire" = "yes" ]; then
+        cat >> /mnt/etc/nixos/configuration.nix << EOF
+  security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
-  };
-  services.printing.enable = true;
-  services.avahi.enable = true;
-  services.avahi.nssmdns = true;
-  
-  swapDevices = [ { device = "/.swapfile"; } ];
-  
-  users.users.$username = {
-    isNormalUser = true;
-    description = "$username";
-    extraGroups = [ "wheel" "networkmanager" ];
-    password = "$password";
-    shell = pkgs.bash;
-    home = "/home/$username";
+    jack.enable = true;
   };
   
-  security.sudo.extraRules = [
-    {
-      groups = [ "wheel" ];
-      commands = [
-        {
-          command = "ALL";
-          options = [ "SETENV" "NOPASSWD" ];
-        }
-      ];
-    }
-  ];
-  
+EOF
+    fi
+
+    cat >> /mnt/etc/nixos/configuration.nix << EOF
   environment.systemPackages = with pkgs; [
     nano
+    htop
     git
     curl
     wget
-    htop
-    iwd
-    bluez
-    bluez-tools
-    cups
-    networkmanager
-    networkmanagerapplet
-  ];
-  
 EOF
 
     if [ "$desktop" = "gnome" ]; then
         cat >> /mnt/etc/nixos/configuration.nix << EOF
-  services.xserver.enable = true;
-  services.xserver.displayManager.gdm.enable = true;
-  services.xserver.desktopManager.gnome.enable = true;
-  environment.gnome.excludePackages = with pkgs; [
-    gnome-tour
-    gnome-maps
-    gnome-music
-    gnome-contacts
-    gnome-weather
-    epiphany
-    geary
-  ];
-  environment.systemPackages = with pkgs; [
     gnome-console
     gnome-software
     gnome-tweaks
     gnome-disk-utility
     gnome-backgrounds
+EOF
+        cat >> /mnt/etc/nixos/configuration.nix << EOF
   ];
+  services.xserver.enable = true;
+  services.xserver.desktopManager.gnome.enable = true;
+  services.xserver.displayManager.gdm.enable = true;
+  
 EOF
     elif [ "$desktop" = "plasma" ]; then
         cat >> /mnt/etc/nixos/configuration.nix << EOF
-  services.xserver.enable = true;
-  services.xserver.displayManager.sddm.enable = true;
-  services.xserver.desktopManager.plasma5.enable = true;
-  environment.systemPackages = with pkgs; [
     konsole
     dolphin
     kdeconnect
-    partition-manager
     ark
+    partitionmanager
+EOF
+        cat >> /mnt/etc/nixos/configuration.nix << EOF
   ];
+  services.xserver.enable = true;
+  services.xserver.desktopManager.plasma5.enable = true;
+  services.xserver.displayManager.sddm.enable = true;
+  
 EOF
     elif [ "$desktop" = "cosmic" ]; then
         cat >> /mnt/etc/nixos/configuration.nix << EOF
-  services.desktopManager.cosmic.enable = true;
-  services.displayManager.cosmic-greeter.enable = true;
-  environment.systemPackages = with pkgs; [
-    cosmic-term
+    cosmic-session
+    cosmic-terminal
     cosmic-files
     cosmic-store
     cosmic-wallpapers
+EOF
+        cat >> /mnt/etc/nixos/configuration.nix << EOF
   ];
+  services.desktopManager.cosmic.enable = true;
+  services.displayManager.cosmic-greeter.enable = true;
+  
+EOF
+    else
+        cat >> /mnt/etc/nixos/configuration.nix << EOF
+  ];
+  
 EOF
     fi
-    
-    echo "}" >> /mnt/etc/nixos/configuration.nix
-    
-    sed -i "s|device = \"/dev/disk/by-label/NIXROOT\";|device = \"/dev/disk/by-label/NIXROOT\";|" /mnt/etc/nixos/hardware-configuration.nix
-    sed -i "s|device = \"/dev/disk/by-label/NIXBOOT\";|device = \"/dev/disk/by-label/NIXBOOT\";|" /mnt/etc/nixos/hardware-configuration.nix
+
+    cat >> /mnt/etc/nixos/configuration.nix << EOF
+  system.stateVersion = "25.11";
+}
+EOF
+
+    sed -i "s|/dev/.* /boot|/dev/disk/by-label/NIXBOOT /boot|g" /mnt/etc/nixos/hardware-configuration.nix
+    sed -i "s|/dev/.* / |/dev/disk/by-label/NIXROOT / |g" /mnt/etc/nixos/hardware-configuration.nix
 }
 
-install_system() {
-    cd /mnt
-    nixos-install --no-root-passwd --show-trace
+do_install() {
+    nixos-install --no-root-passwd --root /mnt
 }
 
 main() {
     clear
-    echo "Instalador NixOS 25.11"
-    echo ""
+    echo "=== INSTALADOR NIXOS 25.11 ==="
+    echo
     
-    select_language
-    select_desktop
-    select_swap
-    select_disk
-    collect_user_info
+    menu_language
+    menu_keyboard
+    menu_disk
+    menu_swap
+    menu_network
+    menu_bluetooth
+    menu_cups
+    menu_pipewire
+    menu_desktop
+    menu_user
+    menu_timezone
+    
     show_summary
     
-    echo "Iniciando particionamento..."
-    partition_disk
-    echo "Montando partições..."
-    mount_partitions
-    echo "Criando swap..."
-    create_swap
-    echo "Gerando configuração..."
-    generate_config
-    echo "Instalando sistema..."
-    install_system
-    
-    echo ""
-    echo "Instalação concluída! / Installation complete!"
-    echo "Reinicie o sistema. / Reboot the system."
+    if confirm "Deseja iniciar a instalação? / Start installation?"; then
+        echo "Iniciando instalação / Starting installation..."
+        
+        do_partition
+        do_mount
+        do_swap
+        do_config
+        do_install
+        
+        echo
+        echo "Instalação concluída! / Installation completed!"
+        echo "Reinicie o sistema com: sudo reboot"
+    else
+        echo "Instalação cancelada / Installation cancelled"
+        exit 0
+    fi
 }
 
 main
