@@ -23,18 +23,22 @@ cleanup_files() {
 cachyconfs_installer() {
     local state_file="$STATE_DIR/cachyconfs"
 
-    if [ -f "$state_file" ] || [ -f "/usr/lib/sysctl.d/99-cachyos-settings.conf" ]; then
+    if [ -f "$state_file" ] || [ -f "/etc/sysctl.d/99-cachyos-settings.conf" ] || [ -f "/usr/lib/sysctl.d/99-cachyos-settings.conf" ]; then
         if confirm "CachyOS Configs detectado. Desinstalar?"; then
-            sudo rm -f /usr/lib/sysctl.d/99-cachyos-settings.conf
+            sudo rm -f /etc/sysctl.d/99-cachyos-settings.conf 2>/dev/null || true
+            sudo rm -f /usr/lib/sysctl.d/99-cachyos-settings.conf 2>/dev/null || true
             sudo sysctl --system
             cleanup_files "$state_file"
         fi
     else
         if confirm "Instalar CachyOS Configs?"; then
-            sudo mkdir -p /usr/lib/sysctl.d
-            curl -s https://raw.githubusercontent.com/CachyOS/CachyOS-Settings/main/sysctl/99-cachyos-settings.conf | sudo tee /usr/lib/sysctl.d/99-cachyos-settings.conf > /dev/null
+            echo "Criando diretório /etc/sysctl.d/..."
+            sudo mkdir -p /etc/sysctl.d
+            echo "Baixando e instalando configurações CachyOS..."
+            curl -s https://raw.githubusercontent.com/CachyOS/CachyOS-Settings/main/sysctl/99-cachyos-settings.conf | sudo tee /etc/sysctl.d/99-cachyos-settings.conf > /dev/null
             sudo sysctl --system
             touch "$state_file"
+            echo "CachyOS Configs instalado com sucesso em /etc/sysctl.d/"
         fi
     fi
 }
@@ -303,23 +307,82 @@ terra_installer() {
 xpadneo_installer() {
     local state_file="$STATE_DIR/xpadneo"
 
-    if [ -f "$state_file" ] || rpm -q xpadneo &>/dev/null; then
+    if [ -f "$state_file" ] || [ -d "/usr/src/xpadneo"* ] 2>/dev/null; then
         if confirm "Xpadneo detectado. Desinstalar?"; then
             echo "Desinstalando Xpadneo..."
-            sudo rpm-ostree uninstall xpadneo 2>/dev/null || true
-            sudo rm -f /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:shdwchn10:xpadneo.repo
+            cd $HOME
+            if [ -d "xpadneo" ]; then
+                cd xpadneo
+                sudo ./uninstall.sh
+                cd ..
+                rm -rf xpadneo
+            fi
             cleanup_files "$state_file"
-            echo "Xpadneo desinstalado. Reinicie para aplicar."
+            echo "Xpadneo desinstalado."
         fi
     else
         if confirm "Instalar Xpadneo?"; then
             echo "Instalando Xpadneo..."
-            local fedora_version=$(rpm -E %fedora)
-            sudo curl -L -o /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:shdwchn10:xpadneo.repo \
-                https://copr.fedorainfracloud.org/coprs/shdwchn10/xpadneo/repo/fedora-${fedora_version}/shdwchn10-xpadneo-fedora-${fedora_version}.repo
-            sudo rpm-ostree install xpadneo
+            
+            # Cancel any pending transactions
+            sudo rpm-ostree cancel 2>/dev/null || true
+            
+            # Check for pending changes that require reboot
+            if rpm-ostree status | grep -q "Changes queued"; then
+                echo "Há alterações pendentes. É necessário reiniciar antes de instalar o Xpadneo."
+                echo "Execute: sudo systemctl reboot"
+                read -p "Pressione Enter para voltar ao menu..."
+                return
+            fi
+            
+            # Install required packages with --allow-inactive
+            echo "Instalando dependências..."
+            sudo rpm-ostree install --allow-inactive dkms kernel-devel kernel-headers make || {
+                echo "Falha ao instalar dependências. Tente reiniciar e executar novamente."
+                return
+            }
+            
+            # Check again for pending changes
+            if rpm-ostree status | grep -q "Changes queued"; then
+                echo "Dependências instaladas. Reinicie o sistema para ativar o DKMS e depois execute novamente."
+                echo "Após reiniciar, execute esta opção novamente para completar a instalação do Xpadneo."
+                touch "$state_file"
+                return
+            fi
+            
+            # Verify DKMS is available
+            if ! command -v dkms &>/dev/null; then
+                echo "DKMS não está disponível mesmo após instalação. Tente reiniciar o sistema."
+                touch "$state_file"
+                return
+            fi
+            
+            # Proceed with installation
+            cd $HOME
+            if [ -d "xpadneo" ]; then
+                rm -rf xpadneo
+            fi
+            
+            echo "Clonando repositório xpadneo..."
+            git clone https://github.com/atar-axis/xpadneo.git
+            cd xpadneo
+            
+            # Get version
+            VERSION=$(git describe --tags | sed 's/^v//')
+            
+            echo "Instalando xpadneo via dkms..."
+            # Use dkms directly
+            sudo dkms add .
+            sudo dkms build xpadneo/$VERSION
+            sudo dkms install xpadneo/$VERSION
+            
+            # Load module
+            sudo modprobe hid-xpadneo || true
+            
+            cd ..
+            rm -rf xpadneo
             touch "$state_file"
-            echo "Xpadneo instalado. Reinicie para aplicar."
+            echo "Xpadneo instalado com sucesso!"
         fi
     fi
 }
@@ -353,7 +416,7 @@ main_menu() {
         echo "2) Terra Repository"
         echo "3) Ostree Auto-updates"
         echo "4) CachyOS Configs"
-        echo "5) Xpadneo (Xbox Controller) - COPR"
+        echo "5) Xpadneo (Xbox Controller)"
         echo "6) Faugus Launcher"
         echo "7) Zen Browser"
         echo "8) Flatpak/Flathub"
