@@ -12,39 +12,27 @@ confirm() {
 }
 
 select_language() {
-    echo "Selecione o idioma do sistema:"
-    echo "1) Português do Brasil (pt_BR.UTF-8)"
-    echo "2) English (en_US.UTF-8)"
-    echo "3) Español (es_ES.UTF-8)"
-    echo "4) Français (fr_FR.UTF-8)"
-    echo "5) Deutsch (de_DE.UTF-8)"
+    echo "Selecione o idioma do sistema / Select system language:"
+    echo "1) Português Brasileiro (pt_BR.UTF-8)"
+    echo "2) English US (en_US.UTF-8)"
     read -p "Opção: " lang_opcao
     
     case $lang_opcao in
         1) echo "pt_BR.UTF-8" > "$STATE_DIR/lang" ;;
         2) echo "en_US.UTF-8" > "$STATE_DIR/lang" ;;
-        3) echo "es_ES.UTF-8" > "$STATE_DIR/lang" ;;
-        4) echo "fr_FR.UTF-8" > "$STATE_DIR/lang" ;;
-        5) echo "de_DE.UTF-8" > "$STATE_DIR/lang" ;;
         *) echo "en_US.UTF-8" > "$STATE_DIR/lang" ;;
     esac
 }
 
 select_keyboard() {
-    echo "Selecione o layout do teclado:"
-    echo "1) br (ABNT2)"
-    echo "2) us"
-    echo "3) es"
-    echo "4) fr"
-    echo "5) de"
+    echo "Selecione o layout do teclado / Select keyboard layout:"
+    echo "1) Português Brasileiro (br)"
+    echo "2) English US (us)"
     read -p "Opção: " kb_opcao
     
     case $kb_opcao in
         1) echo "br" > "$STATE_DIR/keyboard" ;;
         2) echo "us" > "$STATE_DIR/keyboard" ;;
-        3) echo "es" > "$STATE_DIR/keyboard" ;;
-        4) echo "fr" > "$STATE_DIR/keyboard" ;;
-        5) echo "de" > "$STATE_DIR/keyboard" ;;
         *) echo "us" > "$STATE_DIR/keyboard" ;;
     esac
 }
@@ -109,6 +97,43 @@ detect_disk() {
     echo "/dev/$disk_name" > "$STATE_DIR/disk"
 }
 
+select_username() {
+    read -p "Nome do usuário: " username
+    echo "$username" > "$STATE_DIR/username"
+    
+    read -s -p "Senha do usuário: " userpass
+    echo
+    read -s -p "Confirme a senha: " userpass2
+    echo
+    
+    if [ "$userpass" != "$userpass2" ]; then
+        echo "Senhas não conferem!"
+        exit 1
+    fi
+    
+    echo "$userpass" > "$STATE_DIR/userpass"
+}
+
+show_summary() {
+    clear
+    echo "=== RESUMO DA INSTALAÇÃO ==="
+    echo "Idioma: $(cat $STATE_DIR/lang)"
+    echo "Teclado: $(cat $STATE_DIR/keyboard)"
+    echo "Disco: $(cat $STATE_DIR/disk)"
+    echo "Desktop: $(case $(cat $STATE_DIR/desktop) in cosmic) echo 'Cosmic';; gnome) echo 'GNOME';; plasma) echo 'KDE Plasma';; none) echo 'Nenhum';; esac)"
+    echo "Swap: $(cat $STATE_DIR/swap | sed 's/G//')GB"
+    echo "Bluetooth: $(cat $STATE_DIR/bluetooth | sed 's/yes/Habilitado/; s/no/Desabilitado/')"
+    echo "CUPS: $(cat $STATE_DIR/cups | sed 's/yes/Habilitado/; s/no/Desabilitado/')"
+    echo "Usuário: $(cat $STATE_DIR/username)"
+    echo "============================"
+    echo
+    
+    if ! confirm "Continuar com a instalação?"; then
+        echo "Instalação cancelada."
+        exit 0
+    fi
+}
+
 partition_disk() {
     local disk=$(cat "$STATE_DIR/disk")
     
@@ -165,19 +190,8 @@ generate_config() {
     local desktop=$(cat "$STATE_DIR/desktop")
     local bluetooth=$(cat "$STATE_DIR/bluetooth")
     local cups=$(cat "$STATE_DIR/cups")
-    
-    read -p "Nome do usuário: " username
-    echo "$username" > "$STATE_DIR/username"
-    
-    read -s -p "Senha do usuário: " userpass
-    echo
-    read -s -p "Confirme a senha: " userpass2
-    echo
-    
-    if [ "$userpass" != "$userpass2" ]; then
-        echo "Senhas não conferem!"
-        exit 1
-    fi
+    local username=$(cat "$STATE_DIR/username")
+    local userpass=$(cat "$STATE_DIR/userpass")
     
     local pass_hash=$(mkpasswd -m sha-512 "$userpass")
     
@@ -187,48 +201,44 @@ generate_config() {
 {
   imports = [ ./hardware-configuration.nix ];
 
-  # Bootloader
-  $([ "$boot_mode" = "uefi" ] && echo 'boot.loader.systemd-boot.enable = true;' || echo 'boot.loader.grub.enable = true; boot.loader.grub.device = "'$(cat "$STATE_DIR/disk")'";')
-  
-  # Locale
+  boot.loader = {
+    $([ "$boot_mode" = "uefi" ] && echo 'systemd-boot.enable = true;' || echo 'grub.enable = true; grub.device = "'$(cat "$STATE_DIR/disk")'";')
+  };
+
   i18n.defaultLocale = "$lang";
   console.keyMap = "$keyboard";
   
-  # Time
   time.timeZone = "America/Sao_Paulo";
   services.ntp.enable = true;
   
-  # Network
-  networking.networkmanager.enable = true;
-  networking.wireless.iwd.enable = true;
-  networking.hostName = "nixos";
+  networking = {
+    hostName = "nixos";
+    networkmanager.enable = true;
+    wireless.iwd.enable = true;
+  };
   
-  # Swap
   swapDevices = [ {
     device = "/.swapfile";
     size = $(echo $(cat "$STATE_DIR/swap") | sed 's/G//' | awk '{print $1 * 1024}');
   } ];
   
-  # PipeWire
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
+    jack.enable = true;
   };
   
-  # Bluetooth
   $([ "$bluetooth" = "yes" ] && echo 'hardware.bluetooth.enable = true; services.blueman.enable = true;')
   
-  # CUPS
   $([ "$cups" = "yes" ] && echo 'services.printing.enable = true;')
   
-  # User
   users.users.$username = {
     isNormalUser = true;
     description = "$username";
-    extraGroups = [ "wheel" "networkmanager" "audio" "video" ];
+    extraGroups = [ "wheel" "networkmanager" "audio" "video" "lp" ];
     hashedPassword = "$pass_hash";
     shell = pkgs.bash;
   };
@@ -245,23 +255,44 @@ generate_config() {
     }
   ];
   
-  # Desktop Environments
   $([ "$desktop" = "cosmic" ] && echo '
   services.desktopManager.cosmic.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
-  ')
+  environment.systemPackages = with pkgs; [
+    cosmic-term
+    cosmic-files
+    cosmic-store
+    cosmic-wallpapers
+  ];')
   
   $([ "$desktop" = "gnome" ] && echo '
   services.xserver.desktopManager.gnome.enable = true;
   services.displayManager.gdm.enable = true;
-  ')
+  environment.gnome.excludePackages = with pkgs; [
+    gnome-tour
+    epiphany
+    geary
+  ];
+  environment.systemPackages = with pkgs; [
+    gnome-initial-setup
+    gnome-console
+    gnome-software
+    gnome-tweaks
+    gnome-disk-utility
+    gnome-backgrounds
+  ];')
   
   $([ "$desktop" = "plasma" ] && echo '
   services.xserver.desktopManager.plasma5.enable = true;
   services.displayManager.sddm.enable = true;
-  ')
+  environment.systemPackages = with pkgs; [
+    konsole
+    dolphin
+    kdeconnect
+    partition-manager
+    ark
+  ];')
   
-  # Basic packages
   environment.systemPackages = with pkgs; [
     vim
     nano
@@ -271,11 +302,21 @@ generate_config() {
     htop
     neofetch
     firefox
+    file
+    unzip
+    zip
+    ntfs3g
+    pciutils
+    usbutils
+    killall
   ];
   
   system.stateVersion = "25.11";
 }
 EOF
+
+    sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXROOT|g" /mnt/etc/nixos/hardware-configuration.nix 2>/dev/null || true
+    sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXBOOT|g" /mnt/etc/nixos/hardware-configuration.nix 2>/dev/null || true
 }
 
 install_system() {
@@ -285,32 +326,30 @@ install_system() {
 
 main() {
     clear
-    echo "=== Instalador Automático NixOS 25.11 ==="
+    echo "=== INSTALADOR NIXOS 25.11 ==="
     echo
     
     select_language
     select_keyboard
-    select_swap_size
+    detect_disk
     select_desktop
+    select_swap_size
     select_bluetooth
     select_cups
-    detect_disk
+    select_username
     
-    if confirm "Iniciar particionamento automático em $(cat "$STATE_DIR/disk")?"; then
-        partition_disk
-    else
-        echo "Particionamento cancelado."
-        exit 1
-    fi
+    show_summary
     
+    echo "Iniciando instalação..."
+    
+    partition_disk
     mount_partitions
     create_swap
     generate_config
     
     if confirm "Iniciar instalação do NixOS?"; then
         install_system
-        echo "Instalação concluída!"
-        echo "Digite 'reboot' para reiniciar."
+        echo "Instalação concluída! Reinicie o sistema."
     else
         echo "Instalação cancelada."
         exit 1
