@@ -302,6 +302,44 @@ EOF
     }
   ];
   
+  environment.systemPackages = with pkgs; [
+    vim
+    nano
+    git
+    wget
+    curl
+    htop
+    firefox
+EOF
+
+    if [ "$desktop" = "gnome" ]; then
+        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << EOF
+    gnome-console
+    gnome-software
+    gnome-tweaks
+    gnome-disk-utility
+    gnome-backgrounds
+EOF
+    elif [ "$desktop" = "plasma" ]; then
+        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << EOF
+    konsole
+    dolphin
+    kdeconnect
+    partition-manager
+    ark
+EOF
+    elif [ "$desktop" = "cosmic" ]; then
+        sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << EOF
+    cosmic-term
+    cosmic-files
+    cosmic-store
+    cosmic-wallpapers
+EOF
+    fi
+
+    sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << EOF
+  ];
+  
 EOF
 
     if [ "$desktop" = "gnome" ]; then
@@ -315,50 +353,20 @@ EOF
     evince
     totem
   ];
-  environment.systemPackages = with pkgs; [
-    gnome-console
-    gnome-software
-    gnome-tweaks
-    gnome-disk-utility
-    gnome-backgrounds
-  ];
 EOF
     elif [ "$desktop" = "plasma" ]; then
         sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << EOF
   services.xserver.desktopManager.plasma5.enable = true;
   services.displayManager.sddm.enable = true;
-  environment.systemPackages = with pkgs; [
-    konsole
-    dolphin
-    kdeconnect
-    partition-manager
-    ark
-  ];
 EOF
     elif [ "$desktop" = "cosmic" ]; then
         sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << EOF
   services.desktopManager.cosmic.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
-  environment.systemPackages = with pkgs; [
-    cosmic-term
-    cosmic-files
-    cosmic-store
-    cosmic-wallpapers
-  ];
 EOF
     fi
 
     sudo tee -a /mnt/etc/nixos/configuration.nix > /dev/null << EOF
-
-  environment.systemPackages = with pkgs; [
-    vim
-    nano
-    git
-    wget
-    curl
-    htop
-    firefox
-  ];
   
   system.stateVersion = "25.11";
 }
