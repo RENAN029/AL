@@ -56,8 +56,8 @@ select_swap_size() {
 select_desktop() {
     echo "Selecione o ambiente desktop / Select desktop environment:"
     echo "1) Cosmic"
-    echo "2) GNOME"
-    echo "3) KDE Plasma"
+    echo "2) GNOME (pacotes mínimos)"
+    echo "3) KDE Plasma (pacotes mínimos)"
     echo "4) Nenhum (apenas terminal)"
     read -p "Opção: " de_opt
     case $de_opt in
@@ -113,7 +113,7 @@ show_summary() {
     echo "Idioma / Language: $(cat $STATE_DIR/lang 2>/dev/null)"
     echo "Teclado / Keyboard: $(cat $STATE_DIR/keyboard 2>/dev/null)"
     echo "Disco / Disk: $(cat $STATE_DIR/disk 2>/dev/null)"
-    echo "Desktop: $(case $(cat $STATE_DIR/desktop 2>/dev/null) in cosmic) echo "Cosmic";; gnome) echo "GNOME";; plasma) echo "KDE Plasma";; none) echo "Nenhum / None";; esac)"
+    echo "Desktop: $(case $(cat $STATE_DIR/desktop 2>/dev/null) in cosmic) echo "Cosmic";; gnome) echo "GNOME (mínimo)";; plasma) echo "KDE Plasma (mínimo)";; none) echo "Nenhum / None";; esac)"
     echo "Swap: $(cat $STATE_DIR/swap 2>/dev/null)"
     echo "Bluetooth: $(cat $STATE_DIR/bluetooth 2>/dev/null)"
     echo "CUPS: $(cat $STATE_DIR/cups 2>/dev/null)"
@@ -247,44 +247,34 @@ generate_config() {
   services.displayManager.cosmic-greeter.enable = true;')
   
   $([ "$desktop" = "gnome" ] && echo '
-  services.xserver.desktopManager.gnome.enable = true;
+  services.xserver.enable = true;
   services.displayManager.gdm.enable = true;')
   
   $([ "$desktop" = "plasma" ] && echo '
-  services.xserver.desktopManager.plasma5.enable = true;
+  services.xserver.enable = true;
   services.displayManager.sddm.enable = true;')
   
   environment.systemPackages = with pkgs; [
     vim
-    nano
     git
-    wget
-    curl
-    htop
-    neofetch
     firefox
     $([ "$desktop" = "cosmic" ] && echo '
     cosmic-session
-    cosmic-terminal
+    cosmic-term
     cosmic-files
-    cosmic-store
-    cosmic-wallpapers
     ')
     $([ "$desktop" = "gnome" ] && echo '
-    gnome-initial-setup
     gnome-console
     gnome-software
     gnome-tweaks
-    gnome-disk-utility
-    gnome-backgrounds
+    gnome-shell
+    gdm
     ')
     $([ "$desktop" = "plasma" ] && echo '
-    plasma-meta
+    plasma-workspace
     konsole
     dolphin
-    kdeconnect
-    partition-manager
-    ark
+    sddm
     ')
   ];
   
