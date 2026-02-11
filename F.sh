@@ -20,25 +20,6 @@ cleanup_files() {
     done
 }
 
-cleanup_de_packages() {
-    local de_type="$1"
-    
-    case $de_type in
-        gnome)
-            echo "Removendo pacotes desnecessários do GNOME..."
-            sudo rpm-ostree override remove firefox gnome-photos gnome-contacts gnome-maps gnome-weather gnome-calendar totem rhythmbox || true
-            ;;
-        plasma)
-            echo "Removendo pacotes desnecessários do KDE Plasma..."
-            sudo rpm-ostree override remove firefox kate konversation kwrite dragon elisa-player juk k3b krdc krfb ktorrent || true
-            ;;
-        cosmic)
-            echo "Removendo pacotes desnecessários do COSMIC..."
-            sudo rpm-ostree override remove firefox || true
-            ;;
-    esac
-}
-
 cachyconfs_installer() {
     local state_file="$STATE_DIR/cachyconfs"
 
@@ -60,65 +41,62 @@ cachyconfs_installer() {
 
 de_cosmic_installer() {
     local state_file="$STATE_DIR/de_cosmic"
-    
-    if [ -f "$state_file" ] || rpm-ostree status | grep -q "cosmic" 2>/dev/null; then
-        if confirm "COSMIC Desktop detectado. Desinstalar?"; then
-            echo "Revertendo para imagem anterior..."
-            sudo rpm-ostree rollback
+
+    if [ -f "$state_file" ] || rpm-ostree status 2>/dev/null | grep -q "cosmic-atomic"; then
+        if confirm "COSMIC detectado. Rebase para Fedora Atomic padrão?"; then
+            local fedora_version=$(rpm -E %fedora)
+            local arch=$(uname -m)
+            sudo rpm-ostree rebase fedora:fedora/${fedora_version}/${arch}/silverblue
             cleanup_files "$state_file"
-            echo "COSMIC removido. Reinicie para aplicar."
+            echo "Rebase para imagem padrão concluído. Reinicie para aplicar."
         fi
     else
-        if confirm "Instalar COSMIC Desktop? (rebase para ublue/cosmic)"; then
-            echo "Instalando COSMIC Desktop..."
-            sudo rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/cosmic:latest
-            cleanup_de_packages "cosmic"
+        if confirm "Instalar COSMIC (rebase para fedora cosmic-atomic)?"; then
+            local fedora_version=$(rpm -E %fedora)
+            local arch=$(uname -m)
+            sudo rpm-ostree rebase fedora:fedora/${fedora_version}/${arch}/cosmic-atomic
             touch "$state_file"
-            echo "COSMIC instalado. Reinicie para aplicar."
+            echo "Rebase para COSMIC concluído. Reinicie para aplicar."
         fi
     fi
 }
 
 de_gnome_installer() {
     local state_file="$STATE_DIR/de_gnome"
-    local current_image=$(rpm-ostree status --json | grep -o '"deploy-pending":\?"checksum": "[^"]*"')
-    
-    if [ -f "$state_file" ] || echo "$current_image" | grep -q "gnome" 2>/dev/null; then
-        if confirm "GNOME Desktop detectado. Desinstalar?"; then
-            echo "Revertendo para imagem anterior..."
-            sudo rpm-ostree rollback
-            cleanup_files "$state_file"
-            echo "GNOME removido. Reinicie para aplicar."
+
+    if [ -f "$state_file" ] || rpm-ostree status 2>/dev/null | grep -q "silverblue"; then
+        if confirm "GNOME detectado. Desinstalar?"; then
+            echo "GNOME é o ambiente padrão. Remova manualmente ou faça rebase para outra imagem."
         fi
     else
-        if confirm "Instalar GNOME Desktop? (rebase para ublue/gnome)"; then
-            echo "Instalando GNOME Desktop..."
-            sudo rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/gnome:latest
-            cleanup_de_packages "gnome"
+        if confirm "Instalar GNOME (rebase para fedora silverblue)?"; then
+            local fedora_version=$(rpm -E %fedora)
+            local arch=$(uname -m)
+            sudo rpm-ostree rebase fedora:fedora/${fedora_version}/${arch}/silverblue
             touch "$state_file"
-            echo "GNOME instalado. Reinicie para aplicar."
+            echo "Rebase para GNOME concluído. Reinicie para aplicar."
         fi
     fi
 }
 
 de_plasma_installer() {
     local state_file="$STATE_DIR/de_plasma"
-    local current_image=$(rpm-ostree status --json | grep -o '"deploy-pending":\?"checksum": "[^"]*"')
-    
-    if [ -f "$state_file" ] || echo "$current_image" | grep -q "kinoite" 2>/dev/null || echo "$current_image" | grep -q "plasma" 2>/dev/null; then
-        if confirm "Plasma Desktop detectado. Desinstalar?"; then
-            echo "Revertendo para imagem anterior..."
-            sudo rpm-ostree rollback
+
+    if [ -f "$state_file" ] || rpm-ostree status 2>/dev/null | grep -q "kinoite"; then
+        if confirm "KDE Plasma detectado. Rebase para Fedora Atomic padrão?"; then
+            local fedora_version=$(rpm -E %fedora)
+            local arch=$(uname -m)
+            sudo rpm-ostree rebase fedora:fedora/${fedora_version}/${arch}/silverblue
             cleanup_files "$state_file"
-            echo "Plasma removido. Reinicie para aplicar."
+            echo "Rebase para imagem padrão concluído. Reinicie para aplicar."
         fi
     else
-        if confirm "Instalar Plasma Desktop? (rebase para ublue/kinoite)"; then
-            echo "Instalando Plasma Desktop..."
-            sudo rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/kinoite:latest
-            cleanup_de_packages "plasma"
+        if confirm "Instalar KDE Plasma (rebase para fedora kinoite)?"; then
+            local fedora_version=$(rpm -E %fedora)
+            local arch=$(uname -m)
+            sudo rpm-ostree rebase fedora:fedora/${fedora_version}/${arch}/kinoite
             touch "$state_file"
-            echo "Plasma instalado. Reinicie para aplicar."
+            echo "Rebase para Kinoite concluído. Reinicie para aplicar."
         fi
     fi
 }
@@ -138,9 +116,9 @@ faugus_launcher_installer() {
         if confirm "Instalar Faugus Launcher?"; then
             echo "Instalando Faugus Launcher..."
             flatpak install --user --noninteractive flathub $pkg_faugus
-            sudo flatpak override io.github.Faugus.faugus-launcher --filesystem=~/.var/app/com.valvesoftware.Steam/.steam/steam/userdata/
-            sudo flatpak override com.valvesoftware.Steam --talk-name=org.freedesktop.Flatpak
-            sudo flatpak override com.valvesoftware.Steam --filesystem=~/.var/app/io.github.Faugus.faugus-launcher/config/faugus-launcher/
+            flatpak override --user io.github.Faugus.faugus-launcher --filesystem=~/.var/app/com.valvesoftware.Steam/.steam/steam/userdata/
+            flatpak override --user com.valvesoftware.Steam --talk-name=org.freedesktop.Flatpak
+            flatpak override --user com.valvesoftware.Steam --filesystem=~/.var/app/io.github.Faugus.faugus-launcher/config/faugus-launcher/
             touch "$state_file"
             echo "Faugus Launcher instalado."
         fi
@@ -151,38 +129,24 @@ flatpak_flathub_installer() {
     local flatpak_state="$STATE_DIR/flatpak"
     local flathub_state="$STATE_DIR/flathub"
 
-    if ! command -v flatpak &>/dev/null; then
-        if confirm "Instalar Flatpak?"; then
-            echo "Instalando Flatpak..."
-            sudo rpm-ostree install flatpak
-            touch "$flatpak_state"
-            echo "Flatpak instalado. Reinicie para aplicar."
-        fi
-    else
+    if [ -f "$flatpak_state" ] || command -v flatpak &>/dev/null; then
         if confirm "Flatpak detectado. Desinstalar?"; then
-            echo "Desinstalando Flatpak..."
-            sudo rpm-ostree uninstall flatpak
-            rm -rf "$HOME/.local/share/flatpak" 2>/dev/null || true
-            sudo rm -rf /var/lib/flatpak 2>/dev/null || true
-            cleanup_files "$flatpak_state" "$flathub_state"
-            echo "Flatpak desinstalado. Reinicie para aplicar."
+            echo "Flatpak é parte do sistema. Remova manualmente se necessário."
         fi
     fi
 
-    if command -v flatpak &>/dev/null; then
-        if [ -f "$flathub_state" ] || flatpak remote-list | grep -q flathub 2>/dev/null; then
-            if confirm "Flathub detectado. Remover?"; then
-                echo "Removendo Flathub..."
-                flatpak remote-delete flathub 2>/dev/null || true
-                cleanup_files "$flathub_state"
-                echo "Flathub removido."
-            fi
-        elif confirm "Adicionar repositório Flathub?"; then
-            echo "Adicionando Flathub..."
-            flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-            touch "$flathub_state"
-            echo "Flathub adicionado."
+    if [ -f "$flathub_state" ] || flatpak remote-list --user 2>/dev/null | grep -q flathub; then
+        if confirm "Flathub detectado. Remover?"; then
+            echo "Removendo Flathub..."
+            flatpak remote-delete --user flathub 2>/dev/null || true
+            cleanup_files "$flathub_state"
+            echo "Flathub removido."
         fi
+    elif confirm "Adicionar repositório Flathub?"; then
+        echo "Adicionando Flathub..."
+        flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        touch "$flathub_state"
+        echo "Flathub adicionado."
     fi
 }
 
@@ -214,13 +178,12 @@ homebrew_installer() {
 nvidia_proprietary_installer() {
     local state_file="$STATE_DIR/nvidia_proprietary"
 
-    if [ -f "$state_file" ] || rpm-ostree status | grep -q "akmod-nvidia" 2>/dev/null; then
+    if [ -f "$state_file" ] || rpm -q akmod-nvidia &>/dev/null; then
         if confirm "Nvidia Proprietário detectado. Desinstalar?"; then
             echo "Desinstalando Nvidia Proprietário..."
-            sudo rpm-ostree uninstall akmod-nvidia xorg-x11-drv-nvidia-cuda || true
-            sudo sed -i '/nvidia-drm.modeset=1/d' /etc/default/grub 2>/dev/null || true
-            sudo sed -i '/rd.driver.blacklist=nouveau/d' /etc/default/grub 2>/dev/null || true
-            sudo sed -i '/modprobe.blacklist=nouveau/d' /etc/default/grub 2>/dev/null || true
+            sudo rpm-ostree uninstall akmod-nvidia xorg-x11-drv-nvidia-cuda 2>/dev/null || true
+            sudo rm -f /etc/modprobe.d/blacklist-nouveau-nova.conf
+            sudo rpm-ostree kargs --delete=rd.driver.blacklist=nova_core --delete=modprobe.blacklist=nova_core --delete=rd.driver.blacklist=nouveau --delete=modprobe.blacklist=nouveau --delete=nvidia-drm.modeset=1
             cleanup_files "$state_file"
             echo "Nvidia Proprietário desinstalado. Reinicie para aplicar."
         fi
@@ -228,19 +191,29 @@ nvidia_proprietary_installer() {
         if confirm "Instalar Nvidia Proprietário?"; then
             echo "Instalando Nvidia Proprietário..."
             
+            if ! rpm -q rpmfusion-free-release rpmfusion-nonfree-release &>/dev/null; then
+                rpmfusion_installer
+            fi
+            
             if sudo mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
-                echo "SecureBoot detectado. Configurando chaves..."
-                sudo rpm-ostree install kmodgenca akmods
+                sudo rpm-ostree install akmods rpmdevtools
                 sudo kmodgenca
                 sudo mokutil --import /etc/pki/akmods/certs/public_key.der
+                cd $HOME
+                git clone https://github.com/CheariX/silverblue-akmods-keys
+                cd silverblue-akmods-keys
+                sudo bash setup.sh
+                sudo rpm-ostree install -yA akmods-keys-*.noarch.rpm
+                cd ..
+                rm -rf silverblue-akmods-keys
             fi
             
             sudo rpm-ostree install akmod-nvidia xorg-x11-drv-nvidia-cuda
-            sudo rpm-ostree kargs \
-                --append=rd.driver.blacklist=nouveau \
-                --append=modprobe.blacklist=nouveau \
-                --append=nvidia-drm.modeset=1
-            
+            sudo tee /etc/modprobe.d/blacklist-nouveau-nova.conf <<EOF
+blacklist nouveau
+blacklist nova_core
+EOF
+            sudo rpm-ostree kargs --append=rd.driver.blacklist=nova_core --append=modprobe.blacklist=nova_core --append=rd.driver.blacklist=nouveau --append=modprobe.blacklist=nouveau --append=nvidia-drm.modeset=1
             touch "$state_file"
             echo "Nvidia Proprietário instalado. Reinicie para aplicar."
         fi
@@ -249,47 +222,60 @@ nvidia_proprietary_installer() {
 
 ostree_autoupd_installer() {
     local state_file="$STATE_DIR/ostree_autoupd"
+    local AUTOPOLICY="stage"
 
-    if [ -f "$state_file" ] || grep -q "^AutomaticUpdatePolicy=" /etc/rpm-ostreed.conf 2>/dev/null; then
-        if confirm "Atualizações automáticas detectadas. Desativar?"; then
-            sudo cp /etc/rpm-ostreed.conf /etc/rpm-ostreed.conf.bak
-            sudo sed -i 's/^AutomaticUpdatePolicy=.*/AutomaticUpdatePolicy=none/' /etc/rpm-ostreed.conf
+    if [ -f "$state_file" ] || systemctl is-enabled rpm-ostreed-automatic.timer &>/dev/null; then
+        if confirm "Auto-updates detectados. Desativar?"; then
             sudo systemctl disable rpm-ostreed-automatic.timer --now
+            if [ -f /etc/rpm-ostreed.conf.bak ]; then
+                sudo mv /etc/rpm-ostreed.conf.bak /etc/rpm-ostreed.conf
+            else
+                sudo sed -i 's/^AutomaticUpdatePolicy=.*/AutomaticUpdatePolicy=none/' /etc/rpm-ostreed.conf
+            fi
+            sudo systemctl restart rpm-ostreed
             cleanup_files "$state_file"
-            echo "Atualizações automáticas desativadas."
+            echo "Auto-updates desativados."
         fi
     else
-        if confirm "Ativar atualizações automáticas?"; then
+        if confirm "Ativar auto-updates?"; then
             sudo cp /etc/rpm-ostreed.conf /etc/rpm-ostreed.conf.bak
             if grep -q "^AutomaticUpdatePolicy=" /etc/rpm-ostreed.conf; then
-                sudo sed -i 's/^AutomaticUpdatePolicy=.*/AutomaticUpdatePolicy=stage/' /etc/rpm-ostreed.conf
+                sudo sed -i "s/^AutomaticUpdatePolicy=.*/AutomaticUpdatePolicy=${AUTOPOLICY}/" /etc/rpm-ostreed.conf
             else
-                sudo awk '/^\[Daemon\]/ {print; print "AutomaticUpdatePolicy=stage"; next} {print}' /etc/rpm-ostreed.conf | sudo tee /etc/rpm-ostreed.conf > /dev/null
+                sudo awk -v policy="$AUTOPOLICY" '
+                /^\[Daemon\]/ {
+                    print
+                    print "AutomaticUpdatePolicy=" policy
+                    next
+                }
+                { print }
+                ' /etc/rpm-ostreed.conf | sudo tee /etc/rpm-ostreed.conf > /dev/null
             fi
             sudo systemctl enable rpm-ostreed-automatic.timer --now
+            sudo systemctl restart rpm-ostreed
             touch "$state_file"
-            echo "Atualizações automáticas ativadas."
+            echo "Auto-updates ativados com política: $AUTOPOLICY"
         fi
     fi
 }
 
-rpm_fusion_installer() {
-    local state_file="$STATE_DIR/rpm_fusion"
-    local fedora_version=$(rpm -E %fedora)
+rpmfusion_installer() {
+    local state_file="$STATE_DIR/rpmfusion"
 
-    if [ -f "$state_file" ] || rpm -q rpmfusion-free-release &>/dev/null 2>/dev/null; then
-        if confirm "RPM Fusion detectado. Desinstalar?"; then
-            sudo rpm-ostree uninstall rpmfusion-free-release rpmfusion-nonfree-release || true
-            sudo rpm -e rpmfusion-free-release rpmfusion-nonfree-release 2>/dev/null || true
+    if [ -f "$state_file" ] || rpm -q rpmfusion-free-release &>/dev/null; then
+        if confirm "RPM Fusion detectado. Remover?"; then
+            sudo rpm-ostree uninstall rpmfusion-free-release rpmfusion-nonfree-release 2>/dev/null || true
             cleanup_files "$state_file"
-            echo "RPM Fusion desinstalado. Reinicie para aplicar."
+            echo "RPM Fusion removido."
         fi
     else
         if confirm "Instalar RPM Fusion?"; then
-            echo "Instalando RPM Fusion..."
-            sudo rpm-ostree install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${fedora_version}.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${fedora_version}.noarch.rpm
+            local fedora_version=$(rpm -E %fedora)
+            sudo rpm-ostree install \
+                https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${fedora_version}.noarch.rpm \
+                https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${fedora_version}.noarch.rpm
             touch "$state_file"
-            echo "RPM Fusion instalado. Reinicie para aplicar."
+            echo "RPM Fusion instalado."
         fi
     fi
 }
@@ -298,19 +284,18 @@ terra_installer() {
     local state_file="$STATE_DIR/terra"
 
     if [ -f "$state_file" ] || [ -f /etc/yum.repos.d/terra.repo ]; then
-        if confirm "Terra repository detectado. Desinstalar?"; then
-            sudo rpm-ostree uninstall terra-release || true
+        if confirm "Terra repository detectado. Remover?"; then
             sudo rm -f /etc/yum.repos.d/terra.repo
+            sudo rpm-ostree uninstall terra-release 2>/dev/null || true
             cleanup_files "$state_file"
-            echo "Terra repository desinstalado. Reinicie para aplicar."
+            echo "Terra repository removido."
         fi
     else
         if confirm "Instalar Terra repository?"; then
-            echo "Instalando Terra repository..."
             curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo | sudo tee /etc/yum.repos.d/terra.repo
-            sudo rpm-ostree install terra-release
+            sudo rpm-ostree install -y terra-release
             touch "$state_file"
-            echo "Terra repository instalado. Reinicie para aplicar."
+            echo "Terra repository instalado."
         fi
     fi
 }
@@ -321,30 +306,26 @@ xpadneo_installer() {
     if [ -f "$state_file" ] || [ -d "/usr/src/xpadneo"* ] 2>/dev/null; then
         if confirm "Xpadneo detectado. Desinstalar?"; then
             echo "Desinstalando Xpadneo..."
-            if [ -d "/usr/src/xpadneo"* ]; then
-                cd /tmp
-                git clone https://github.com/atar-axis/xpadneo.git || true
+            cd $HOME
+            if [ -d "xpadneo" ]; then
                 cd xpadneo
-                sudo ./uninstall.sh || true
+                sudo ./uninstall.sh
                 cd ..
                 rm -rf xpadneo
             fi
-            sudo rpm-ostree uninstall dkms bluez bluez-tools kernel-devel kernel-headers || true
             cleanup_files "$state_file"
-            echo "Xpadneo desinstalado. Reinicie para aplicar."
+            echo "Xpadneo desinstalado."
         fi
     else
         if confirm "Instalar Xpadneo?"; then
             echo "Instalando Xpadneo..."
             sudo rpm-ostree install dkms make bluez bluez-tools kernel-devel kernel-headers
-            
             cd $HOME
             git clone https://github.com/atar-axis/xpadneo.git
             cd xpadneo
             sudo ./install.sh
             cd ..
             rm -rf xpadneo
-            
             touch "$state_file"
             echo "Xpadneo instalado. Reinicie para aplicar."
         fi
@@ -376,37 +357,37 @@ main_menu() {
     while true; do
         clear
         echo "=== Fedora Atomic Scripts ==="
-        echo "1)  RPM Fusion"
-        echo "2)  Terra Repository"
-        echo "3)  Nvidia Proprietary"
-        echo "4)  Xpadneo"
-        echo "5)  Faugus Launcher"
-        echo "6)  Zen Browser"
-        echo "7)  Flatpak/Flathub"
-        echo "8)  Homebrew"
-        echo "9)  GNOME Desktop (rebase)"
-        echo "10) KDE Plasma Desktop (rebase)"
-        echo "11) COSMIC Desktop (rebase)"
-        echo "12) CachyOS Configs"
-        echo "13) OSTree Auto Updates"
-        echo "0)  Sair"
+        echo "1) RPM Fusion"
+        echo "2) Terra Repository"
+        echo "3) Ostree Auto-updates"
+        echo "4) CachyOS Configs"
+        echo "5) Xpadneo (Xbox Controller)"
+        echo "6) Faugus Launcher"
+        echo "7) Zen Browser"
+        echo "8) Flatpak/Flathub"
+        echo "9) Homebrew"
+        echo "10) Nvidia Proprietary"
+        echo "11) COSMIC Desktop (Fedora Cosmic-Atomic)"
+        echo "12) GNOME Desktop (Silverblue)"
+        echo "13) KDE Plasma Desktop (Kinoite)"
+        echo "0) Sair"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
-            1) rpm_fusion_installer ;;
+            1) rpmfusion_installer ;;
             2) terra_installer ;;
-            3) nvidia_proprietary_installer ;;
-            4) xpadneo_installer ;;
-            5) faugus_launcher_installer ;;
-            6) zen_browser_installer ;;
-            7) flatpak_flathub_installer ;;
-            8) homebrew_installer ;;
-            9) de_gnome_installer ;;
-            10) de_plasma_installer ;;
+            3) ostree_autoupd_installer ;;
+            4) cachyconfs_installer ;;
+            5) xpadneo_installer ;;
+            6) faugus_launcher_installer ;;
+            7) zen_browser_installer ;;
+            8) flatpak_flathub_installer ;;
+            9) homebrew_installer ;;
+            10) nvidia_proprietary_installer ;;
             11) de_cosmic_installer ;;
-            12) cachyconfs_installer ;;
-            13) ostree_autoupd_installer ;;
+            12) de_gnome_installer ;;
+            13) de_plasma_installer ;;
             0) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
