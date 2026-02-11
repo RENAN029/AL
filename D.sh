@@ -1137,4 +1137,4 @@ deb-src http://deb.debian.org/debian/ forky-updates main non-free-firmware
 # For information about how to configure apt package sources,
 # see the sources.list(5) manual.
 Esse e o site da nvidia sobre o driver no debian caso precise: https://docs.nvidia.com/datacenter/tesla/driver-installation-guide/debian.html
-Sempre mande o script completo sem nenhum comentario. Organize os metodos em ordem alfabetica
+Sempre mande o script completo sem comentarios. Organize os metodos em ordem alfabetica. O repositorio deve ser o repositorio official da nvidia, pois o debian tem drivers muito antigos. Veja o como linuxtoys faz a instalacoa dos drivers e faca com base nela. O repositorio debian muntimidia e  os outros devem ser juntados em um unico metodo installer
