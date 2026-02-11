@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-[ ! -f /etc/nixos/.skip-check ] && { echo "Este script é exclusivo para NixOS."; exit 1; }
-
 STATE_DIR="/tmp/nixos-install-state"
 mkdir -p "$STATE_DIR"
 
