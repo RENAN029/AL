@@ -2,7 +2,7 @@ Desejo que vc converta esse script criado originalmente para arch linux para fun
 Crie um metodo que execute apt update e upgrade e instale o ntpsec, esse metodo deve sempre ser chamado ao usar algum metodo installer. Garanta boa consistencia e funcionamento.
 Nao se deve utilizar wget e sim curl no lugar. Alguns scripts eu botei do linuxtoys para vc usar de referencia de como fazer esses metodos funcionarem no debian(prioridade), eles sao os que pussuem a 
 #!/bin/bash, sequida por outros paremetros como nome e versao, garanta que com base neles, vc esteja fazendo o script funcionar perfeitamente.
-Crie um metodo isntaller que adicione o repositorio do debian non-free, debian multimidia, contrib e non-free-firmware, ele deve adicionar todos esses repositorios de uma vez so.
+Crie um metodo installer que adicione o repositorio do debian non-free, debian multimidia, contrib e non-free-firmware, ele deve adicionar todos esses repositorios de uma vez so.
 
 #!/bin/bash
 set -e
