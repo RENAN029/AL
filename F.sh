@@ -23,18 +23,23 @@ cleanup_files() {
 cachyconfs_installer() {
     local state_file="$STATE_DIR/cachyconfs"
 
-    if [ -f "$state_file" ] || [ -f "/etc/sysctl.d/99-cachyos-settings.conf" ]; then
+    if [ -f "$state_file" ] || [ -f "/etc/sysctl.d/99-cachyos-settings.conf" ] || [ -f "/usr/lib/sysctl.d/99-cachyos-settings.conf" ]; then
         if confirm "CachyOS Configs detectado. Desinstalar?"; then
-            sudo rm -f /etc/sysctl.d/99-cachyos-settings.conf
+            sudo rm -f /etc/sysctl.d/99-cachyos-settings.conf 2>/dev/null || true
+            sudo rm -f /usr/lib/sysctl.d/99-cachyos-settings.conf 2>/dev/null || true
             sudo sysctl --system
             cleanup_files "$state_file"
+            echo "CachyOS Configs desinstalado."
         fi
     else
         if confirm "Instalar CachyOS Configs?"; then
+            echo "Criando diretório /etc/sysctl.d/..."
             sudo mkdir -p /etc/sysctl.d
+            echo "Baixando configurações do CachyOS..."
             curl -s https://raw.githubusercontent.com/CachyOS/CachyOS-Settings/main/sysctl/99-cachyos-settings.conf | sudo tee /etc/sysctl.d/99-cachyos-settings.conf > /dev/null
             sudo sysctl --system
             touch "$state_file"
+            echo "CachyOS Configs instalado em /etc/sysctl.d/"
         fi
     fi
 }
