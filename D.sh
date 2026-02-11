@@ -2,7 +2,8 @@ Desejo que vc converta esse script criado originalmente para arch linux para fun
 Crie um metodo que execute apt update e upgrade e instale o ntpsec, esse metodo deve sempre ser chamado ao usar algum metodo installer. Garanta boa consistencia e funcionamento.
 Nao se deve utilizar wget e sim curl no lugar. Alguns scripts eu botei do linuxtoys para vc usar de referencia de como fazer esses metodos funcionarem no debian(prioridade), eles sao os que pussuem a 
 #!/bin/bash, sequida por outros paremetros como nome e versao, garanta que com base neles, vc esteja fazendo o script funcionar perfeitamente.
-Crie um metodo installer que adicione o repositorio do debian non-free, debian multimidia, contrib e non-free-firmware, ele deve adicionar todos esses repositorios de uma vez so.
+Crie um metodo isntaller que adicione o repositorio do debian non-free, debian multimidia, contrib e non-free-firmware, ele deve adicionar todos esses repositorios de uma vez so. 
+Crie um metodo que Ative o ZSWAP ou o ZRAM.
 
 #!/bin/bash
 set -e
@@ -812,20 +813,14 @@ main_menu() {
     while true; do
         clear
         echo "=== Arch Scripts ==="
-        echo "1) Admin"
-        echo "2) Devs"
-        echo "3) Drivers"
-        echo "4) Educação"
+        echo "1) "
         echo "5) Sair"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
-            1) admin_installer ;;
-            2) devs_installer ;;
-            3) drivers_installer;;
-            4) educacao_installer ;;
-            5) exit 0 ;;
+            1)  ;;
+            2) exit 0 ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -1055,6 +1050,7 @@ Depois atualize o sistema e reinicie o computador.
 
 bootctl update
 Por ultimo adicione esses metodos installer no script:
+
 #!/bin/bash
 # name: Nala
 # description: nala_desc
@@ -1140,4 +1136,5 @@ deb-src http://deb.debian.org/debian/ forky-updates main non-free-firmware
 # entries were disabled at the end of the installation process.
 # For information about how to configure apt package sources,
 # see the sources.list(5) manual.
-As respostas sempre devem ser o script completo sem nenhum comentario.
+Esse e o site da nvidia sobre o driver no debian caso precise: https://docs.nvidia.com/datacenter/tesla/driver-installation-guide/debian.html
+Sempre mande o script completo sem nenhum comentario. Organize os metodos em ordem alfabetica
