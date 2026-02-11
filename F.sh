@@ -510,3 +510,4 @@ flatpak install flathub com.todoist.Todoist
 # Aplicativos para instalar depois manualmente: DaVinci Resolve, Insync
 # O que adicionar como webapp depois: Trello
 # Ajustar os problemas do DaVinci Resolve segundo esse tutorial: https://github.com/H3rz3n/Davinci-Resolve-Fedora-38-39-40-Fix
+Sempre mande o script completo sem comentarios.
