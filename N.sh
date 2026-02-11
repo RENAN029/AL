@@ -246,14 +246,13 @@ generate_config() {
   services.desktopManager.cosmic.enable = true;
   services.displayManager.cosmic-greeter.enable = true;')
   
+  $([ "$desktop" = "plasma" ] && echo '
+  services.xserver.desktopManager.plasma5.enable = true;
+  services.displayManager.sddm.enable = true;')
+  
   $([ "$desktop" = "gnome" ] && echo '
   services.xserver.enable = true;
   services.displayManager.gdm.enable = true;')
-  
-  $([ "$desktop" = "plasma" ] && echo '
-  services.xserver.enable = true;
-  services.displayManager.sddm.enable = true;
-  services.desktopManager.plasma5.enable = true;')
   
   environment.systemPackages = with pkgs; [
     vim
@@ -278,9 +277,13 @@ generate_config() {
     gnome-tweaks
     gnome-disk-utility
     gnome-backgrounds
+    mutter
+    gnome-shell
+    gtk3
+    adwaita-icon-theme
     ')
     $([ "$desktop" = "plasma" ] && echo '
-    plasma5Packages.plasma-meta
+    plasma5.desktop
     konsole
     dolphin
     kdeconnect
