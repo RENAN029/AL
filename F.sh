@@ -6,13 +6,6 @@ set -e
 STATE_DIR="$HOME/.config/fedora_atomic_scripts"
 mkdir -p "$STATE_DIR"
 
-echo "=== Verificando atualizações do sistema ==="
-if confirm "Verificar e aplicar atualizações do sistema?"; then
-    echo "Atualizando sistema..."
-    sudo rpm-ostree update
-    echo "Sistema atualizado."
-fi
-
 confirm() {
     local prompt="$1"
     read -p "$prompt (s/n): " -n 1 resposta
@@ -20,11 +13,48 @@ confirm() {
     [[ "$resposta" = "s" || "$resposta" = "S" ]]
 }
 
+echo "=== Verificando atualizações do sistema ==="
+if confirm "Verificar e aplicar atualizações do sistema?"; then
+    echo "Atualizando sistema..."
+    sudo rpm-ostree update
+    echo "Sistema atualizado."
+fi
+
 cleanup_files() {
     local files=("$@")
     for file in "${files[@]}"; do
         [ -e "$file" ] && rm -rf "$file" || true
     done
+}
+
+affinity_installer() {
+    local state_file="$STATE_DIR/affinity"
+    local affinity_dir="$HOME/Affinity"
+    local appimage_path="$affinity_dir/Affinity.AppImage"
+
+    if [ -f "$state_file" ] || [ -f "$appimage_path" ]; then
+        if confirm "Affinity detectado. Desinstalar?"; then
+            echo "Desinstalando Affinity..."
+            [ -f "$appimage_path" ] && rm -f "$appimage_path"
+            [ -d "$affinity_dir" ] && rmdir "$affinity_dir" 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Affinity desinstalado."
+        fi
+    else
+        if confirm "Instalar Affinity Photo?"; then
+            echo "Instalando Affinity Photo..."
+            mkdir -p "$affinity_dir"
+            
+            local download_url=$(curl -s https://api.github.com/repos/ryzendew/Linux-Affinity-Installer/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'affinity.*appimage' | head -1 | cut -d'"' -f4)
+            [ -z "$download_url" ] && download_url="https://github.com/ryzendew/Linux-Affinity-Installer/releases/latest/download/Affinity.AppImage"
+            
+            curl -L -o "$appimage_path" "$download_url"
+            chmod +x "$appimage_path"
+            
+            touch "$state_file"
+            echo "Affinity Photo instalado."
+        fi
+    fi
 }
 
 archiving_compression_installer() {
@@ -158,6 +188,54 @@ faugus_launcher_installer() {
     fi
 }
 
+fish_fisher_installer() {
+    local fish_state="$STATE_DIR/fish"
+    local fisher_state="$STATE_DIR/fisher"
+    local pkg_fish="fish"
+
+    if [ -f "$fish_state" ] || command -v fish &>/dev/null; then
+        if confirm "Fish Shell detectado. Desinstalar?"; then
+            echo "Desinstalando Fish Shell..."
+            if [ -f "$fisher_state" ]; then
+                echo "Removendo Fisher..."
+                fish -c "fisher remove jorgebucaran/fisher" 2>/dev/null || true
+                cleanup_files "$fisher_state"
+            fi
+            sudo rpm-ostree uninstall fish 2>/dev/null || true
+            sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
+            cleanup_files "$fish_state"
+            rm -rf "$HOME/.config/fish" 2>/dev/null || true
+            echo "Fish Shell desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Fish Shell?"; then
+            echo "Instalando Fish Shell..."
+            sudo rpm-ostree install fish
+            sudo chsh -s "$(which fish)" "$USER"
+            mkdir -p ~/.config/fish
+            echo "set fish_greeting" > ~/.config/fish/config.fish
+            touch "$fish_state"
+            echo "Fish Shell instalado. Reinicie para aplicar."
+        fi
+    fi
+
+    if [ -f "$fish_state" ] || command -v fish &>/dev/null; then
+        if [ -f "$fisher_state" ]; then
+            if confirm "Fisher detectado. Desinstalar?"; then
+                echo "Desinstalando Fisher..."
+                fish -c "fisher remove jorgebucaran/fisher" 2>/dev/null || true
+                cleanup_files "$fisher_state"
+                echo "Fisher desinstalado."
+            fi
+        elif confirm "Instalar Fisher (plugin manager)?"; then
+            echo "Instalando Fisher..."
+            fish -c "curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher" 2>/dev/null || true
+            touch "$fisher_state"
+            echo "Fisher instalado."
+        fi
+    fi
+}
+
 flatpak_flathub_installer() {
     local flatpak_state="$STATE_DIR/flatpak"
     local flathub_state="$STATE_DIR/flathub"
@@ -180,6 +258,50 @@ flatpak_flathub_installer() {
         flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
         touch "$flathub_state"
         echo "Flathub adicionado."
+    fi
+}
+
+gamemode_installer() {
+    local state_file="$STATE_DIR/gamemode"
+    local pkg_gamemode="gamemode"
+
+    if [ -f "$state_file" ] || rpm -q gamemode &>/dev/null; then
+        if confirm "Gamemode detectado. Desinstalar?"; then
+            echo "Desinstalando Gamemode..."
+            sudo rpm-ostree uninstall gamemode 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Gamemode desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Gamemode?"; then
+            echo "Instalando Gamemode..."
+            sudo rpm-ostree install gamemode
+            touch "$state_file"
+            echo "Gamemode instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+gamescope_installer() {
+    local state_file="$STATE_DIR/gamescope"
+    local pkg_gamescope="gamescope"
+
+    if [ -f "$state_file" ] || rpm -q gamescope &>/dev/null; then
+        if confirm "Gamescope detectado. Desinstalar?"; then
+            echo "Desinstalando Gamescope..."
+            sudo rpm-ostree uninstall gamescope 2>/dev/null || true
+            flatpak uninstall --user -y org.freedesktop.Platform.VulkanLayer.gamescope 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Gamescope desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Gamescope?"; then
+            echo "Instalando Gamescope..."
+            sudo rpm-ostree install gamescope
+            flatpak install --user --noninteractive flathub org.freedesktop.Platform.VulkanLayer.gamescope 2>/dev/null || true
+            touch "$state_file"
+            echo "Gamescope instalado. Reinicie para aplicar."
+        fi
     fi
 }
 
@@ -257,6 +379,58 @@ homebrew_installer() {
     fi
 }
 
+iwd_installer() {
+    local state_file="$STATE_DIR/iwd"
+    local pkg_iwd="iwd"
+
+    if [ -f "$state_file" ] || rpm -q iwd &>/dev/null; then
+        if confirm "IWD detectado. Desinstalar?"; then
+            echo "Desinstalando IWD..."
+            sudo rpm-ostree uninstall iwd 2>/dev/null || true
+            sudo rm -f /etc/NetworkManager/conf.d/iwd.conf 2>/dev/null || true
+            sudo systemctl restart NetworkManager 2>/dev/null || true
+            sudo systemctl enable --now wpa_supplicant 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "IWD desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar IWD (iNet Wireless Daemon)?"; then
+            echo "Instalando IWD..."
+            sudo rpm-ostree install iwd
+            echo "[device]
+wifi.backend=iwd" | sudo tee /etc/NetworkManager/conf.d/iwd.conf > /dev/null
+            sudo systemctl stop NetworkManager 2>/dev/null || true
+            sleep 1
+            sudo systemctl restart NetworkManager 2>/dev/null || true
+            sudo systemctl enable --now iwd 2>/dev/null || true
+            sudo systemctl disable wpa_supplicant 2>/dev/null || true
+            touch "$state_file"
+            echo "IWD instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+kdenlive_installer() {
+    local state_file="$STATE_DIR/kdenlive"
+    local pkg_kdenlive="org.kde.kdenlive"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.kde.kdenlive 2>/dev/null; then
+        if confirm "Kdenlive detectado. Desinstalar?"; then
+            echo "Desinstalando Kdenlive..."
+            flatpak uninstall --user -y $pkg_kdenlive 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Kdenlive desinstalado."
+        fi
+    else
+        if confirm "Instalar Kdenlive?"; then
+            echo "Instalando Kdenlive..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_kdenlive
+            touch "$state_file"
+            echo "Kdenlive instalado."
+        fi
+    fi
+}
+
 lazyvim_installer() {
     local state_file="$STATE_DIR/nvim_lazyvim"
     local nvim_dir="$HOME/.config/nvim"
@@ -276,6 +450,49 @@ lazyvim_installer() {
             rm -rf "$nvim_dir/.git"
             touch "$state_file"
             echo "LazyVim instalado."
+        fi
+    fi
+}
+
+mise_installer() {
+    local state_file="$STATE_DIR/mise"
+
+    if [ -f "$state_file" ] || command -v mise &>/dev/null; then
+        if confirm "Mise detectado. Desinstalar?"; then
+            echo "Desinstalando Mise..."
+            rm -f ~/.local/bin/mise 2>/dev/null || true
+            sed -i '/mise/d' ~/.bashrc 2>/dev/null || true
+            sed -i '/mise/d' ~/.zshrc 2>/dev/null || true
+            sed -i '/mise/d' ~/.config/fish/config.fish 2>/dev/null || true
+            rm -f ~/.local/share/bash-completion/completions/mise 2>/dev/null || true
+            rm -f /usr/local/share/zsh/site-functions/_mise 2>/dev/null || true
+            rm -f ~/.config/fish/completions/mise.fish 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Mise desinstalado."
+        fi
+    else
+        if confirm "Instalar Mise?"; then
+            echo "Instalando Mise..."
+            if [ -f ~/.bashrc ]; then
+                curl https://mise.run | sh
+                ~/.local/bin/mise use -g usage
+                mkdir -p ~/.local/share/bash-completion/completions
+                ~/.local/bin/mise completion bash --include-bash-completion-lib > ~/.local/share/bash-completion/completions/mise
+            fi
+            if [ -f ~/.zshrc ]; then
+                curl https://mise.run | sh
+                ~/.local/bin/mise use -g usage
+                sudo mkdir -p /usr/local/share/zsh/site-functions
+                ~/.local/bin/mise completion zsh | sudo tee /usr/local/share/zsh/site-functions/_mise > /dev/null
+            fi
+            if [ -f ~/.config/fish/config.fish ]; then
+                curl https://mise.run | sh
+                ~/.local/bin/mise use -g usage
+                mkdir -p ~/.config/fish/completions
+                ~/.local/bin/mise completion fish > ~/.config/fish/completions/mise.fish
+            fi
+            touch "$state_file"
+            echo "Mise instalado."
         fi
     fi
 }
@@ -658,6 +875,13 @@ main_menu() {
         echo "18) Archiving/Compression Tools (7zip, unrar)"
         echo "19) Pacotes Base (Fontes Google Noto e Cascadia)"
         echo "20) Remover Bloatware"
+        echo "21) Kdenlive"
+        echo "22) Fish Shell + Fisher"
+        echo "23) Gamescope"
+        echo "24) Gamemode"
+        echo "25) Affinity Photo (AppImage)"
+        echo "26) IWD (iNet Wireless Daemon)"
+        echo "27) Mise (Dev Tools)"
         echo "0) Sair"
         echo
         read -p "Selecione uma opção: " opcao
@@ -683,6 +907,13 @@ main_menu() {
             18) archiving_compression_installer ;;
             19) pessoal_base_installer ;;
             20) remover_bloatware ;;
+            21) kdenlive_installer ;;
+            22) fish_fisher_installer ;;
+            23) gamescope_installer ;;
+            24) gamemode_installer ;;
+            25) affinity_installer ;;
+            26) iwd_installer ;;
+            27) mise_installer ;;
             0) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
