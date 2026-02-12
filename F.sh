@@ -295,7 +295,7 @@ fish_fisher_installer() {
                 cleanup_files "$fisher_state"
             fi
             sudo rpm-ostree uninstall fish 2>/dev/null || true
-            sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
+            sudo chsh -s /usr/bin/bash "$USER" 2>/dev/null || true
             cleanup_files "$fish_state"
             rm -rf "$HOME/.config/fish" 2>/dev/null || true
             echo "Fish Shell desinstalado. Reinicie para aplicar."
@@ -304,7 +304,10 @@ fish_fisher_installer() {
         if confirm "Instalar Fish Shell?"; then
             echo "Instalando Fish Shell..."
             sudo rpm-ostree install fish
-            sudo chsh -s "$(which fish)" "$USER"
+            sleep 2
+            if command -v /usr/bin/fish &>/dev/null; then
+                sudo chsh -s /usr/bin/fish "$USER"
+            fi
             mkdir -p ~/.config/fish
             echo "set fish_greeting" > ~/.config/fish/config.fish
             touch "$fish_state"
@@ -1082,6 +1085,7 @@ remover_bloatware() {
             echo "Removendo bloatware do KDE via override..."
             local kde_bloat=(
                 firefox
+                firefox-langpacks
                 kate
                 kwrite
                 konversation
@@ -1467,7 +1471,7 @@ zsh_ohmyzsh_installer() {
                 cleanup_files "$ohmyzsh_state"
             fi
             sudo rpm-ostree uninstall zsh 2>/dev/null || true
-            sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
+            sudo chsh -s /usr/bin/bash "$USER" 2>/dev/null || true
             cleanup_files "$zsh_state"
             rm -rf "$HOME/.zshrc" "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc.backup" 2>/dev/null || true
             echo "Zsh desinstalado. Reinicie para aplicar."
@@ -1476,7 +1480,10 @@ zsh_ohmyzsh_installer() {
         if confirm "Instalar Zsh?"; then
             echo "Instalando Zsh..."
             sudo rpm-ostree install zsh
-            sudo chsh -s "$(which zsh)" "$USER"
+            sleep 2
+            if command -v /usr/bin/zsh &>/dev/null; then
+                sudo chsh -s /usr/bin/zsh "$USER"
+            fi
             touch "$HOME/.zshrc"
             touch "$zsh_state"
             echo "Zsh instalado. Reinicie para aplicar."
@@ -1610,7 +1617,7 @@ main_menu() {
             47) preload_installer ;;
             48) obsidian_installer ;;
             49) onlyoffice_installer ;;
-            50) exit 0 ;;
+            0) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
