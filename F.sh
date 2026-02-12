@@ -798,6 +798,27 @@ EOF
     fi
 }
 
+obsidian_installer() {
+    local state_file="$STATE_DIR/obsidian"
+    local pkg_obsidian="md.obsidian.Obsidian"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q md.obsidian.Obsidian 2>/dev/null; then
+        if confirm "Obsidian detectado. Desinstalar?"; then
+            echo "Desinstalando Obsidian..."
+            flatpak uninstall --user -y $pkg_obsidian 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Obsidian desinstalado."
+        fi
+    else
+        if confirm "Instalar Obsidian?"; then
+            echo "Instalando Obsidian..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_obsidian
+            touch "$state_file"
+            echo "Obsidian instalado."
+        fi
+    fi
+}
+
 oh_my_bash_installer() {
     local state_file="$STATE_DIR/oh_my_bash"
 
@@ -813,6 +834,27 @@ oh_my_bash_installer() {
             bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh)" --unattended
             touch "$state_file"
             echo "Oh My Bash instalado."
+        fi
+    fi
+}
+
+onlyoffice_installer() {
+    local state_file="$STATE_DIR/onlyoffice"
+    local pkg_onlyoffice="org.onlyoffice.desktopeditors"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.onlyoffice.desktopeditors 2>/dev/null; then
+        if confirm "OnlyOffice detectado. Desinstalar?"; then
+            echo "Desinstalando OnlyOffice..."
+            flatpak uninstall --user -y $pkg_onlyoffice 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "OnlyOffice desinstalado."
+        fi
+    else
+        if confirm "Instalar OnlyOffice?"; then
+            echo "Instalando OnlyOffice..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_onlyoffice
+            touch "$state_file"
+            echo "OnlyOffice instalado."
         fi
     fi
 }
@@ -894,6 +936,44 @@ podman_installer() {
             sudo rpm-ostree install podman podman-compose
             touch "$state_file"
             echo "Podman instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+preload_installer() {
+    local state_file="$STATE_DIR/preload"
+    local total_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    local total_gb=$(( total_kb / 1024 / 1024 ))
+
+    if [ -f "$state_file" ] || rpm -q preload &>/dev/null; then
+        if confirm "Preload detectado. Desinstalar?"; then
+            echo "Desinstalando Preload..."
+            sudo systemctl stop preload 2>/dev/null || true
+            sudo systemctl disable preload 2>/dev/null || true
+            sudo rpm-ostree uninstall preload 2>/dev/null || true
+            sudo rm -f /etc/yum.repos.d/elxreno-preload-*.repo 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Preload desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if [ $total_gb -gt 12 ]; then
+            if confirm "Instalar Preload (otimização de RAM > 12GB)?"; then
+                echo "Instalando Preload..."
+                local fedora_version=$(rpm -E %fedora)
+                cd $HOME
+                curl -L -o elxreno-preload-fedora-${fedora_version}.repo \
+                    https://copr.fedorainfracloud.org/coprs/elxreno/preload/repo/fedora-${fedora_version}/elxreno-preload-fedora-${fedora_version}.repo
+                sudo install -o 0 -g 0 elxreno-preload-fedora-${fedora_version}.repo /etc/yum.repos.d/elxreno-preload-fedora-${fedora_version}.repo
+                sudo rpm-ostree refresh-md
+                rm elxreno-preload-fedora-${fedora_version}.repo
+                sudo rpm-ostree install preload
+                sudo systemctl enable --now preload
+                touch "$state_file"
+                echo "Preload instalado. Reinicie para aplicar."
+            fi
+        else
+            echo "RAM insuficiente para Preload (requer > 12GB). Detectado: ${total_gb}GB"
+            return 1
         fi
     fi
 }
@@ -1440,7 +1520,10 @@ main_menu() {
         echo "44) ShadPS4 + PKG Installer"
         echo "45) Eden Emulator (AppImage)"
         echo "46) Starship Prompt"
-        echo "0) Sair"
+        echo "47) Preload (otimização de RAM)"
+        echo "48) Obsidian"
+        echo "49) OnlyOffice"
+        echo "50) Sair"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -1491,7 +1574,10 @@ main_menu() {
             44) shadps4_installer ;;
             45) eden_emulator_installer ;;
             46) starship_installer ;;
-            0) exit 0 ;;
+            47) preload_installer ;;
+            48) obsidian_installer ;;
+            49) onlyoffice_installer ;;
+            50) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
