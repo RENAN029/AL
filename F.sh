@@ -102,6 +102,51 @@ cachyconfs_installer() {
     fi
 }
 
+cpu_ondemand_installer() {
+    local state_file="$STATE_DIR/cpu_ondemand"
+    local service_file="/etc/systemd/system/set-ondemand-governor.service"
+
+    if [ -f "$state_file" ] || [ -f "$service_file" ]; then
+        if confirm "CPU Ondemand detectado. Desinstalar?"; then
+            echo "Desinstalando CPU Ondemand..."
+            sudo systemctl stop set-ondemand-governor.service 2>/dev/null || true
+            sudo systemctl disable set-ondemand-governor.service 2>/dev/null || true
+            sudo rm -f "$service_file" /etc/default/grub.d/01_intel_pstate_disable 2>/dev/null || true
+            sudo rm -f /usr/local/bin/set-ondemand-governor.sh 2>/dev/null || true
+            if command -v grub-mkconfig &>/dev/null; then
+                sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
+            fi
+            cleanup_files "$state_file"
+            echo "CPU Ondemand desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar CPU Ondemand?"; then
+            echo "Instalando CPU Ondemand..."
+            echo '#!/bin/bash
+echo "ondemand" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor' | sudo tee /usr/local/bin/set-ondemand-governor.sh
+            sudo chmod +x /usr/local/bin/set-ondemand-governor.sh
+            echo '[Unit]
+Description=Set CPU governor to ondemand
+After=sysinit.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/set-ondemand-governor.sh
+
+[Install]
+WantedBy=multi-user.target' | sudo tee /etc/systemd/system/set-ondemand-governor.service
+            sudo systemctl enable set-ondemand-governor.service
+            sudo mkdir -p /etc/default/grub.d
+            echo 'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} intel_pstate=disable"' | sudo tee /etc/default/grub.d/01_intel_pstate_disable
+            if command -v grub-mkconfig &>/dev/null; then
+                sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
+            fi
+            touch "$state_file"
+            echo "CPU Ondemand instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 de_cosmic_installer() {
     local state_file="$STATE_DIR/de_cosmic"
 
@@ -160,6 +205,33 @@ de_plasma_installer() {
             sudo rpm-ostree rebase fedora:fedora/${fedora_version}/${arch}/kinoite
             touch "$state_file"
             echo "Rebase para Kinoite concluído. Reinicie para aplicar."
+        fi
+    fi
+}
+
+eden_emulator_installer() {
+    local state_file="$STATE_DIR/eden"
+    local eden_dir="$HOME/Eden"
+    local appimage_path="$eden_dir/Eden-Linux.AppImage"
+    local version="0.1.1"
+
+    if [ -f "$state_file" ] || [ -f "$appimage_path" ]; then
+        if confirm "Eden Emulator detectado. Desinstalar?"; then
+            echo "Desinstalando Eden Emulator..."
+            [ -f "$appimage_path" ] && rm -f "$appimage_path"
+            [ -d "$eden_dir" ] && rmdir "$eden_dir" 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Eden Emulator desinstalado."
+        fi
+    else
+        if confirm "Instalar Eden Emulator?"; then
+            echo "Instalando Eden Emulator..."
+            mkdir -p "$eden_dir"
+            local download_url="https://github.com/eden-emulator/Releases/releases/download/v${version}/Eden-Linux-v${version}-amd64-gcc-standard.AppImage"
+            curl -L -o "$appimage_path" "$download_url"
+            chmod +x "$appimage_path"
+            touch "$state_file"
+            echo "Eden Emulator instalado."
         fi
     fi
 }
@@ -465,6 +537,28 @@ homebrew_installer() {
             [ -f ~/.config/fish/config.fish ] && echo "fish_add_path $(dirname $BREW_PATH)" >> ~/.config/fish/config.fish
             eval "$($BREW_PATH shellenv)"
             touch "$state_file"
+        fi
+    fi
+}
+
+hwaccel_flatpak_installer() {
+    local state_file="$STATE_DIR/hwaccel_flatpak"
+
+    if [ -f "$state_file" ] || flatpak list | grep -q freedesktop.Platform.VAAPI 2>/dev/null; then
+        if confirm "HW Acceleration Flatpak detectado. Desinstalar?"; then
+            echo "Desinstalando HW Acceleration Flatpak..."
+            flatpak uninstall --user -y org.freedesktop.Platform.VAAPI 2>/dev/null || true
+            flatpak uninstall --user -y org.freedesktop.Platform.VAAPI.Intel 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "HW Acceleration Flatpak desinstalado."
+        fi
+    else
+        if confirm "Instalar HW Acceleration Flatpak?"; then
+            echo "Instalando HW Acceleration Flatpak..."
+            flatpak install --user -y flathub org.freedesktop.Platform.VAAPI.Intel 2>/dev/null || true
+            flatpak override --user --device=all --env=GDK_SCALE=1 --env=GDK_DPI_SCALE=1 2>/dev/null || true
+            touch "$state_file"
+            echo "HW Acceleration Flatpak instalado."
         fi
     fi
 }
@@ -783,6 +877,27 @@ pessoal_base_installer() {
     fi
 }
 
+podman_installer() {
+    local state_file="$STATE_DIR/podman"
+    local pkg_podman="podman podman-compose"
+
+    if [ -f "$state_file" ] || rpm -q podman &>/dev/null; then
+        if confirm "Podman detectado. Desinstalar?"; then
+            echo "Desinstalando Podman..."
+            sudo rpm-ostree uninstall podman podman-compose 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Podman desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Podman?"; then
+            echo "Instalando Podman..."
+            sudo rpm-ostree install podman podman-compose
+            touch "$state_file"
+            echo "Podman instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 remover_bloatware() {
     echo "Identificando ambiente desktop atual..."
     
@@ -926,6 +1041,120 @@ rpmfusion_installer() {
     fi
 }
 
+shadps4_installer() {
+    local shad_state="$STATE_DIR/shadps4"
+    local pkg_state="$STATE_DIR/pkginstaller"
+    local pkg_shadps4="net.shadps4.shadPS4"
+    local pkg_dir="$HOME/PKGInstaller"
+    local zip_path="$pkg_dir/PKGInstall.zip"
+    local appimage_path="$pkg_dir/PKGInstall.AppImage"
+
+    if [ -f "$shad_state" ] || flatpak list --app | grep -q net.shadps4.shadPS4 2>/dev/null; then
+        if confirm "ShadPS4 detectado. Desinstalar?"; then
+            echo "Desinstalando ShadPS4..."
+            flatpak uninstall --user -y $pkg_shadps4 2>/dev/null || true
+            cleanup_files "$shad_state"
+            echo "ShadPS4 desinstalado."
+        fi
+    elif confirm "Instalar ShadPS4?"; then
+        echo "Instalando ShadPS4..."
+        flatpak install --or-update --user --noninteractive flathub $pkg_shadps4
+        touch "$shad_state"
+        echo "ShadPS4 instalado."
+    fi
+    
+    if [ ! -f "$pkg_state" ] && [ ! -f "$appimage_path" ]; then
+        if confirm "Instalar PKG Installer?"; then
+            echo "Instalando PKG Installer..."
+            mkdir -p "$pkg_dir"
+            local download_url=$(curl -s https://api.github.com/repos/Muggle345/PKGInstall/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'PKGInstall.*zip' | head -1 | cut -d'"' -f4)
+            [ -z "$download_url" ] && download_url="https://github.com/Muggle345/PKGInstall/releases/latest/download/PKGInstall.zip"
+            curl -L -o "$zip_path" "$download_url"
+            unzip -q "$zip_path" -d "$pkg_dir"
+            rm -f "$zip_path"
+            find "$pkg_dir" -name "*.AppImage" -exec mv {} "$appimage_path" \;
+            chmod +x "$appimage_path"
+            touch "$pkg_state"
+            echo "PKG Installer instalado."
+        fi
+    elif [ -f "$pkg_state" ] || [ -f "$appimage_path" ]; then
+        if confirm "PKG Installer detectado. Desinstalar?"; then
+            echo "Desinstalando PKG Installer..."
+            [ -f "$appimage_path" ] && rm -f "$appimage_path"
+            [ -f "$zip_path" ] && rm -f "$zip_path"
+            [ -d "$pkg_dir" ] && rm -rf "$pkg_dir"
+            cleanup_files "$pkg_state"
+            echo "PKG Installer desinstalado."
+        fi
+    fi
+}
+
+shader_booster_installer() {
+    local state_file="$STATE_DIR/shader_booster"
+    local boost_file="$HOME/.booster"
+
+    if [ -f "$state_file" ] || [ -f "$boost_file" ]; then
+        if confirm "Shader Booster detectado. Desinstalar?"; then
+            for shell_file in "$HOME/.bash_profile" "$HOME/.profile" "$HOME/.zshrc"; do
+                [ -f "$shell_file" ] && sed -i '/# Shader Booster patches/,/# End Shader Booster/d' "$shell_file"
+            done
+            cleanup_files "$state_file" "$boost_file" "$HOME/patch-nvidia" "$HOME/patch-mesa"
+            echo "Shader Booster desinstalado."
+        fi
+    else
+        if confirm "Instalar Shader Booster?"; then
+            local has_nvidia=$(lspci | grep -i 'nvidia')
+            local has_mesa=$(lspci | grep -Ei '(vga|3d)' | grep -vi nvidia)
+            local patch_applied=0
+            local dest_file=""
+
+            for file in "$HOME/.bash_profile" "$HOME/.profile" "$HOME/.zshrc"; do
+                [ -f "$file" ] && dest_file="$file" && break
+            done
+            [ -z "$dest_file" ] && dest_file="$HOME/.bash_profile" && touch "$dest_file"
+
+            echo -e "\n# Shader Booster patches" >> "$dest_file"
+            [ -n "$has_nvidia" ] && curl -s https://raw.githubusercontent.com/psygreg/shader-booster/main/patch-nvidia >> "$dest_file" && patch_applied=1
+            [ -n "$has_mesa" ] && curl -s https://raw.githubusercontent.com/psygreg/shader-booster/main/patch-mesa >> "$dest_file" && patch_applied=1
+            echo "# End Shader Booster" >> "$dest_file"
+
+            [ $patch_applied -eq 1 ] && echo "1" > "$boost_file" && touch "$state_file"
+            echo "Shader Booster instalado."
+        fi
+    fi
+}
+
+starship_installer() {
+    local state_file="$STATE_DIR/starship"
+
+    if [ -f "$state_file" ] || command -v starship &>/dev/null; then
+        if confirm "Starship detectado. Desinstalar?"; then
+            echo "Desinstalando Starship..."
+            sudo rm -f /usr/local/bin/starship 2>/dev/null || true
+            sed -i '/starship init/d' ~/.bashrc 2>/dev/null || true
+            sed -i '/starship init/d' ~/.zshrc 2>/dev/null || true
+            [ -f ~/.config/fish/config.fish ] && sed -i '/starship init fish/d' ~/.config/fish/config.fish 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Starship desinstalado."
+        fi
+    else
+        if confirm "Instalar Starship?"; then
+            echo "Instalando Starship..."
+            curl -fsSL https://starship.rs/install.sh | sh -s -- -f -y
+            grep -q "starship init" ~/.bashrc || echo -e "\neval \"\$(starship init bash)\"" >> ~/.bashrc
+            grep -q "starship init" ~/.zshrc || echo -e "\neval \"\$(starship init zsh)\"" >> ~/.zshrc
+            mkdir -p ~/.config/fish
+            if [ -f ~/.config/fish/config.fish ]; then
+                grep -q "starship init fish" ~/.config/fish/config.fish || echo -e "\nstarship init fish | source" >> ~/.config/fish/config.fish
+            else
+                echo -e "starship init fish | source" >> ~/.config/fish/config.fish
+            fi
+            touch "$state_file"
+            echo "Starship instalado."
+        fi
+    fi
+}
+
 steam_installer() {
     local state_file="$STATE_DIR/steam"
     local pkg_steam="com.valvesoftware.Steam"
@@ -1028,6 +1257,38 @@ warehouse_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_warehouse
             touch "$state_file"
             echo "Warehouse instalado."
+        fi
+    fi
+}
+
+winboat_installer() {
+    local state_file="$STATE_DIR/winboat"
+    local winboat_dir="$HOME/WinBoat"
+    local appimage_path="$winboat_dir/winboat.AppImage"
+    local version="0.9.0"
+
+    if ! lsmod | grep -q kvm; then
+        echo "KVM não está disponível. Verifique se a virtualização está habilitada no BIOS."
+        return 1
+    fi
+
+    if [ -f "$state_file" ] || [ -f "$appimage_path" ]; then
+        if confirm "WinBoat detectado. Desinstalar?"; then
+            echo "Desinstalando WinBoat..."
+            [ -f "$appimage_path" ] && rm -f "$appimage_path"
+            [ -d "$winboat_dir" ] && rmdir "$winboat_dir" 2>/dev/null || true
+            cleanup_files "$state_file" "$HOME/lsw" "$HOME/txtbox"
+            echo "WinBoat desinstalado."
+        fi
+    else
+        if confirm "Instalar WinBoat (Windows em container Docker)?"; then
+            echo "Instalando WinBoat..."
+            mkdir -p "$winboat_dir"
+            local download_url="https://github.com/TibixDev/winboat/releases/download/v${version}/winboat-${version}-x86_64.AppImage"
+            curl -L -o "$appimage_path" "$download_url"
+            chmod +x "$appimage_path"
+            touch "$state_file"
+            echo "WinBoat instalado."
         fi
     fi
 }
@@ -1171,6 +1432,14 @@ main_menu() {
         echo "36) Warehouse"
         echo "37) Zsh + Oh My Zsh"
         echo "38) Oh My Bash"
+        echo "39) CPU Ondemand"
+        echo "40) Shader Booster"
+        echo "41) HW Acceleration Flatpak"
+        echo "42) WinBoat (AppImage)"
+        echo "43) Podman"
+        echo "44) ShadPS4 + PKG Installer"
+        echo "45) Eden Emulator (AppImage)"
+        echo "46) Starship Prompt"
         echo "0) Sair"
         echo
         read -p "Selecione uma opção: " opcao
@@ -1214,6 +1483,14 @@ main_menu() {
             36) warehouse_installer ;;
             37) zsh_ohmyzsh_installer ;;
             38) oh_my_bash_installer ;;
+            39) cpu_ondemand_installer ;;
+            40) shader_booster_installer ;;
+            41) hwaccel_flatpak_installer ;;
+            42) winboat_installer ;;
+            43) podman_installer ;;
+            44) shadps4_installer ;;
+            45) eden_emulator_installer ;;
+            46) starship_installer ;;
             0) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
