@@ -230,7 +230,7 @@ appimage_fuse_installer() {
 
 archiving_compression_installer() {
     local state_file="$STATE_DIR/pessoal_compactacao"
-    local pkg_compactacao="tar 7zip unrar unzip gzip lrzip xz zip lzop"
+    local pkg_compactacao="7zip tar libarchive unrar zip unzip lhasa unarchiver lhasa unace"
 
     if [ -f "$state_file" ] || pacman -Q unrar &>/dev/null; then
         if confirm "Pacotes de Compactação detectados. Desinstalar?"; then
