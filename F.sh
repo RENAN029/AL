@@ -1610,7 +1610,7 @@ main_menu() {
             47) preload_installer ;;
             48) obsidian_installer ;;
             49) onlyoffice_installer ;;
-            0) exit 0 ;;
+            50) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
