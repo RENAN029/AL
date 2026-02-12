@@ -6,6 +6,13 @@ set -e
 STATE_DIR="$HOME/.config/fedora_atomic_scripts"
 mkdir -p "$STATE_DIR"
 
+echo "=== Verificando atualizações do sistema ==="
+if confirm "Verificar e aplicar atualizações do sistema?"; then
+    echo "Atualizando sistema..."
+    sudo rpm-ostree update
+    echo "Sistema atualizado."
+fi
+
 confirm() {
     local prompt="$1"
     read -p "$prompt (s/n): " -n 1 resposta
@@ -155,6 +162,55 @@ flatpak_flathub_installer() {
     fi
 }
 
+gimp_photogimp_installer() {
+    local gimp_state="$STATE_DIR/gimp"
+    local photogimp_state="$STATE_DIR/photogimp"
+    local pkg_gimp="org.gimp.GIMP"
+    local gimp_config="$HOME/.config/GIMP"
+    local gimp_share="$HOME/.local/share/GIMP"
+    local gimp_installed=0
+
+    if [ -f "$gimp_state" ] || flatpak list --app | grep -q org.gimp.GIMP 2>/dev/null; then
+        gimp_installed=1
+        if confirm "GIMP detectado. Desinstalar?"; then
+            echo "Desinstalando GIMP..."
+            flatpak uninstall --user -y $pkg_gimp 2>/dev/null || true
+            rm -rf "$gimp_config" "$gimp_share"
+            if [ -f "$photogimp_state" ]; then
+                cleanup_files "$photogimp_state"
+            fi
+            cleanup_files "$gimp_state"
+            echo "GIMP desinstalado."
+        fi
+    elif confirm "Instalar GIMP?"; then
+        echo "Instalando GIMP..."
+        flatpak install --or-update --user --noninteractive flathub $pkg_gimp
+        touch "$gimp_state"
+        echo "GIMP instalado."
+        gimp_installed=1
+    fi
+
+    if [ $gimp_installed -eq 1 ] && [ -f "$gimp_state" ]; then
+        if [ -f "$photogimp_state" ] || [ -d "$gimp_config" ]; then
+            if confirm "PhotoGIMP detectado. Desinstalar?"; then
+                echo "Desinstalando PhotoGIMP..."
+                rm -rf "$gimp_config" "$gimp_share"
+                cleanup_files "$photogimp_state"
+                echo "PhotoGIMP desinstalado."
+            fi
+        elif confirm "Instalar PhotoGIMP (temas e configurações extras)?"; then
+            echo "Instalando PhotoGIMP..."
+            rm -rf "$gimp_config" "$gimp_share"
+            git clone --depth=1 https://github.com/Diolinux/PhotoGIMP.git /tmp/photogimp
+            cp -rvf /tmp/photogimp/.config/* ~/.config/
+            cp -rvf /tmp/photogimp/.local/* ~/.local/
+            rm -rf /tmp/photogimp
+            touch "$photogimp_state"
+            echo "PhotoGIMP instalado."
+        fi
+    fi
+}
+
 homebrew_installer() {
     local state_file="$STATE_DIR/homebrew"
 
@@ -176,6 +232,49 @@ homebrew_installer() {
             [ -f ~/.config/fish/config.fish ] && echo "fish_add_path $(dirname $BREW_PATH)" >> ~/.config/fish/config.fish
             eval "$($BREW_PATH shellenv)"
             touch "$state_file"
+        fi
+    fi
+}
+
+lazyvim_installer() {
+    local state_file="$STATE_DIR/nvim_lazyvim"
+    local nvim_dir="$HOME/.config/nvim"
+
+    if [ -f "$state_file" ] || [ -d "$nvim_dir" ]; then
+        if confirm "LazyVim detectado. Desinstalar?"; then
+            echo "Desinstalando LazyVim..."
+            rm -rf "$nvim_dir"
+            cleanup_files "$state_file"
+            echo "LazyVim desinstalado."
+        fi
+    else
+        if confirm "Instalar LazyVim?"; then
+            echo "Instalando LazyVim..."
+            rm -rf "$nvim_dir"
+            git clone https://github.com/LazyVim/starter "$nvim_dir"
+            rm -rf "$nvim_dir/.git"
+            touch "$state_file"
+            echo "LazyVim instalado."
+        fi
+    fi
+}
+
+neovim_installer() {
+    local state_file="$STATE_DIR/nvim"
+
+    if [ -f "$state_file" ] || command -v nvim &>/dev/null; then
+        if confirm "NeoVim detectado. Desinstalar?"; then
+            echo "Desinstalando NeoVim..."
+            sudo rpm-ostree uninstall neovim 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "NeoVim desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar NeoVim?"; then
+            echo "Instalando NeoVim..."
+            sudo rpm-ostree install neovim
+            touch "$state_file"
+            echo "NeoVim instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -264,6 +363,128 @@ ostree_autoupd_installer() {
     fi
 }
 
+remover_bloatware() {
+    echo "Identificando ambiente desktop atual..."
+    
+    local desktop_env=""
+    if rpm-ostree status 2>/dev/null | grep -q "silverblue"; then
+        desktop_env="GNOME"
+    elif rpm-ostree status 2>/dev/null | grep -q "kinoite"; then
+        desktop_env="KDE"
+    elif rpm-ostree status 2>/dev/null | grep -q "cosmic-atomic"; then
+        desktop_env="COSMIC"
+    else
+        echo "Não foi possível identificar o ambiente desktop ou ambiente não suportado para remoção de bloatware."
+        return
+    fi
+    
+    echo "Ambiente detectado: $desktop_env"
+    
+    if confirm "Remover aplicativos pré-instalados desnecessários do $desktop_env?"; then
+        
+        if [ "$desktop_env" = "GNOME" ]; then
+            echo "Removendo bloatware do GNOME..."
+            local gnome_bloat=(
+                firefox
+                gnome-photos
+                gnome-maps
+                gnome-music
+                gnome-weather
+                gnome-contacts
+                gnome-calendar
+                gnome-clocks
+                gnome-characters
+                gnome-logs
+                gnome-tour
+                totem
+                rhythmbox
+                cheese
+                simple-scan
+                evolution
+                evince
+                libreoffice-*
+            )
+            for pkg in "${gnome_bloat[@]}"; do
+                echo "Removendo $pkg..."
+                sudo rpm-ostree uninstall "$pkg" 2>/dev/null || true
+            done
+            
+        elif [ "$desktop_env" = "KDE" ]; then
+            echo "Removendo bloatware do KDE..."
+            local kde_bloat=(
+                firefox
+                kate
+                kwrite
+                konversation
+                kaddressbook
+                kmail
+                kontact
+                korganizer
+                akregator
+                ktorrent
+                kget
+                k3b
+                dragon
+                juk
+                kmahjongg
+                kmines
+                ksudoku
+                kpat
+                libreoffice-*
+            )
+            for pkg in "${kde_bloat[@]}"; do
+                echo "Removendo $pkg..."
+                sudo rpm-ostree uninstall "$pkg" 2>/dev/null || true
+            done
+            
+        elif [ "$desktop_env" = "COSMIC" ]; then
+            echo "Removendo bloatware do COSMIC..."
+            local cosmic_bloat=(
+                firefox
+                gnome-photos
+                gnome-maps
+                gnome-music
+                gnome-weather
+                libreoffice-*
+            )
+            for pkg in "${cosmic_bloat[@]}"; do
+                echo "Removendo $pkg..."
+                sudo rpm-ostree uninstall "$pkg" 2>/dev/null || true
+            done
+        fi
+        
+        echo "Removendo pacotes Flatpak pré-instalados..."
+        local flatpak_bloat=(
+            org.gnome.Calculator
+            org.gnome.Calendar
+            org.gnome.Characters
+            org.gnome.Connections
+            org.gnome.Contacts
+            org.gnome.Evince
+            org.gnome.Logs
+            org.gnome.Maps
+            org.gnome.Music
+            org.gnome.Weather
+            org.gnome.clocks
+            org.gnome.font-viewer
+            org.gnome.TextEditor
+            org.fedoraproject.MediaWriter
+        )
+        
+        for app in "${flatpak_bloat[@]}"; do
+            echo "Removendo Flatpak: $app..."
+            flatpak uninstall --system -y "$app" 2>/dev/null || true
+            flatpak uninstall --user -y "$app" 2>/dev/null || true
+        done
+        
+        echo "Limpando dependências não utilizadas..."
+        flatpak uninstall --unused -y 2>/dev/null || true
+        
+        touch "$STATE_DIR/bloatware_removed"
+        echo "Remoção de bloatware concluída. Reinicie para aplicar as alterações."
+    fi
+}
+
 rpmfusion_installer() {
     local state_file="$STATE_DIR/rpmfusion"
 
@@ -281,6 +502,27 @@ rpmfusion_installer() {
                 https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${fedora_version}.noarch.rpm
             touch "$state_file"
             echo "RPM Fusion instalado."
+        fi
+    fi
+}
+
+steam_installer() {
+    local state_file="$STATE_DIR/steam"
+    local pkg_steam="com.valvesoftware.Steam"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.valvesoftware.Steam 2>/dev/null; then
+        if confirm "Steam detectado. Desinstalar?"; then
+            echo "Desinstalando Steam..."
+            flatpak uninstall --user -y $pkg_steam 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Steam desinstalado."
+        fi
+    else
+        if confirm "Instalar Steam?"; then
+            echo "Instalando Steam..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_steam
+            touch "$state_file"
+            echo "Steam instalado."
         fi
     fi
 }
@@ -367,6 +609,11 @@ main_menu() {
         echo "11) COSMIC Desktop (Fedora Cosmic-Atomic)"
         echo "12) GNOME Desktop (Silverblue)"
         echo "13) KDE Plasma Desktop (Kinoite)"
+        echo "14) NeoVim"
+        echo "15) LazyVim"
+        echo "16) GIMP + PhotoGIMP"
+        echo "17) Steam"
+        echo "18) Remover Bloatware"
         echo "0) Sair"
         echo
         read -p "Selecione uma opção: " opcao
@@ -385,6 +632,11 @@ main_menu() {
             11) de_cosmic_installer ;;
             12) de_gnome_installer ;;
             13) de_plasma_installer ;;
+            14) neovim_installer ;;
+            15) lazyvim_installer ;;
+            16) gimp_photogimp_installer ;;
+            17) steam_installer ;;
+            18) remover_bloatware ;;
             0) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
