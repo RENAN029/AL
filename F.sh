@@ -261,6 +261,27 @@ flatpak_flathub_installer() {
     fi
 }
 
+flatseal_installer() {
+    local state_file="$STATE_DIR/flatseal"
+    local pkg_flatseal="com.github.tchx84.Flatseal"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.tchx84.Flatseal 2>/dev/null; then
+        if confirm "Flatseal detectado. Desinstalar?"; then
+            echo "Desinstalando Flatseal..."
+            flatpak uninstall --user -y $pkg_flatseal 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Flatseal desinstalado."
+        fi
+    else
+        if confirm "Instalar Flatseal?"; then
+            echo "Instalando Flatseal..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_flatseal
+            touch "$state_file"
+            echo "Flatseal instalado."
+        fi
+    fi
+}
+
 gamemode_installer() {
     local state_file="$STATE_DIR/gamemode"
     local pkg_gamemode="gamemode"
@@ -301,6 +322,27 @@ gamescope_installer() {
             flatpak install --user --noninteractive flathub org.freedesktop.Platform.VulkanLayer.gamescope 2>/dev/null || true
             touch "$state_file"
             echo "Gamescope instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+gearlever_installer() {
+    local state_file="$STATE_DIR/gearlever"
+    local pkg_gearlever="it.mijorus.gearlever"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q it.mijorus.gearlever 2>/dev/null; then
+        if confirm "Gear Lever detectado. Desinstalar?"; then
+            echo "Desinstalando Gear Lever..."
+            flatpak uninstall --user -y $pkg_gearlever 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Gear Lever desinstalado."
+        fi
+    else
+        if confirm "Instalar Gear Lever?"; then
+            echo "Instalando Gear Lever..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_gearlever
+            touch "$state_file"
+            echo "Gear Lever instalado."
         fi
     fi
 }
@@ -354,6 +396,54 @@ gimp_photogimp_installer() {
     fi
 }
 
+goverlay_installer() {
+    local state_file="$STATE_DIR/goverlay"
+    local pkg_mangohud="mangohud"
+    local pkg_goverlay="io.github.benjamimgois.goverlay"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.benjamimgois.goverlay 2>/dev/null; then
+        if confirm "Goverlay detectado. Desinstalar?"; then
+            echo "Desinstalando Goverlay..."
+            sudo rpm-ostree uninstall mangohud 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_goverlay 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Goverlay desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Goverlay?"; then
+            echo "Instalando Goverlay..."
+            sudo rpm-ostree install mangohud
+            flatpak install --or-update --user --noninteractive flathub $pkg_goverlay
+            flatpak install --or-update --user --noninteractive flathub com.valvesoftware.Steam.VulkanLayer.MangoHud/x86_64/stable org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/23.08 org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/24.08 2>/dev/null || true
+            touch "$state_file"
+            echo "Goverlay instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+helium_browser_installer() {
+    local state_file="$STATE_DIR/helium"
+    local pkg_helium="com.imputnet.Helium"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.imputnet.Helium 2>/dev/null; then
+        if confirm "Helium Browser detectado. Desinstalar?"; then
+            echo "Desinstalando Helium Browser..."
+            flatpak uninstall --user -y $pkg_helium 2>/dev/null || true
+            flatpak remote-delete --user helium-repo 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Helium Browser desinstalado."
+        fi
+    else
+        if confirm "Instalar Helium Browser?"; then
+            echo "Instalando Helium Browser..."
+            flatpak remote-add --user --if-not-exists --no-gpg-verify helium-repo https://shyvortex.github.io/helium-flatpak/
+            flatpak install --user --noninteractive helium-repo com.imputnet.Helium
+            touch "$state_file"
+            echo "Helium Browser instalado."
+        fi
+    fi
+}
+
 homebrew_installer() {
     local state_file="$STATE_DIR/homebrew"
 
@@ -375,6 +465,33 @@ homebrew_installer() {
             [ -f ~/.config/fish/config.fish ] && echo "fish_add_path $(dirname $BREW_PATH)" >> ~/.config/fish/config.fish
             eval "$($BREW_PATH shellenv)"
             touch "$state_file"
+        fi
+    fi
+}
+
+hydra_launcher_installer() {
+    local state_file="$STATE_DIR/hydra_launcher"
+    local hydra_dir="$HOME/HydraLauncher"
+    local appimage_path="$hydra_dir/hydralauncher.AppImage"
+    local version="3.8.3"
+
+    if [ -f "$state_file" ] || [ -f "$appimage_path" ]; then
+        if confirm "Hydra Launcher detectado. Desinstalar?"; then
+            echo "Desinstalando Hydra Launcher..."
+            [ -f "$appimage_path" ] && rm -f "$appimage_path"
+            [ -d "$hydra_dir" ] && rmdir "$hydra_dir" 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Hydra Launcher desinstalado."
+        fi
+    else
+        if confirm "Instalar Hydra Launcher?"; then
+            echo "Instalando Hydra Launcher..."
+            mkdir -p "$hydra_dir"
+            local download_url="https://github.com/hydralauncher/hydra/releases/download/v${version}/hydralauncher-${version}.AppImage"
+            curl -L -o "$appimage_path" "$download_url"
+            chmod +x "$appimage_path"
+            touch "$state_file"
+            echo "Hydra Launcher instalado."
         fi
     fi
 }
@@ -450,6 +567,31 @@ lazyvim_installer() {
             rm -rf "$nvim_dir/.git"
             touch "$state_file"
             echo "LazyVim instalado."
+        fi
+    fi
+}
+
+mangojuice_installer() {
+    local state_file="$STATE_DIR/mangojuice"
+    local pkg_mangohud="mangohud"
+    local pkg_mangojuice="io.github.radiolamp.mangojuice"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.radiolamp.mangojuice 2>/dev/null; then
+        if confirm "MangoJuice detectado. Desinstalar?"; then
+            echo "Desinstalando MangoJuice..."
+            sudo rpm-ostree uninstall mangohud 2>/dev/null || true
+            flatpak uninstall --user -y $pkg_mangojuice 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "MangoJuice desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar MangoJuice?"; then
+            echo "Instalando MangoJuice..."
+            sudo rpm-ostree install mangohud
+            flatpak install --or-update --user --noninteractive flathub com.valvesoftware.Steam.VulkanLayer.MangoHud/x86_64/stable org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/23.08 org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/24.08 2>/dev/null || true
+            flatpak install --or-update --user --noninteractive flathub $pkg_mangojuice
+            touch "$state_file"
+            echo "MangoJuice instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -558,6 +700,25 @@ EOF
             sudo rpm-ostree kargs --append=rd.driver.blacklist=nova_core --append=modprobe.blacklist=nova_core --append=rd.driver.blacklist=nouveau --append=modprobe.blacklist=nouveau --append=nvidia-drm.modeset=1
             touch "$state_file"
             echo "Nvidia Proprietário instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+oh_my_bash_installer() {
+    local state_file="$STATE_DIR/oh_my_bash"
+
+    if [ -f "$state_file" ] || [ -d "$HOME/.oh-my-bash" ]; then
+        if confirm "Oh My Bash detectado. Desinstalar?"; then
+            [ -d "$HOME/.oh-my-bash" ] && yes | "$HOME/.oh-my-bash/tools/uninstall.sh" 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Oh My Bash desinstalado."
+        fi
+    else
+        if confirm "Instalar Oh My Bash?"; then
+            echo "Instalando Oh My Bash..."
+            bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh)" --unattended
+            touch "$state_file"
+            echo "Oh My Bash instalado."
         fi
     fi
 }
@@ -806,6 +967,71 @@ terra_installer() {
     fi
 }
 
+unmojang_installer() {
+    local state_file="$STATE_DIR/unmojang"
+    local pkg_fjord="org.unmojang.FjordLauncher"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.unmojang.FjordLauncher 2>/dev/null; then
+        if confirm "Fjord Launcher detectado. Desinstalar?"; then
+            echo "Desinstalando Fjord Launcher..."
+            flatpak uninstall --user -y $pkg_fjord 2>/dev/null || true
+            flatpak remote-delete --user hero-persson 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Fjord Launcher desinstalado."
+        fi
+    else
+        if confirm "Instalar Fjord Launcher?"; then
+            echo "Instalando Fjord Launcher..."
+            flatpak remote-add --user --if-not-exists hero-persson https://hero-persson.github.io/unmojang-flatpak/index.flatpakrepo
+            flatpak install --user --or-update --noninteractive hero-persson $pkg_fjord
+            touch "$state_file"
+            echo "Fjord Launcher instalado."
+        fi
+    fi
+}
+
+vscodium_installer() {
+    local state_file="$STATE_DIR/vscodium"
+    local pkg_vscodium="com.vscodium.codium"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.vscodium.codium 2>/dev/null; then
+        if confirm "VSCodium detectado. Desinstalar?"; then
+            echo "Desinstalando VSCodium..."
+            flatpak uninstall --user -y $pkg_vscodium 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "VSCodium desinstalado."
+        fi
+    else
+        if confirm "Instalar VSCodium?"; then
+            echo "Instalando VSCodium..."
+            flatpak install --user --or-update --noninteractive flathub $pkg_vscodium
+            touch "$state_file"
+            echo "VSCodium instalado."
+        fi
+    fi
+}
+
+warehouse_installer() {
+    local state_file="$STATE_DIR/warehouse"
+    local pkg_warehouse="io.github.flattool.Warehouse"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.flattool.Warehouse 2>/dev/null; then
+        if confirm "Warehouse detectado. Desinstalar?"; then
+            echo "Desinstalando Warehouse..."
+            flatpak uninstall --user -y $pkg_warehouse 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Warehouse desinstalado."
+        fi
+    else
+        if confirm "Instalar Warehouse?"; then
+            echo "Instalando Warehouse..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_warehouse
+            touch "$state_file"
+            echo "Warehouse instalado."
+        fi
+    fi
+}
+
 xpadneo_installer() {
     local state_file="$STATE_DIR/xpadneo"
 
@@ -851,6 +1077,58 @@ zen_browser_installer() {
     fi
 }
 
+zsh_ohmyzsh_installer() {
+    local zsh_state="$STATE_DIR/zsh"
+    local ohmyzsh_state="$STATE_DIR/ohmyzsh"
+    local pkg_zsh="zsh"
+
+    if [ -f "$zsh_state" ] || command -v zsh &>/dev/null; then
+        if confirm "Zsh detectado. Desinstalar?"; then
+            echo "Desinstalando Zsh..."
+            if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
+                [ -d "$HOME/.oh-my-zsh" ] && {
+                    chmod +x "$HOME/.oh-my-zsh/tools/uninstall.sh" 2>/dev/null || true
+                    yes | "$HOME/.oh-my-zsh/tools/uninstall.sh" 2>/dev/null || true
+                }
+                cleanup_files "$ohmyzsh_state"
+            fi
+            sudo rpm-ostree uninstall zsh 2>/dev/null || true
+            sudo chsh -s "$(which bash)" "$USER" 2>/dev/null || true
+            cleanup_files "$zsh_state"
+            rm -rf "$HOME/.zshrc" "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc.backup" 2>/dev/null || true
+            echo "Zsh desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Zsh?"; then
+            echo "Instalando Zsh..."
+            sudo rpm-ostree install zsh
+            sudo chsh -s "$(which zsh)" "$USER"
+            touch "$HOME/.zshrc"
+            touch "$zsh_state"
+            echo "Zsh instalado. Reinicie para aplicar."
+        fi
+    fi
+    
+    if [ -f "$zsh_state" ] || command -v zsh &>/dev/null; then
+        if [ -f "$ohmyzsh_state" ] || [ -d "$HOME/.oh-my-zsh" ]; then
+            if confirm "Oh My Zsh detectado. Desinstalar?"; then
+                echo "Desinstalando Oh My Zsh..."
+                [ -d "$HOME/.oh-my-zsh" ] && {
+                    chmod +x "$HOME/.oh-my-zsh/tools/uninstall.sh" 2>/dev/null || true
+                    yes | "$HOME/.oh-my-zsh/tools/uninstall.sh" 2>/dev/null || true
+                }
+                cleanup_files "$ohmyzsh_state"
+                echo "Oh My Zsh desinstalado."
+            fi
+        elif confirm "Instalar Oh My Zsh?"; then
+            echo "Instalando Oh My Zsh..."
+            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+            touch "$ohmyzsh_state"
+            echo "Oh My Zsh instalado."
+        fi
+    fi
+}
+
 main_menu() {
     while true; do
         clear
@@ -882,6 +1160,17 @@ main_menu() {
         echo "25) Affinity Photo (AppImage)"
         echo "26) IWD (iNet Wireless Daemon)"
         echo "27) Mise (Dev Tools)"
+        echo "28) Goverlay"
+        echo "29) MangoJuice"
+        echo "30) Fjord Launcher (Unmojang)"
+        echo "31) VSCodium"
+        echo "32) Helium Browser"
+        echo "33) Hydra Launcher (AppImage)"
+        echo "34) Gear Lever"
+        echo "35) Flatseal"
+        echo "36) Warehouse"
+        echo "37) Zsh + Oh My Zsh"
+        echo "38) Oh My Bash"
         echo "0) Sair"
         echo
         read -p "Selecione uma opção: " opcao
@@ -914,6 +1203,17 @@ main_menu() {
             25) affinity_installer ;;
             26) iwd_installer ;;
             27) mise_installer ;;
+            28) goverlay_installer ;;
+            29) mangojuice_installer ;;
+            30) unmojang_installer ;;
+            31) vscodium_installer ;;
+            32) helium_browser_installer ;;
+            33) hydra_launcher_installer ;;
+            34) gearlever_installer ;;
+            35) flatseal_installer ;;
+            36) warehouse_installer ;;
+            37) zsh_ohmyzsh_installer ;;
+            38) oh_my_bash_installer ;;
             0) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
