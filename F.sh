@@ -1058,6 +1058,7 @@ remover_bloatware() {
             echo "Removendo bloatware do GNOME via override..."
             local gnome_bloat=(
                 firefox
+                firefox-langpacks
                 gnome-photos
                 gnome-maps
                 gnome-music
@@ -1114,6 +1115,7 @@ remover_bloatware() {
             echo "Removendo bloatware do COSMIC via override..."
             local cosmic_bloat=(
                 firefox
+                firefox-langpacks
                 gnome-photos
                 gnome-maps
                 gnome-music
