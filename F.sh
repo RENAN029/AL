@@ -236,6 +236,27 @@ eden_emulator_installer() {
     fi
 }
 
+extension_manager_installer() {
+    local state_file="$STATE_DIR/extension_manager"
+    local pkg_extension_manager="com.mattjakeman.ExtensionManager"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.mattjakeman.ExtensionManager 2>/dev/null; then
+        if confirm "Extension Manager detectado. Desinstalar?"; then
+            echo "Desinstalando Extension Manager..."
+            flatpak uninstall --user -y $pkg_extension_manager 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Extension Manager desinstalado."
+        fi
+    else
+        if confirm "Instalar Extension Manager?"; then
+            echo "Instalando Extension Manager..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_extension_manager
+            touch "$state_file"
+            echo "Extension Manager instalado."
+        fi
+    fi
+}
+
 faugus_launcher_installer() {
     local state_file="$STATE_DIR/faugus_launcher"
     local pkg_faugus="io.github.Faugus.faugus-launcher"
@@ -330,27 +351,6 @@ flatpak_flathub_installer() {
         flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
         touch "$flathub_state"
         echo "Flathub adicionado."
-    fi
-}
-
-flatseal_installer() {
-    local state_file="$STATE_DIR/flatseal"
-    local pkg_flatseal="com.github.tchx84.Flatseal"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.tchx84.Flatseal 2>/dev/null; then
-        if confirm "Flatseal detectado. Desinstalar?"; then
-            echo "Desinstalando Flatseal..."
-            flatpak uninstall --user -y $pkg_flatseal 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Flatseal desinstalado."
-        fi
-    else
-        if confirm "Instalar Flatseal?"; then
-            echo "Instalando Flatseal..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_flatseal
-            touch "$state_file"
-            echo "Flatseal instalado."
-        fi
     fi
 }
 
@@ -794,6 +794,60 @@ EOF
             sudo rpm-ostree kargs --append=rd.driver.blacklist=nova_core --append=modprobe.blacklist=nova_core --append=rd.driver.blacklist=nouveau --append=modprobe.blacklist=nouveau --append=nvidia-drm.modeset=1
             touch "$state_file"
             echo "Nvidia Proprietário instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+obs_installer() {
+    local obs_state="$STATE_DIR/obs"
+    local obs_plugins_state="$STATE_DIR/obs_plugins"
+    local pkg_wireplumber="wireplumber xorg-xwayland"
+    local pkg_obs="com.obsproject.Studio"
+
+    if [ -f "$obs_state" ] || flatpak list --app --columns=application | grep -q "com.obsproject.Studio"; then
+        if confirm "OBS Studio detectado. Desinstalar?"; then
+            echo "Desinstalando OBS Studio..."
+            flatpak uninstall --user -y $pkg_obs 2>/dev/null || true
+            cleanup_files "$obs_state"
+            if [ -f "$obs_plugins_state" ] || [ -d "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio" ]; then
+                cleanup_files "$obs_plugins_state" "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio"
+            fi
+            if confirm "Desinstalar também wireplumber e xorg-xwayland?"; then
+                sudo rpm-ostree uninstall wireplumber xorg-xwayland 2>/dev/null || true
+            fi
+            echo "OBS Studio desinstalado. Reinicie para aplicar."
+        fi
+    elif confirm "Instalar OBS Studio?"; then
+        echo "Instalando OBS Studio..."
+        flatpak install --user -y --noninteractive flathub $pkg_obs
+        touch "$obs_state"
+        echo "OBS Studio instalado."
+    fi
+    
+    if [ ! -f "$obs_plugins_state" ] && [ ! -d "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio" ]; then
+        if confirm "Instalar plugins recomendados (pipewire audio capture)?"; then
+            echo "Instalando plugins do OBS Studio..."
+            sudo rpm-ostree install wireplumber xorg-xwayland
+            local ver=$(curl -s "https://api.github.com/repos/dimtpap/obs-pipewire-audio-capture/releases/latest" | grep -oP '"tag_name": "\K(.*)(?=")')
+            mkdir -p /tmp/obspipe && cd /tmp/obspipe
+            curl -fsSL "https://github.com/dimtpap/obs-pipewire-audio-capture/releases/download/${ver}/linux-pipewire-audio-${ver}-flatpak-30.tar.gz" -o linux-pipewire-audio.tar.gz
+            tar -xvzf linux-pipewire-audio.tar.gz
+            mkdir -p "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio"
+            cp -rf linux-pipewire-audio/* "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio/"
+            flatpak override --user --filesystem=xdg-run/pipewire-0 $pkg_obs
+            flatpak override --user --socket=x11 --nosocket=wayland --env=QT_QPA_PLATFORM=xcb $pkg_obs
+            cd .. && rm -rf /tmp/obspipe
+            touch "$obs_plugins_state"
+            echo "Plugins do OBS Studio instalados."
+        fi
+    elif [ -f "$obs_plugins_state" ] || [ -d "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio" ]; then
+        if confirm "Plugins do OBS detectados. Desinstalar?"; then
+            echo "Desinstalando plugins do OBS Studio..."
+            cleanup_files "$obs_plugins_state" "$HOME/.var/app/com.obsproject.Studio/config/obs-studio/plugins/linux-pipewire-audio"
+            if confirm "Desinstalar também wireplumber e xorg-xwayland?"; then
+                sudo rpm-ostree uninstall wireplumber xorg-xwayland 2>/dev/null || true
+            fi
+            echo "Plugins do OBS Studio desinstalados."
         fi
     fi
 }
@@ -1320,27 +1374,6 @@ vscodium_installer() {
     fi
 }
 
-warehouse_installer() {
-    local state_file="$STATE_DIR/warehouse"
-    local pkg_warehouse="io.github.flattool.Warehouse"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.flattool.Warehouse 2>/dev/null; then
-        if confirm "Warehouse detectado. Desinstalar?"; then
-            echo "Desinstalando Warehouse..."
-            flatpak uninstall --user -y $pkg_warehouse 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Warehouse desinstalado."
-        fi
-    else
-        if confirm "Instalar Warehouse?"; then
-            echo "Instalando Warehouse..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_warehouse
-            touch "$state_file"
-            echo "Warehouse instalado."
-        fi
-    fi
-}
-
 winboat_installer() {
     local state_file="$STATE_DIR/winboat"
     local winboat_dir="$HOME/WinBoat"
@@ -1508,8 +1541,8 @@ main_menu() {
         echo "32) Helium Browser"
         echo "33) Hydra Launcher (AppImage)"
         echo "34) Gear Lever"
-        echo "35) Flatseal"
-        echo "36) Warehouse"
+        echo "35) Extension Manager"
+        echo "36) OBS Studio"
         echo "37) Zsh + Oh My Zsh"
         echo "38) Oh My Bash"
         echo "39) CPU Ondemand"
@@ -1523,7 +1556,7 @@ main_menu() {
         echo "47) Preload (otimização de RAM)"
         echo "48) Obsidian"
         echo "49) OnlyOffice"
-        echo "50) Sair"
+        echo "0) Sair"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -1562,8 +1595,8 @@ main_menu() {
             32) helium_browser_installer ;;
             33) hydra_launcher_installer ;;
             34) gearlever_installer ;;
-            35) flatseal_installer ;;
-            36) warehouse_installer ;;
+            35) extension_manager_installer ;;
+            36) obs_installer ;;
             37) zsh_ohmyzsh_installer ;;
             38) oh_my_bash_installer ;;
             39) cpu_ondemand_installer ;;
@@ -1577,7 +1610,7 @@ main_menu() {
             47) preload_installer ;;
             48) obsidian_installer ;;
             49) onlyoffice_installer ;;
-            50) exit 0 ;;
+            0) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
