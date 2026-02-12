@@ -1829,7 +1829,7 @@ ferramentas_menu() {
 
         case $opcao in
             1) clear; modern_unix_installer ;;
-            2) clear; pessoal_base_installer ;;
+            2) clear; pessoal_fonts_installer ;;
             3) clear; pessoal_media_installer ;;
             4) clear; amd_ucode_installer ;;
             5) clear; intel_ucode_installer ;;
@@ -4399,9 +4399,9 @@ pessoal_menu() {
     done
 }
 
-pessoal_base_installer() {
+pessoal_fonts_installer() {
     local state_file="$STATE_DIR/pessoal_base"
-    local pkg_base="noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-noto-nerd noto-fonts-extra ttf-jetbrains-mono"
+    local pkg_base="noto-fonts noto-fonts-cjk noto-fonts-emoji noto-fonts-extra ttf-noto-nerd"
 
     if [ -f "$state_file" ] || pacman -Q noto-fonts &>/dev/null; then
         if confirm "Pacotes Base detectados. Desinstalar?"; then
