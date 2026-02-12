@@ -27,6 +27,27 @@ cleanup_files() {
     done
 }
 
+archiving_compression_installer() {
+    local state_file="$STATE_DIR/archiving_compression"
+    local pkg_compactacao="7zip unrar lhasa"
+
+    if [ -f "$state_file" ] || rpm -q unrar &>/dev/null; then
+        if confirm "Pacotes de Compactação detectados. Desinstalar?"; then
+            echo "Desinstalando Pacotes de Compactação..."
+            sudo rpm-ostree uninstall 7zip unrar lhasa 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Pacotes de Compactação desinstalados. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Pacotes de Compactação?"; then
+            echo "Instalando Pacotes de Compactação..."
+            sudo rpm-ostree install 7zip unrar lhasa
+            touch "$state_file"
+            echo "Pacotes de Compactação instalados. Reinicie para aplicar."
+        fi
+    fi
+}
+
 cachyconfs_installer() {
     local state_file="$STATE_DIR/cachyconfs"
 
@@ -363,6 +384,27 @@ ostree_autoupd_installer() {
     fi
 }
 
+pessoal_base_installer() {
+    local state_file="$STATE_DIR/pessoal_base"
+    local pkg_base="google-noto-fonts-all google-noto-sans-cjk-fonts google-noto-emoji-fonts google-noto-sans-hk-fonts google-noto-sans-cjk-vf-fonts cascadia-mono-nf-fonts"
+
+    if [ -f "$state_file" ] || rpm -q google-noto-fonts-all &>/dev/null; then
+        if confirm "Pacotes Base detectados. Desinstalar?"; then
+            echo "Desinstalando Pacotes Base..."
+            sudo rpm-ostree uninstall google-noto-fonts-all google-noto-sans-cjk-fonts google-noto-emoji-fonts google-noto-sans-hk-fonts google-noto-sans-cjk-vf-fonts cascadia-mono-nf-fonts 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Pacotes Base desinstalados. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Pacotes Base (Fontes Google Noto e Cascadia)?"; then
+            echo "Instalando Pacotes Base..."
+            sudo rpm-ostree install $pkg_base
+            touch "$state_file"
+            echo "Pacotes Base instalados. Reinicie para aplicar."
+        fi
+    fi
+}
+
 remover_bloatware() {
     echo "Identificando ambiente desktop atual..."
     
@@ -383,7 +425,7 @@ remover_bloatware() {
     if confirm "Remover aplicativos pré-instalados desnecessários do $desktop_env?"; then
         
         if [ "$desktop_env" = "GNOME" ]; then
-            echo "Removendo bloatware do GNOME..."
+            echo "Removendo bloatware do GNOME via override..."
             local gnome_bloat=(
                 firefox
                 gnome-photos
@@ -402,15 +444,15 @@ remover_bloatware() {
                 simple-scan
                 evolution
                 evince
-                libreoffice-*
             )
             for pkg in "${gnome_bloat[@]}"; do
                 echo "Removendo $pkg..."
-                sudo rpm-ostree uninstall "$pkg" 2>/dev/null || true
+                sudo rpm-ostree override remove "$pkg" 2>/dev/null || true
             done
+            sudo rpm-ostree override remove libreoffice-* 2>/dev/null || true
             
         elif [ "$desktop_env" = "KDE" ]; then
-            echo "Removendo bloatware do KDE..."
+            echo "Removendo bloatware do KDE via override..."
             local kde_bloat=(
                 firefox
                 kate
@@ -430,27 +472,27 @@ remover_bloatware() {
                 kmines
                 ksudoku
                 kpat
-                libreoffice-*
             )
             for pkg in "${kde_bloat[@]}"; do
                 echo "Removendo $pkg..."
-                sudo rpm-ostree uninstall "$pkg" 2>/dev/null || true
+                sudo rpm-ostree override remove "$pkg" 2>/dev/null || true
             done
+            sudo rpm-ostree override remove libreoffice-* 2>/dev/null || true
             
         elif [ "$desktop_env" = "COSMIC" ]; then
-            echo "Removendo bloatware do COSMIC..."
+            echo "Removendo bloatware do COSMIC via override..."
             local cosmic_bloat=(
                 firefox
                 gnome-photos
                 gnome-maps
                 gnome-music
                 gnome-weather
-                libreoffice-*
             )
             for pkg in "${cosmic_bloat[@]}"; do
                 echo "Removendo $pkg..."
-                sudo rpm-ostree uninstall "$pkg" 2>/dev/null || true
+                sudo rpm-ostree override remove "$pkg" 2>/dev/null || true
             done
+            sudo rpm-ostree override remove libreoffice-* 2>/dev/null || true
         fi
         
         echo "Removendo pacotes Flatpak pré-instalados..."
@@ -613,7 +655,9 @@ main_menu() {
         echo "15) LazyVim"
         echo "16) GIMP + PhotoGIMP"
         echo "17) Steam"
-        echo "18) Remover Bloatware"
+        echo "18) Archiving/Compression Tools (7zip, unrar)"
+        echo "19) Pacotes Base (Fontes Google Noto e Cascadia)"
+        echo "20) Remover Bloatware"
         echo "0) Sair"
         echo
         read -p "Selecione uma opção: " opcao
@@ -636,7 +680,9 @@ main_menu() {
             15) lazyvim_installer ;;
             16) gimp_photogimp_installer ;;
             17) steam_installer ;;
-            18) remover_bloatware ;;
+            18) archiving_compression_installer ;;
+            19) pessoal_base_installer ;;
+            20) remover_bloatware ;;
             0) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
