@@ -57,23 +57,23 @@ affinity_installer() {
     fi
 }
 
-archiving_compression_installer() {
-    local state_file="$STATE_DIR/archiving_compression"
-    local pkg_compactacao="7zip unrar lhasa"
+base_installer() {
+    local state_file="$STATE_DIR/base"
+    local pkg_base="podman podman-compose google-noto-fonts-all google-noto-sans-cjk-fonts google-noto-emoji-fonts google-noto-sans-hk-fonts google-noto-sans-cjk-vf-fonts cascadia-mono-nf-fonts 7zip unrar lhasa"
 
-    if [ -f "$state_file" ] || rpm -q unrar &>/dev/null; then
-        if confirm "Pacotes de Compactação detectados. Desinstalar?"; then
-            echo "Desinstalando Pacotes de Compactação..."
-            sudo rpm-ostree uninstall 7zip unrar lhasa 2>/dev/null || true
+    if [ -f "$state_file" ] || rpm -q podman &>/dev/null; then
+        if confirm "Pacotes Base detectados. Desinstalar?"; then
+            echo "Desinstalando Pacotes Base..."
+            sudo rpm-ostree uninstall podman podman-compose google-noto-fonts-all google-noto-sans-cjk-fonts google-noto-emoji-fonts google-noto-sans-hk-fonts google-noto-sans-cjk-vf-fonts cascadia-mono-nf-fonts 7zip unrar lhasa 2>/dev/null || true
             cleanup_files "$state_file"
-            echo "Pacotes de Compactação desinstalados. Reinicie para aplicar."
+            echo "Pacotes Base desinstalados. Reinicie para aplicar."
         fi
     else
-        if confirm "Instalar Pacotes de Compactação?"; then
-            echo "Instalando Pacotes de Compactação..."
-            sudo rpm-ostree install 7zip unrar lhasa
+        if confirm "Instalar Pacotes Base (Podman, Fontes e Compactação)?"; then
+            echo "Instalando Pacotes Base..."
+            sudo rpm-ostree install $pkg_base
             touch "$state_file"
-            echo "Pacotes de Compactação instalados. Reinicie para aplicar."
+            echo "Pacotes Base instalados. Reinicie para aplicar."
         fi
     fi
 }
@@ -209,11 +209,45 @@ de_plasma_installer() {
     fi
 }
 
+earlyoom_installer() {
+    local state_file="$STATE_DIR/earlyoom"
+    local total_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    local total_gb=$(( total_kb / 1024 / 1024 ))
+
+    if [ -f "$state_file" ] || rpm -q earlyoom &>/dev/null; then
+        if confirm "EarlyOOM detectado. Desinstalar?"; then
+            echo "Desinstalando EarlyOOM..."
+            sudo systemctl stop earlyoom 2>/dev/null || true
+            sudo systemctl disable earlyoom 2>/dev/null || true
+            sudo rpm-ostree uninstall earlyoom 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "EarlyOOM desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if [ $total_gb -le 8 ]; then
+            if confirm "Instalar EarlyOOM (recomendado para ${total_gb}GB de RAM)?"; then
+                echo "Instalando EarlyOOM..."
+                sudo rpm-ostree install earlyoom
+                sudo systemctl enable earlyoom
+                sudo systemctl start earlyoom
+                touch "$state_file"
+                echo "EarlyOOM instalado. Reinicie para aplicar."
+            fi
+        elif confirm "Instalar EarlyOOM (${total_gb}GB de RAM - não obrigatório)?"; then
+            echo "Instalando EarlyOOM..."
+            sudo rpm-ostree install earlyoom
+            sudo systemctl enable earlyoom
+            sudo systemctl start earlyoom
+            touch "$state_file"
+            echo "EarlyOOM instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 eden_emulator_installer() {
     local state_file="$STATE_DIR/eden"
     local eden_dir="$HOME/Eden"
     local appimage_path="$eden_dir/Eden-Linux.AppImage"
-    local version="0.1.1"
 
     if [ -f "$state_file" ] || [ -f "$appimage_path" ]; then
         if confirm "Eden Emulator detectado. Desinstalar?"; then
@@ -227,7 +261,8 @@ eden_emulator_installer() {
         if confirm "Instalar Eden Emulator?"; then
             echo "Instalando Eden Emulator..."
             mkdir -p "$eden_dir"
-            local download_url="https://github.com/eden-emulator/Releases/releases/download/v${version}/Eden-Linux-v${version}-amd64-gcc-standard.AppImage"
+            local download_url=$(curl -s https://api.github.com/repos/eden-emulator/Releases/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'Eden.*AppImage' | head -1 | cut -d'"' -f4)
+            [ -z "$download_url" ] && download_url="https://github.com/eden-emulator/Releases/releases/latest/download/Eden-Linux-amd64-gcc-standard.AppImage"
             curl -L -o "$appimage_path" "$download_url"
             chmod +x "$appimage_path"
             touch "$state_file"
@@ -357,23 +392,23 @@ flatpak_flathub_installer() {
     fi
 }
 
-gamemode_installer() {
-    local state_file="$STATE_DIR/gamemode"
-    local pkg_gamemode="gamemode"
+flatseal_installer() {
+    local state_file="$STATE_DIR/flatseal"
+    local pkg_flatseal="com.github.tchx84.Flatseal"
 
-    if [ -f "$state_file" ] || rpm -q gamemode &>/dev/null; then
-        if confirm "Gamemode detectado. Desinstalar?"; then
-            echo "Desinstalando Gamemode..."
-            sudo rpm-ostree uninstall gamemode 2>/dev/null || true
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.tchx84.Flatseal 2>/dev/null; then
+        if confirm "Flatseal detectado. Desinstalar?"; then
+            echo "Desinstalando Flatseal..."
+            flatpak uninstall --user -y $pkg_flatseal 2>/dev/null || true
             cleanup_files "$state_file"
-            echo "Gamemode desinstalado. Reinicie para aplicar."
+            echo "Flatseal desinstalado."
         fi
     else
-        if confirm "Instalar Gamemode?"; then
-            echo "Instalando Gamemode..."
-            sudo rpm-ostree install gamemode
+        if confirm "Instalar Flatseal?"; then
+            echo "Instalando Flatseal..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_flatseal
             touch "$state_file"
-            echo "Gamemode instalado. Reinicie para aplicar."
+            echo "Flatseal instalado."
         fi
     fi
 }
@@ -471,31 +506,6 @@ gimp_photogimp_installer() {
     fi
 }
 
-goverlay_installer() {
-    local state_file="$STATE_DIR/goverlay"
-    local pkg_mangohud="mangohud"
-    local pkg_goverlay="io.github.benjamimgois.goverlay"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.benjamimgois.goverlay 2>/dev/null; then
-        if confirm "Goverlay detectado. Desinstalar?"; then
-            echo "Desinstalando Goverlay..."
-            sudo rpm-ostree uninstall mangohud 2>/dev/null || true
-            flatpak uninstall --user -y $pkg_goverlay 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Goverlay desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar Goverlay?"; then
-            echo "Instalando Goverlay..."
-            sudo rpm-ostree install mangohud
-            flatpak install --or-update --user --noninteractive flathub $pkg_goverlay
-            flatpak install --or-update --user --noninteractive flathub com.valvesoftware.Steam.VulkanLayer.MangoHud/x86_64/stable org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/23.08 org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/24.08 2>/dev/null || true
-            touch "$state_file"
-            echo "Goverlay instalado. Reinicie para aplicar."
-        fi
-    fi
-}
-
 helium_browser_installer() {
     local state_file="$STATE_DIR/helium"
     local pkg_helium="com.imputnet.Helium"
@@ -570,7 +580,6 @@ hydra_launcher_installer() {
     local state_file="$STATE_DIR/hydra_launcher"
     local hydra_dir="$HOME/HydraLauncher"
     local appimage_path="$hydra_dir/hydralauncher.AppImage"
-    local version="3.8.3"
 
     if [ -f "$state_file" ] || [ -f "$appimage_path" ]; then
         if confirm "Hydra Launcher detectado. Desinstalar?"; then
@@ -584,7 +593,8 @@ hydra_launcher_installer() {
         if confirm "Instalar Hydra Launcher?"; then
             echo "Instalando Hydra Launcher..."
             mkdir -p "$hydra_dir"
-            local download_url="https://github.com/hydralauncher/hydra/releases/download/v${version}/hydralauncher-${version}.AppImage"
+            local download_url=$(curl -s https://api.github.com/repos/hydralauncher/hydra/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'hydralauncher.*AppImage' | head -1 | cut -d'"' -f4)
+            [ -z "$download_url" ] && download_url="https://github.com/hydralauncher/hydra/releases/latest/download/hydralauncher.AppImage"
             curl -L -o "$appimage_path" "$download_url"
             chmod +x "$appimage_path"
             touch "$state_file"
@@ -641,29 +651,6 @@ kdenlive_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_kdenlive
             touch "$state_file"
             echo "Kdenlive instalado."
-        fi
-    fi
-}
-
-lazyvim_installer() {
-    local state_file="$STATE_DIR/nvim_lazyvim"
-    local nvim_dir="$HOME/.config/nvim"
-
-    if [ -f "$state_file" ] || [ -d "$nvim_dir" ]; then
-        if confirm "LazyVim detectado. Desinstalar?"; then
-            echo "Desinstalando LazyVim..."
-            rm -rf "$nvim_dir"
-            cleanup_files "$state_file"
-            echo "LazyVim desinstalado."
-        fi
-    else
-        if confirm "Instalar LazyVim?"; then
-            echo "Instalando LazyVim..."
-            rm -rf "$nvim_dir"
-            git clone https://github.com/LazyVim/starter "$nvim_dir"
-            rm -rf "$nvim_dir/.git"
-            touch "$state_file"
-            echo "LazyVim instalado."
         fi
     fi
 }
@@ -736,22 +723,37 @@ mise_installer() {
     fi
 }
 
-neovim_installer() {
-    local state_file="$STATE_DIR/nvim"
+neovim_lazyvim_installer() {
+    local nvim_state="$STATE_DIR/nvim"
+    local lazyvim_state="$STATE_DIR/lazyvim"
+    local nvim_dir="$HOME/.config/nvim"
 
-    if [ -f "$state_file" ] || command -v nvim &>/dev/null; then
+    if [ -f "$nvim_state" ] || command -v nvim &>/dev/null; then
         if confirm "NeoVim detectado. Desinstalar?"; then
             echo "Desinstalando NeoVim..."
+            if [ -f "$lazyvim_state" ] || [ -d "$nvim_dir" ]; then
+                rm -rf "$nvim_dir"
+                cleanup_files "$lazyvim_state"
+            fi
             sudo rpm-ostree uninstall neovim 2>/dev/null || true
-            cleanup_files "$state_file"
+            cleanup_files "$nvim_state"
             echo "NeoVim desinstalado. Reinicie para aplicar."
         fi
     else
         if confirm "Instalar NeoVim?"; then
             echo "Instalando NeoVim..."
             sudo rpm-ostree install neovim
-            touch "$state_file"
+            touch "$nvim_state"
             echo "NeoVim instalado. Reinicie para aplicar."
+            
+            if confirm "Instalar LazyVim (configuração)?"; then
+                echo "Instalando LazyVim..."
+                rm -rf "$nvim_dir"
+                git clone https://github.com/LazyVim/starter "$nvim_dir"
+                rm -rf "$nvim_dir/.git"
+                touch "$lazyvim_state"
+                echo "LazyVim instalado."
+            fi
         fi
     fi
 }
@@ -777,16 +779,19 @@ nvidia_proprietary_installer() {
             fi
             
             if sudo mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
-                sudo rpm-ostree install akmods rpmdevtools
-                sudo kmodgenca
-                sudo mokutil --import /etc/pki/akmods/certs/public_key.der
-                cd $HOME
-                git clone https://github.com/CheariX/silverblue-akmods-keys
-                cd silverblue-akmods-keys
-                sudo bash setup.sh
-                sudo rpm-ostree install -yA akmods-keys-*.noarch.rpm
-                cd ..
-                rm -rf silverblue-akmods-keys
+                if confirm "SecureBoot detectado. Deseja configurar assinatura dos módulos?"; then
+                    echo "Configurando assinatura para SecureBoot..."
+                    sudo rpm-ostree install akmods rpmdevtools
+                    sudo kmodgenca
+                    sudo mokutil --import /etc/pki/akmods/certs/public_key.der
+                    cd $HOME
+                    git clone https://github.com/CheariX/silverblue-akmods-keys
+                    cd silverblue-akmods-keys
+                    sudo bash setup.sh
+                    sudo rpm-ostree install akmods-keys-0.0.2-8.fc$(rpm -E %fedora).noarch.rpm
+                    cd ..
+                    rm -rf silverblue-akmods-keys
+                fi
             fi
             
             sudo rpm-ostree install akmod-nvidia xorg-x11-drv-nvidia-cuda
@@ -955,48 +960,6 @@ ostree_autoupd_installer() {
     fi
 }
 
-pessoal_base_installer() {
-    local state_file="$STATE_DIR/pessoal_base"
-    local pkg_base="google-noto-fonts-all google-noto-sans-cjk-fonts google-noto-emoji-fonts google-noto-sans-hk-fonts google-noto-sans-cjk-vf-fonts cascadia-mono-nf-fonts"
-
-    if [ -f "$state_file" ] || rpm -q google-noto-fonts-all &>/dev/null; then
-        if confirm "Pacotes Base detectados. Desinstalar?"; then
-            echo "Desinstalando Pacotes Base..."
-            sudo rpm-ostree uninstall google-noto-fonts-all google-noto-sans-cjk-fonts google-noto-emoji-fonts google-noto-sans-hk-fonts google-noto-sans-cjk-vf-fonts cascadia-mono-nf-fonts 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Pacotes Base desinstalados. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar Pacotes Base (Fontes Google Noto e Cascadia)?"; then
-            echo "Instalando Pacotes Base..."
-            sudo rpm-ostree install $pkg_base
-            touch "$state_file"
-            echo "Pacotes Base instalados. Reinicie para aplicar."
-        fi
-    fi
-}
-
-podman_installer() {
-    local state_file="$STATE_DIR/podman"
-    local pkg_podman="podman podman-compose"
-
-    if [ -f "$state_file" ] || rpm -q podman &>/dev/null; then
-        if confirm "Podman detectado. Desinstalar?"; then
-            echo "Desinstalando Podman..."
-            sudo rpm-ostree uninstall podman podman-compose 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Podman desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar Podman?"; then
-            echo "Instalando Podman..."
-            sudo rpm-ostree install podman podman-compose
-            touch "$state_file"
-            echo "Podman instalado. Reinicie para aplicar."
-        fi
-    fi
-}
-
 preload_installer() {
     local state_file="$STATE_DIR/preload"
     local total_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
@@ -1035,6 +998,27 @@ preload_installer() {
     fi
 }
 
+protonplus_installer() {
+    local state_file="$STATE_DIR/protonplus"
+    local pkg_protonplus="com.vysp3r.ProtonPlus"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.vysp3r.ProtonPlus 2>/dev/null; then
+        if confirm "ProtonPlus detectado. Desinstalar?"; then
+            echo "Desinstalando ProtonPlus..."
+            flatpak uninstall --user -y $pkg_protonplus 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "ProtonPlus desinstalado."
+        fi
+    else
+        if confirm "Instalar ProtonPlus?"; then
+            echo "Instalando ProtonPlus..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_protonplus
+            touch "$state_file"
+            echo "ProtonPlus instalado."
+        fi
+    fi
+}
+
 remover_bloatware() {
     echo "Identificando ambiente desktop atual..."
     
@@ -1046,7 +1030,7 @@ remover_bloatware() {
     elif rpm-ostree status 2>/dev/null | grep -q "cosmic-atomic"; then
         desktop_env="COSMIC"
     else
-        echo "Não foi possível identificar o ambiente desktop ou ambiente não suportado para remoção de bloatware."
+        echo "Não foi possível identificar o ambiente desktop."
         return
     fi
     
@@ -1054,11 +1038,11 @@ remover_bloatware() {
     
     if confirm "Remover aplicativos pré-instalados desnecessários do $desktop_env?"; then
         
+        echo "Criando arquivo de overrides para remoção permanente..."
+        
         if [ "$desktop_env" = "GNOME" ]; then
-            echo "Removendo bloatware do GNOME via override..."
-            local gnome_bloat=(
+            local bloat_list=(
                 firefox
-                firefox-langpacks
                 gnome-photos
                 gnome-maps
                 gnome-music
@@ -1075,18 +1059,11 @@ remover_bloatware() {
                 simple-scan
                 evolution
                 evince
+                libreoffice-*
             )
-            for pkg in "${gnome_bloat[@]}"; do
-                echo "Removendo $pkg..."
-                sudo rpm-ostree override remove "$pkg" 2>/dev/null || true
-            done
-            sudo rpm-ostree override remove libreoffice-* 2>/dev/null || true
-            
         elif [ "$desktop_env" = "KDE" ]; then
-            echo "Removendo bloatware do KDE via override..."
-            local kde_bloat=(
+            local bloat_list=(
                 firefox
-                firefox-langpacks
                 kate
                 kwrite
                 konversation
@@ -1104,29 +1081,40 @@ remover_bloatware() {
                 kmines
                 ksudoku
                 kpat
+                libreoffice-*
             )
-            for pkg in "${kde_bloat[@]}"; do
-                echo "Removendo $pkg..."
-                sudo rpm-ostree override remove "$pkg" 2>/dev/null || true
-            done
-            sudo rpm-ostree override remove libreoffice-* 2>/dev/null || true
-            
         elif [ "$desktop_env" = "COSMIC" ]; then
-            echo "Removendo bloatware do COSMIC via override..."
-            local cosmic_bloat=(
+            local bloat_list=(
                 firefox
-                firefox-langpacks
                 gnome-photos
                 gnome-maps
                 gnome-music
                 gnome-weather
+                libreoffice-*
             )
-            for pkg in "${cosmic_bloat[@]}"; do
-                echo "Removendo $pkg..."
-                sudo rpm-ostree override remove "$pkg" 2>/dev/null || true
-            done
-            sudo rpm-ostree override remove libreoffice-* 2>/dev/null || true
         fi
+        
+        local override_file="/etc/rpm-ostree/origin.d/override-uninstall.conf"
+        local temp_file="/tmp/override-uninstall.conf"
+        
+        if [ ! -f "$override_file" ]; then
+            sudo mkdir -p /etc/rpm-ostree/origin.d
+            local current_ref=$(rpm-ostree status --json | jq -r '.deployments[0].origin')
+            echo "base-image: $current_ref" | sudo tee "$override_file" > /dev/null
+            echo "packages:" | sudo tee -a "$override_file" > /dev/null
+        fi
+        
+        sudo cp "$override_file" "$temp_file"
+        
+        for pkg in "${bloat_list[@]}"; do
+            if ! grep -q "  - $pkg" "$temp_file" 2>/dev/null; then
+                echo "Adicionando $pkg aos overrides..."
+                echo "  - $pkg" | sudo tee -a "$temp_file" > /dev/null
+            fi
+        done
+        
+        sudo cp "$temp_file" "$override_file"
+        rm -f "$temp_file"
         
         echo "Removendo pacotes Flatpak pré-instalados..."
         local flatpak_bloat=(
@@ -1156,7 +1144,10 @@ remover_bloatware() {
         flatpak uninstall --unused -y 2>/dev/null || true
         
         touch "$STATE_DIR/bloatware_removed"
-        echo "Remoção de bloatware concluída. Reinicie para aplicar as alterações."
+        echo "Overrides configurados. Execute 'sudo rpm-ostree update' para aplicar as remoções."
+        if confirm "Aplicar atualização agora?"; then
+            sudo rpm-ostree update
+        fi
     fi
 }
 
@@ -1260,6 +1251,27 @@ shader_booster_installer() {
 
             [ $patch_applied -eq 1 ] && echo "1" > "$boost_file" && touch "$state_file"
             echo "Shader Booster instalado."
+        fi
+    fi
+}
+
+sober_installer() {
+    local state_file="$STATE_DIR/sober"
+    local pkg_sober="org.vinegarhq.Sober"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.vinegarhq.Sober 2>/dev/null; then
+        if confirm "Sober detectado. Desinstalar?"; then
+            echo "Desinstalando Sober..."
+            flatpak uninstall --user -y $pkg_sober 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Sober desinstalado."
+        fi
+    else
+        if confirm "Instalar Sober?"; then
+            echo "Instalando Sober..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_sober
+            touch "$state_file"
+            echo "Sober instalado."
         fi
     fi
 }
@@ -1380,11 +1392,31 @@ vscodium_installer() {
     fi
 }
 
+warehouse_installer() {
+    local state_file="$STATE_DIR/warehouse"
+    local pkg_warehouse="io.github.flattool.Warehouse"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.flattool.Warehouse 2>/dev/null; then
+        if confirm "Warehouse detectado. Desinstalar?"; then
+            echo "Desinstalando Warehouse..."
+            flatpak uninstall --user -y $pkg_warehouse 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Warehouse desinstalado."
+        fi
+    else
+        if confirm "Instalar Warehouse?"; then
+            echo "Instalando Warehouse..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_warehouse
+            touch "$state_file"
+            echo "Warehouse instalado."
+        fi
+    fi
+}
+
 winboat_installer() {
     local state_file="$STATE_DIR/winboat"
     local winboat_dir="$HOME/WinBoat"
     local appimage_path="$winboat_dir/winboat.AppImage"
-    local version="0.9.0"
 
     if ! lsmod | grep -q kvm; then
         echo "KVM não está disponível. Verifique se a virtualização está habilitada no BIOS."
@@ -1403,7 +1435,8 @@ winboat_installer() {
         if confirm "Instalar WinBoat (Windows em container Docker)?"; then
             echo "Instalando WinBoat..."
             mkdir -p "$winboat_dir"
-            local download_url="https://github.com/TibixDev/winboat/releases/download/v${version}/winboat-${version}-x86_64.AppImage"
+            local download_url=$(curl -s https://api.github.com/repos/TibixDev/winboat/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'winboat.*AppImage' | head -1 | cut -d'"' -f4)
+            [ -z "$download_url" ] && download_url="https://github.com/TibixDev/winboat/releases/latest/download/winboat-x86_64.AppImage"
             curl -L -o "$appimage_path" "$download_url"
             chmod +x "$appimage_path"
             touch "$state_file"
@@ -1529,42 +1562,42 @@ main_menu() {
         echo "11) COSMIC Desktop (Fedora Cosmic-Atomic)"
         echo "12) GNOME Desktop (Silverblue)"
         echo "13) KDE Plasma Desktop (Kinoite)"
-        echo "14) NeoVim"
-        echo "15) LazyVim"
-        echo "16) GIMP + PhotoGIMP"
-        echo "17) Steam"
-        echo "18) Archiving/Compression Tools (7zip, unrar)"
-        echo "19) Pacotes Base (Fontes Google Noto e Cascadia)"
-        echo "20) Remover Bloatware"
-        echo "21) Kdenlive"
-        echo "22) Fish Shell + Fisher"
-        echo "23) Gamescope"
-        echo "24) Gamemode"
-        echo "25) Affinity Photo (AppImage)"
-        echo "26) IWD (iNet Wireless Daemon)"
-        echo "27) Mise (Dev Tools)"
-        echo "28) Goverlay"
-        echo "29) MangoJuice"
-        echo "30) Fjord Launcher (Unmojang)"
-        echo "31) VSCodium"
-        echo "32) Helium Browser"
-        echo "33) Hydra Launcher (AppImage)"
-        echo "34) Gear Lever"
-        echo "35) Extension Manager"
-        echo "36) OBS Studio"
-        echo "37) Zsh + Oh My Zsh"
-        echo "38) Oh My Bash"
-        echo "39) CPU Ondemand"
-        echo "40) Shader Booster"
-        echo "41) HW Acceleration Flatpak"
-        echo "42) WinBoat (AppImage)"
-        echo "43) Podman"
-        echo "44) ShadPS4 + PKG Installer"
-        echo "45) Eden Emulator (AppImage)"
-        echo "46) Starship Prompt"
-        echo "47) Preload (otimização de RAM)"
-        echo "48) Obsidian"
-        echo "49) OnlyOffice"
+        echo "14) NeoVim + LazyVim"
+        echo "15) GIMP + PhotoGIMP"
+        echo "16) Steam"
+        echo "17) Kdenlive"
+        echo "18) Fish Shell + Fisher"
+        echo "19) Gamescope"
+        echo "20) Zsh + Oh My Zsh"
+        echo "21) Oh My Bash"
+        echo "22) Extension Manager"
+        echo "23) OBS Studio"
+        echo "24) Warehouse"
+        echo "25) Flatseal"
+        echo "26) Affinity Photo (AppImage)"
+        echo "27) Eden Emulator (AppImage)"
+        echo "28) Hydra Launcher (AppImage)"
+        echo "29) WinBoat (AppImage)"
+        echo "30) Helium Browser"
+        echo "31) Mise (Dev Tools)"
+        echo "32) Starship Prompt"
+        echo "33) EarlyOOM"
+        echo "34) Preload (RAM > 12GB)"
+        echo "35) CPU Ondemand"
+        echo "36) Shader Booster"
+        echo "37) HW Acceleration Flatpak"
+        echo "38) IWD (iNet Wireless Daemon)"
+        echo "39) Gear Lever"
+        echo "40) MangoJuice"
+        echo "41) Fjord Launcher (Unmojang)"
+        echo "42) VSCodium"
+        echo "43) Sober (Roblox)"
+        echo "44) ProtonPlus"
+        echo "45) ShadPS4 + PKG Installer"
+        echo "46) OnlyOffice"
+        echo "47) Obsidian"
+        echo "48) Base Installer (Podman, Fontes, Compactação)"
+        echo "49) Remover Bloatware"
         echo "0) Sair"
         echo
         read -p "Selecione uma opção: " opcao
@@ -1583,42 +1616,42 @@ main_menu() {
             11) de_cosmic_installer ;;
             12) de_gnome_installer ;;
             13) de_plasma_installer ;;
-            14) neovim_installer ;;
-            15) lazyvim_installer ;;
-            16) gimp_photogimp_installer ;;
-            17) steam_installer ;;
-            18) archiving_compression_installer ;;
-            19) pessoal_base_installer ;;
-            20) remover_bloatware ;;
-            21) kdenlive_installer ;;
-            22) fish_fisher_installer ;;
-            23) gamescope_installer ;;
-            24) gamemode_installer ;;
-            25) affinity_installer ;;
-            26) iwd_installer ;;
-            27) mise_installer ;;
-            28) goverlay_installer ;;
-            29) mangojuice_installer ;;
-            30) unmojang_installer ;;
-            31) vscodium_installer ;;
-            32) helium_browser_installer ;;
-            33) hydra_launcher_installer ;;
-            34) gearlever_installer ;;
-            35) extension_manager_installer ;;
-            36) obs_installer ;;
-            37) zsh_ohmyzsh_installer ;;
-            38) oh_my_bash_installer ;;
-            39) cpu_ondemand_installer ;;
-            40) shader_booster_installer ;;
-            41) hwaccel_flatpak_installer ;;
-            42) winboat_installer ;;
-            43) podman_installer ;;
-            44) shadps4_installer ;;
-            45) eden_emulator_installer ;;
-            46) starship_installer ;;
-            47) preload_installer ;;
-            48) obsidian_installer ;;
-            49) onlyoffice_installer ;;
+            14) neovim_lazyvim_installer ;;
+            15) gimp_photogimp_installer ;;
+            16) steam_installer ;;
+            17) kdenlive_installer ;;
+            18) fish_fisher_installer ;;
+            19) gamescope_installer ;;
+            20) zsh_ohmyzsh_installer ;;
+            21) oh_my_bash_installer ;;
+            22) extension_manager_installer ;;
+            23) obs_installer ;;
+            24) warehouse_installer ;;
+            25) flatseal_installer ;;
+            26) affinity_installer ;;
+            27) eden_emulator_installer ;;
+            28) hydra_launcher_installer ;;
+            29) winboat_installer ;;
+            30) helium_browser_installer ;;
+            31) mise_installer ;;
+            32) starship_installer ;;
+            33) earlyoom_installer ;;
+            34) preload_installer ;;
+            35) cpu_ondemand_installer ;;
+            36) shader_booster_installer ;;
+            37) hwaccel_flatpak_installer ;;
+            38) iwd_installer ;;
+            39) gearlever_installer ;;
+            40) mangojuice_installer ;;
+            41) unmojang_installer ;;
+            42) vscodium_installer ;;
+            43) sober_installer ;;
+            44) protonplus_installer ;;
+            45) shadps4_installer ;;
+            46) onlyoffice_installer ;;
+            47) obsidian_installer ;;
+            48) base_installer ;;
+            49) remover_bloatware ;;
             0) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
