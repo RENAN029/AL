@@ -188,6 +188,26 @@ de_plasma_installer() {
     fi
 }
 
+distrobox_installer() {
+    local state_file="$STATE_DIR/distrobox"
+
+    if [ -f "$state_file" ] || rpm -q distrobox &>/dev/null; then
+        if confirm "Distrobox detectado. Desinstalar?"; then
+            echo "Desinstalando Distrobox..."
+            sudo rpm-ostree uninstall distrobox 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Distrobox desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Distrobox?"; then
+            echo "Instalando Distrobox..."
+            sudo rpm-ostree install distrobox
+            touch "$state_file"
+            echo "Distrobox instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 earlyoom_installer() {
     local state_file="$STATE_DIR/earlyoom"
 
@@ -854,27 +874,6 @@ obs_installer() {
                 sudo rpm-ostree uninstall wireplumber xorg-xwayland 2>/dev/null || true
             fi
             echo "Plugins do OBS Studio desinstalados."
-        fi
-    fi
-}
-
-obsidian_installer() {
-    local state_file="$STATE_DIR/obsidian"
-    local pkg_obsidian="md.obsidian.Obsidian"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q md.obsidian.Obsidian 2>/dev/null; then
-        if confirm "Obsidian detectado. Desinstalar?"; then
-            echo "Desinstalando Obsidian..."
-            flatpak uninstall --user -y $pkg_obsidian 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Obsidian desinstalado."
-        fi
-    else
-        if confirm "Instalar Obsidian?"; then
-            echo "Instalando Obsidian..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_obsidian
-            touch "$state_file"
-            echo "Obsidian instalado."
         fi
     fi
 }
@@ -1591,12 +1590,12 @@ main_menu() {
         echo "40) Eden Emulator (AppImage)"
         echo "41) Starship Prompt"
         echo "42) Preload (otimização de RAM)"
-        echo "43) Obsidian"
-        echo "44) OnlyOffice"
-        echo "45) EarlyOOM"
-        echo "46) Sober"
-        echo "47) ProtonPlus"
-        echo "48) LACT"
+        echo "43) OnlyOffice"
+        echo "44) EarlyOOM"
+        echo "45) Sober"
+        echo "46) ProtonPlus"
+        echo "47) LACT"
+        echo "48) Distrobox"
         echo "49) Flatseal"
         echo "0) Sair"
         echo
@@ -1645,12 +1644,12 @@ main_menu() {
             40) eden_emulator_installer ;;
             41) starship_installer ;;
             42) preload_installer ;;
-            43) obsidian_installer ;;
-            44) onlyoffice_installer ;;
-            45) earlyoom_installer ;;
-            46) sober_installer ;;
-            47) protonplus_installer ;;
-            48) lact_installer ;;
+            43) onlyoffice_installer ;;
+            44) earlyoom_installer ;;
+            45) sober_installer ;;
+            46) protonplus_installer ;;
+            47) lact_installer ;;
+            48) distrobox_installer ;;
             49) flatseal_installer ;;
             0) exit 0 ;;
             *) echo "Opção inválida." ;;
