@@ -582,17 +582,17 @@ hydra_launcher_installer() {
 
 instalacao_base_installer() {
     local state_file="$STATE_DIR/instalacao_base"
-    local pkg_base="7zip unrar lhasa podman podman-compose google-noto-fonts-all google-noto-sans-cjk-fonts google-noto-emoji-fonts google-noto-sans-hk-fonts google-noto-sans-cjk-vf-fonts cascadia-mono-nf-fonts"
+    local pkg_base="7zip unrar lhasa cascadia-mono-nf-fonts"
 
     if [ -f "$state_file" ] || rpm -q 7zip &>/dev/null; then
         if confirm "Pacotes Base detectados. Desinstalar?"; then
             echo "Desinstalando Pacotes Base..."
-            sudo rpm-ostree uninstall 7zip unrar lhasa podman podman-compose google-noto-fonts-all google-noto-sans-cjk-fonts google-noto-emoji-fonts google-noto-sans-hk-fonts google-noto-sans-cjk-vf-fonts cascadia-mono-nf-fonts 2>/dev/null || true
+            sudo rpm-ostree uninstall 7zip unrar lhasa cascadia-mono-nf-fonts 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Pacotes Base desinstalados. Reinicie para aplicar."
         fi
     else
-        if confirm "Instalar Pacotes Base (compactação, podman e fontes)?"; then
+        if confirm "Instalar Pacotes Base (compactação e fontes)?"; then
             echo "Instalando Pacotes Base..."
             sudo rpm-ostree install $pkg_base
             touch "$state_file"
@@ -1555,7 +1555,7 @@ main_menu() {
         echo "14) NeoVim + LazyVim"
         echo "15) GIMP + PhotoGIMP"
         echo "16) Steam"
-        echo "17) Instalação Base (compactação, podman, fontes)"
+        echo "17) Instalação Base (compactação e fontes)"
         echo "18) Remover Bloatware"
         echo "19) Kdenlive"
         echo "20) Fish Shell + Fisher"
