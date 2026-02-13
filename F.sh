@@ -621,6 +621,27 @@ kdenlive_installer() {
     fi
 }
 
+lact_installer() {
+    local state_file="$STATE_DIR/lact"
+    local pkg_lact="io.github.ilya_zlobintsev.LACT"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.ilya_zlobintsev.LACT 2>/dev/null; then
+        if confirm "LACT detectado. Desinstalar?"; then
+            echo "Desinstalando LACT..."
+            flatpak uninstall --user -y $pkg_lact 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "LACT desinstalado."
+        fi
+    else
+        if confirm "Instalar LACT?"; then
+            echo "Instalando LACT..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_lact
+            touch "$state_file"
+            echo "LACT instalado."
+        fi
+    fi
+}
+
 mangojuice_installer() {
     local state_file="$STATE_DIR/mangojuice"
     local pkg_mangohud="mangohud"
@@ -1392,27 +1413,6 @@ vscodium_installer() {
     fi
 }
 
-warehouse_installer() {
-    local state_file="$STATE_DIR/warehouse"
-    local pkg_warehouse="io.github.flattool.Warehouse"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.flattool.Warehouse 2>/dev/null; then
-        if confirm "Warehouse detectado. Desinstalar?"; then
-            echo "Desinstalando Warehouse..."
-            flatpak uninstall --user -y $pkg_warehouse 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Warehouse desinstalado."
-        fi
-    else
-        if confirm "Instalar Warehouse?"; then
-            echo "Instalando Warehouse..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_warehouse
-            touch "$state_file"
-            echo "Warehouse instalado."
-        fi
-    fi
-}
-
 winboat_installer() {
     local state_file="$STATE_DIR/winboat"
     local winboat_dir="$HOME/WinBoat"
@@ -1596,7 +1596,7 @@ main_menu() {
         echo "45) EarlyOOM"
         echo "46) Sober"
         echo "47) ProtonPlus"
-        echo "48) Warehouse"
+        echo "48) LACT"
         echo "49) Flatseal"
         echo "0) Sair"
         echo
@@ -1650,7 +1650,7 @@ main_menu() {
             45) earlyoom_installer ;;
             46) sober_installer ;;
             47) protonplus_installer ;;
-            48) warehouse_installer ;;
+            48) lact_installer ;;
             49) flatseal_installer ;;
             0) exit 0 ;;
             *) echo "Opção inválida." ;;
