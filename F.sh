@@ -13,11 +13,17 @@ confirm() {
     [[ "$resposta" = "s" || "$resposta" = "S" ]]
 }
 
-echo "=== Verificando atualizações do sistema ==="
+echo "=== Verificando atualizações e limpando cache do sistema ==="
 if confirm "Verificar e aplicar atualizações do sistema?"; then
     echo "Atualizando sistema..."
     sudo rpm-ostree update
     echo "Sistema atualizado."
+fi
+
+if confirm "Limpar cache de pacotes e repositórios?"; then
+    echo "Limpando cache de pacotes e repositórios..."
+    sudo rpm-ostree cleanup -m
+    echo "Cache limpo."
 fi
 
 cleanup_files() {
@@ -228,6 +234,24 @@ distrobox_installer() {
     fi
 }
 
+dlpsgame_installer() {
+    local state_file="$STATE_DIR/dlpsgame"
+    local url="https://dlpsgame.com/category/ps4/"
+
+    if [ -f "$state_file" ]; then
+        if confirm "DLPSGame já foi aberto. Abrir novamente?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+        fi
+    else
+        if confirm "Abrir DLPSGame no navegador?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+            echo "DLPSGame aberto."
+        fi
+    fi
+}
+
 earlyoom_installer() {
     local state_file="$STATE_DIR/earlyoom"
 
@@ -279,6 +303,78 @@ eden_emulator_installer() {
     fi
 }
 
+extra_flatpaks_installer() {
+    echo "=== Gerenciamento de Flatpaks Extras ==="
+    echo "Selecione os Flatpaks para instalar/desinstalar:"
+    echo "1) Alpaca"
+    echo "2) Extension Manager"
+    echo "3) Faugus Launcher"
+    echo "4) Fjord Launcher (Unmojang)"
+    echo "5) Flatseal"
+    echo "6) Gear Lever"
+    echo "7) HandBrake"
+    echo "8) Helium Browser"
+    echo "9) Heroic Games Launcher"
+    echo "10) Kdenlive"
+    echo "11) MangoJuice"
+    echo "12) OBS Studio"
+    echo "13) Obsidian"
+    echo "14) OnlyOffice"
+    echo "15) ProtonPlus"
+    echo "16) Sober"
+    echo "17) Steam"
+    echo "18) Warehouse"
+    echo "19) Zen Browser"
+    echo "0) Voltar"
+    echo
+    read -p "Selecione uma opção: " flatpak_opcao
+
+    case $flatpak_opcao in
+        1) alpaca_installer ;;
+        2) extension_manager_installer ;;
+        3) faugus_launcher_installer ;;
+        4) unmojang_installer ;;
+        5) flatseal_installer ;;
+        6) gearlever_installer ;;
+        7) handbrake_installer ;;
+        8) helium_browser_installer ;;
+        9) heroic_games_launcher_installer ;;
+        10) kdenlive_installer ;;
+        11) mangojuice_installer ;;
+        12) obs_installer ;;
+        13) obsidian_installer ;;
+        14) onlyoffice_installer ;;
+        15) protonplus_installer ;;
+        16) sober_installer ;;
+        17) steam_installer ;;
+        18) warehouse_installer ;;
+        19) zen_browser_installer ;;
+        0) return ;;
+        *) echo "Opção inválida." ;;
+    esac
+}
+
+alpaca_installer() {
+    local state_file="$STATE_DIR/alpaca_studio"
+    local pkg_alpaca="com.jeffser.Alpaca"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.jeffser.Alpaca 2>/dev/null; then
+        if confirm "Alpaca detectado. Desinstalar?"; then
+            echo "Desinstalando Alpaca..."
+            flatpak uninstall --user -y $pkg_alpaca 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Alpaca desinstalado."
+        fi
+    else
+        if confirm "Instalar Alpaca?"; then
+            echo "Instalando Alpaca..."
+            flatpak install --user --or-update --noninteractive flathub $pkg_alpaca
+            touch "$state_file"
+            echo "Alpaca instalado."
+        fi
+    fi
+}
+
 extension_manager_installer() {
     local state_file="$STATE_DIR/extension_manager"
     local pkg_extension_manager="com.mattjakeman.ExtensionManager"
@@ -296,26 +392,6 @@ extension_manager_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_extension_manager
             touch "$state_file"
             echo "Extension Manager instalado."
-        fi
-    fi
-}
-
-fastfetch_installer() {
-    local state_file="$STATE_DIR/fastfetch"
-
-    if [ -f "$state_file" ] || rpm -q fastfetch &>/dev/null; then
-        if confirm "fastfetch detectado. Desinstalar?"; then
-            echo "Desinstalando fastfetch..."
-            sudo rpm-ostree uninstall fastfetch 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "fastfetch desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar fastfetch?"; then
-            echo "Instalando fastfetch..."
-            sudo rpm-ostree install fastfetch
-            touch "$state_file"
-            echo "fastfetch instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -344,72 +420,24 @@ faugus_launcher_installer() {
     fi
 }
 
-fish_fisher_installer() {
-    local fish_state="$STATE_DIR/fish"
-    local fisher_state="$STATE_DIR/fisher"
-    local pkg_fish="fish"
+flatseal_installer() {
+    local state_file="$STATE_DIR/flatseal"
+    local pkg_flatseal="com.github.tchx84.Flatseal"
 
-    if [ -f "$fish_state" ] || command -v fish &>/dev/null; then
-        if confirm "Fish Shell detectado. Desinstalar?"; then
-            echo "Desinstalando Fish Shell..."
-            if [ -f "$fisher_state" ]; then
-                echo "Removendo Fisher..."
-                fish -c "fisher remove jorgebucaran/fisher" 2>/dev/null || true
-                cleanup_files "$fisher_state"
-            fi
-            sudo rpm-ostree uninstall fish 2>/dev/null || true
-            sudo chsh -s /usr/bin/bash "$USER" 2>/dev/null || true
-            cleanup_files "$fish_state"
-            rm -rf "$HOME/.config/fish" 2>/dev/null || true
-            echo "Fish Shell desinstalado. Reinicie para aplicar."
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.tchx84.Flatseal 2>/dev/null; then
+        if confirm "Flatseal detectado. Desinstalar?"; then
+            echo "Desinstalando Flatseal..."
+            flatpak uninstall --user -y $pkg_flatseal 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Flatseal desinstalado."
         fi
     else
-        if confirm "Instalar Fish Shell?"; then
-            echo "Instalando Fish Shell..."
-            sudo rpm-ostree install fish
-            sleep 2
-            if command -v /usr/bin/fish &>/dev/null; then
-                sudo chsh -s /usr/bin/fish "$USER"
-            fi
-            mkdir -p ~/.config/fish
-            echo "set fish_greeting" > ~/.config/fish/config.fish
-            touch "$fish_state"
-            echo "Fish Shell instalado. Reinicie para aplicar."
+        if confirm "Instalar Flatseal?"; then
+            echo "Instalando Flatseal..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_flatseal
+            touch "$state_file"
+            echo "Flatseal instalado."
         fi
-    fi
-
-    if [ -f "$fish_state" ] || command -v fish &>/dev/null; then
-        if [ -f "$fisher_state" ]; then
-            if confirm "Fisher detectado. Desinstalar?"; then
-                echo "Desinstalando Fisher..."
-                fish -c "fisher remove jorgebucaran/fisher" 2>/dev/null || true
-                cleanup_files "$fisher_state"
-                echo "Fisher desinstalado."
-            fi
-        elif confirm "Instalar Fisher (plugin manager)?"; then
-            echo "Instalando Fisher..."
-            fish -c "curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher" 2>/dev/null || true
-            touch "$fisher_state"
-            echo "Fisher instalado."
-        fi
-    fi
-}
-
-flathub_installer() {
-    local flathub_state="$STATE_DIR/flathub"
-
-    if [ -f "$flathub_state" ] || flatpak remote-list --user 2>/dev/null | grep -q flathub; then
-        if confirm "Flathub detectado. Remover?"; then
-            echo "Removendo Flathub..."
-            flatpak remote-delete --user flathub 2>/dev/null || true
-            cleanup_files "$flathub_state"
-            echo "Flathub removido."
-        fi
-    elif confirm "Adicionar repositório Flathub?"; then
-        echo "Adicionando Flathub..."
-        flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-        touch "$flathub_state"
-        echo "Flathub adicionado."
     fi
 }
 
@@ -434,51 +462,23 @@ gearlever_installer() {
     fi
 }
 
-gimp_photogimp_installer() {
-    local gimp_state="$STATE_DIR/gimp"
-    local photogimp_state="$STATE_DIR/photogimp"
-    local pkg_gimp="org.gimp.GIMP"
-    local gimp_config="$HOME/.config/GIMP"
-    local gimp_share="$HOME/.local/share/GIMP"
-    local gimp_installed=0
+handbrake_installer() {
+    local state_file="$STATE_DIR/handbrake"
+    local pkg_handbrake="fr.handbrake.ghb"
 
-    if [ -f "$gimp_state" ] || flatpak list --app | grep -q org.gimp.GIMP 2>/dev/null; then
-        gimp_installed=1
-        if confirm "GIMP detectado. Desinstalar?"; then
-            echo "Desinstalando GIMP..."
-            flatpak uninstall --user -y $pkg_gimp 2>/dev/null || true
-            rm -rf "$gimp_config" "$gimp_share"
-            if [ -f "$photogimp_state" ]; then
-                cleanup_files "$photogimp_state"
-            fi
-            cleanup_files "$gimp_state"
-            echo "GIMP desinstalado."
+    if [ -f "$state_file" ] || flatpak list --app | grep -q fr.handbrake.ghb 2>/dev/null; then
+        if confirm "HandBrake detectado. Desinstalar?"; then
+            echo "Desinstalando HandBrake..."
+            flatpak uninstall --user -y $pkg_handbrake 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "HandBrake desinstalado."
         fi
-    elif confirm "Instalar GIMP?"; then
-        echo "Instalando GIMP..."
-        flatpak install --or-update --user --noninteractive flathub $pkg_gimp
-        touch "$gimp_state"
-        echo "GIMP instalado."
-        gimp_installed=1
-    fi
-
-    if [ $gimp_installed -eq 1 ] && [ -f "$gimp_state" ]; then
-        if [ -f "$photogimp_state" ] || [ -d "$gimp_config" ]; then
-            if confirm "PhotoGIMP detectado. Desinstalar?"; then
-                echo "Desinstalando PhotoGIMP..."
-                rm -rf "$gimp_config" "$gimp_share"
-                cleanup_files "$photogimp_state"
-                echo "PhotoGIMP desinstalado."
-            fi
-        elif confirm "Instalar PhotoGIMP (temas e configurações extras)?"; then
-            echo "Instalando PhotoGIMP..."
-            rm -rf "$gimp_config" "$gimp_share"
-            git clone --depth=1 https://github.com/Diolinux/PhotoGIMP.git /tmp/photogimp
-            cp -rvf /tmp/photogimp/.config/* ~/.config/
-            cp -rvf /tmp/photogimp/.local/* ~/.local/
-            rm -rf /tmp/photogimp
-            touch "$photogimp_state"
-            echo "PhotoGIMP instalado."
+    else
+        if confirm "Instalar HandBrake?"; then
+            echo "Instalando HandBrake..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_handbrake
+            touch "$state_file"
+            echo "HandBrake instalado."
         fi
     fi
 }
@@ -506,49 +506,41 @@ helium_browser_installer() {
     fi
 }
 
-homebrew_installer() {
-    local state_file="$STATE_DIR/homebrew"
+heroic_games_launcher_installer() {
+    local state_file="$STATE_DIR/heroic_games_launcher"
+    local pkg_heroic="com.heroicgameslauncher.hgl"
 
-    if [ -f "$state_file" ] || command -v brew &>/dev/null; then
-        if confirm "Brew detectado. Desinstalar?"; then
-            NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
-            sed -i '/brew shellenv/d' ~/.bashrc
-            [ -f ~/.zshrc ] && sed -i '/brew shellenv/d' ~/.zshrc
-            [ -f ~/.config/fish/config.fish ] && sed -i '/fish_add_path.*linuxbrew/d' ~/.config/fish/config.fish
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.heroicgameslauncher.hgl 2>/dev/null; then
+        if confirm "Heroic Launcher detectado. Desinstalar?"; then
+            echo "Desinstalando Heroic Launcher..."
+            flatpak uninstall --user -y $pkg_heroic 2>/dev/null || true
             cleanup_files "$state_file"
-            rm -rf /home/$USER/.linuxbrew /home/$USER/.local/share/Homebrew /home/$USER/.cache/Homebrew
+            echo "Heroic Launcher desinstalado."
         fi
     else
-        if confirm "Instalar Brew?"; then
-            NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            [ -f /home/linuxbrew/.linuxbrew/bin/brew ] && BREW_PATH="/home/linuxbrew/.linuxbrew/bin/brew" || BREW_PATH="$HOME/.linuxbrew/bin/brew"
-            echo "eval \"\$($BREW_PATH shellenv)\"" >> ~/.bashrc
-            [ -f ~/.zshrc ] && echo "eval \"\$($BREW_PATH shellenv)\"" >> ~/.zshrc
-            [ -f ~/.config/fish/config.fish ] && echo "fish_add_path $(dirname $BREW_PATH)" >> ~/.config/fish/config.fish
-            eval "$($BREW_PATH shellenv)"
+        if confirm "Instalar Heroic Launcher?"; then
+            echo "Instalando Heroic Launcher..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_heroic
             touch "$state_file"
+            echo "Heroic Launcher instalado."
         fi
     fi
 }
 
-hwaccel_flatpak_installer() {
-    local state_file="$STATE_DIR/hwaccel_flatpak"
+hydra_installer() {
+    local state_file="$STATE_DIR/hydra"
+    local url="https://library.hydra.wiki/sources"
 
-    if [ -f "$state_file" ] || flatpak list | grep -q freedesktop.Platform.VAAPI 2>/dev/null; then
-        if confirm "HW Acceleration Flatpak detectado. Desinstalar?"; then
-            echo "Desinstalando HW Acceleration Flatpak..."
-            flatpak uninstall --user -y org.freedesktop.Platform.VAAPI 2>/dev/null || true
-            flatpak uninstall --user -y org.freedesktop.Platform.VAAPI.Intel 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "HW Acceleration Flatpak desinstalado."
+    if [ -f "$state_file" ]; then
+        if confirm "Hydra Library já foi aberto. Abrir novamente?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
         fi
     else
-        if confirm "Instalar HW Acceleration Flatpak?"; then
-            echo "Instalando HW Acceleration Flatpak..."
-            flatpak install --user -y flathub org.freedesktop.Platform.VAAPI.Intel 2>/dev/null || true
-            flatpak override --user --device=all --env=GDK_SCALE=1 --env=GDK_DPI_SCALE=1 2>/dev/null || true
+        if confirm "Abrir Hydra Library no navegador?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
             touch "$state_file"
-            echo "HW Acceleration Flatpak instalado."
+            echo "Hydra Library aberto."
         fi
     fi
 }
@@ -649,27 +641,6 @@ kdenlive_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_kdenlive
             touch "$state_file"
             echo "Kdenlive instalado."
-        fi
-    fi
-}
-
-lact_installer() {
-    local state_file="$STATE_DIR/lact"
-    local pkg_lact="io.github.ilya_zlobintsev.LACT"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.ilya_zlobintsev.LACT 2>/dev/null; then
-        if confirm "LACT detectado. Desinstalar?"; then
-            echo "Desinstalando LACT..."
-            flatpak uninstall --user -y $pkg_lact 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "LACT desinstalado."
-        fi
-    else
-        if confirm "Instalar LACT?"; then
-            echo "Instalando LACT..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_lact
-            touch "$state_file"
-            echo "LACT instalado."
         fi
     fi
 }
@@ -890,6 +861,27 @@ obs_installer() {
     fi
 }
 
+obsidian_installer() {
+    local state_file="$STATE_DIR/obsidian"
+    local pkg_obsidian="md.obsidian.Obsidian"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q md.obsidian.Obsidian 2>/dev/null; then
+        if confirm "Obsidian detectado. Desinstalar?"; then
+            echo "Desinstalando Obsidian..."
+            flatpak uninstall --user -y $pkg_obsidian 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Obsidian desinstalado."
+        fi
+    else
+        if confirm "Instalar Obsidian?"; then
+            echo "Instalando Obsidian..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_obsidian
+            touch "$state_file"
+            echo "Obsidian instalado."
+        fi
+    fi
+}
+
 oh_my_bash_installer() {
     local state_file="$STATE_DIR/oh_my_bash"
 
@@ -930,6 +922,27 @@ onlyoffice_installer() {
     fi
 }
 
+opencode_installer() {
+    local state_file="$STATE_DIR/opencode"
+
+    if [ -f "$state_file" ] || command -v opencode &>/dev/null; then
+        if confirm "Opencode detectado. Desinstalar?"; then
+            echo "Desinstalando Opencode..."
+            rm -f /usr/local/bin/opencode 2>/dev/null || true
+            rm -rf ~/.opencode 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Opencode desinstalado."
+        fi
+    else
+        if confirm "Instalar Opencode?"; then
+            echo "Instalando Opencode..."
+            curl -fsSL https://opencode.ai/install | bash
+            touch "$state_file"
+            echo "Opencode instalado."
+        fi
+    fi
+}
+
 ostree_autoupd_installer() {
     local state_file="$STATE_DIR/ostree_autoupd"
     local AUTOPOLICY="stage"
@@ -965,6 +978,24 @@ ostree_autoupd_installer() {
             sudo systemctl restart rpm-ostreed
             touch "$state_file"
             echo "Auto-updates ativados com política: $AUTOPOLICY"
+        fi
+    fi
+}
+
+piracy_installer() {
+    local state_file="$STATE_DIR/piracy"
+    local url="https://www.reddit.com/r/Piracy/wiki/megathread/"
+
+    if [ -f "$state_file" ]; then
+        if confirm "r/Piracy já foi aberto. Abrir novamente?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+        fi
+    else
+        if confirm "Abrir r/Piracy no navegador?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+            echo "r/Piracy aberto."
         fi
     fi
 }
@@ -1087,6 +1118,29 @@ remover_bloatware() {
                 done
             fi
             
+            echo "Removendo pacotes Flatpak do GNOME..."
+            local flatpak_gnome_bloat=(
+                org.gnome.Calculator
+                org.gnome.Calendar
+                org.gnome.Characters
+                org.gnome.Connections
+                org.gnome.Contacts
+                org.gnome.Evince
+                org.gnome.Logs
+                org.gnome.Maps
+                org.gnome.Music
+                org.gnome.Weather
+                org.gnome.clocks
+                org.gnome.font-viewer
+                org.gnome.TextEditor
+                org.fedoraproject.MediaWriter
+            )
+            for app in "${flatpak_gnome_bloat[@]}"; do
+                echo "Removendo Flatpak: $app..."
+                flatpak uninstall --system -y "$app" 2>/dev/null || true
+                flatpak uninstall --user -y "$app" 2>/dev/null || true
+            done
+            
         elif [ "$desktop_env" = "KDE" ]; then
             local kde_bloat=(
                 firefox
@@ -1125,6 +1179,28 @@ remover_bloatware() {
                 done
             fi
             
+            echo "Removendo pacotes Flatpak do KDE..."
+            local flatpak_kde_bloat=(
+                org.kde.kalendar
+                org.kde.kontact
+                org.kde.kmail
+                org.kde.korganizer
+                org.kde.akregator
+                org.kde.kget
+                org.kde.k3b
+                org.kde.dragonplayer
+                org.kde.juk
+                org.kde.kmahjongg
+                org.kde.kmines
+                org.kde.ksudoku
+                org.kde.kpat
+            )
+            for app in "${flatpak_kde_bloat[@]}"; do
+                echo "Removendo Flatpak: $app..."
+                flatpak uninstall --system -y "$app" 2>/dev/null || true
+                flatpak uninstall --user -y "$app" 2>/dev/null || true
+            done
+            
         elif [ "$desktop_env" = "COSMIC" ]; then
             local cosmic_bloat=(
                 firefox
@@ -1149,37 +1225,53 @@ remover_bloatware() {
                     fi
                 done
             fi
+            
+            echo "Removendo pacotes Flatpak do COSMIC..."
+            local flatpak_cosmic_bloat=(
+                org.gnome.Calculator
+                org.gnome.Calendar
+                org.gnome.Characters
+                org.gnome.Connections
+                org.gnome.Contacts
+                org.gnome.Evince
+                org.gnome.Logs
+                org.gnome.Maps
+                org.gnome.Music
+                org.gnome.Weather
+                org.gnome.clocks
+                org.gnome.font-viewer
+                org.gnome.TextEditor
+            )
+            for app in "${flatpak_cosmic_bloat[@]}"; do
+                echo "Removendo Flatpak: $app..."
+                flatpak uninstall --system -y "$app" 2>/dev/null || true
+                flatpak uninstall --user -y "$app" 2>/dev/null || true
+            done
         fi
-        
-        echo "Removendo pacotes Flatpak pré-instalados..."
-        local flatpak_bloat=(
-            org.gnome.Calculator
-            org.gnome.Calendar
-            org.gnome.Characters
-            org.gnome.Connections
-            org.gnome.Contacts
-            org.gnome.Evince
-            org.gnome.Logs
-            org.gnome.Maps
-            org.gnome.Music
-            org.gnome.Weather
-            org.gnome.clocks
-            org.gnome.font-viewer
-            org.gnome.TextEditor
-            org.fedoraproject.MediaWriter
-        )
-        
-        for app in "${flatpak_bloat[@]}"; do
-            echo "Removendo Flatpak: $app..."
-            flatpak uninstall --system -y "$app" 2>/dev/null || true
-            flatpak uninstall --user -y "$app" 2>/dev/null || true
-        done
         
         echo "Limpando dependências não utilizadas..."
         flatpak uninstall --unused -y 2>/dev/null || true
         
         touch "$STATE_DIR/bloatware_removed"
         echo "Remoção de bloatware concluída. Reinicie para aplicar as alterações do rpm-ostree."
+    fi
+}
+
+romsfun_installer() {
+    local state_file="$STATE_DIR/romsfun"
+    local url="https://romsfun.com/"
+
+    if [ -f "$state_file" ]; then
+        if confirm "RomsFun já foi aberto. Abrir novamente?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+        fi
+    else
+        if confirm "Abrir RomsFun no navegador?"; then
+            xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
+            touch "$state_file"
+            echo "RomsFun aberto."
+        fi
     fi
 }
 
@@ -1287,6 +1379,29 @@ shader_booster_installer() {
     fi
 }
 
+snapd_installer() {
+    local state_file="$STATE_DIR/snapd"
+
+    if [ -f "$state_file" ] || rpm -q snapd &>/dev/null; then
+        if confirm "Snapd detectado. Desinstalar?"; then
+            echo "Desinstalando Snapd..."
+            sudo systemctl stop snapd.socket 2>/dev/null || true
+            sudo systemctl disable snapd.socket 2>/dev/null || true
+            sudo rpm-ostree uninstall snapd 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Snapd desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Snapd?"; then
+            echo "Instalando Snapd..."
+            sudo rpm-ostree install snapd
+            sudo systemctl enable --now snapd.socket
+            touch "$state_file"
+            echo "Snapd instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 sober_installer() {
     local state_file="$STATE_DIR/sober"
     local pkg_sober="org.vinegarhq.Sober"
@@ -1380,6 +1495,38 @@ terra_installer() {
     fi
 }
 
+ufw_installer() {
+    local state_file="$STATE_DIR/ufw"
+
+    if [ -f "$state_file" ] || rpm -q ufw &>/dev/null; then
+        if confirm "UFW detectado. Desinstalar?"; then
+            echo "Desinstalando UFW..."
+            sudo systemctl stop ufw 2>/dev/null || true
+            sudo systemctl disable ufw 2>/dev/null || true
+            sudo rpm-ostree uninstall ufw 2>/dev/null || true
+            sudo rm -rf /etc/ufw /lib/ufw /usr/share/ufw /var/lib/ufw 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "UFW desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar UFW?"; then
+            echo "Instalando UFW..."
+            sudo rpm-ostree install ufw
+            sudo ufw default deny incoming
+            sudo ufw default allow outgoing
+            sudo ufw allow 53317/udp
+            sudo ufw allow 53317/tcp
+            sudo ufw allow 1714:1764/udp
+            sudo ufw allow 1714:1764/tcp
+            sudo systemctl enable ufw
+            sudo ufw --force enable
+            sudo ufw status verbose
+            touch "$state_file"
+            echo "UFW instalado e configurado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 unmojang_installer() {
     local state_file="$STATE_DIR/unmojang"
     local pkg_fjord="org.unmojang.FjordLauncher"
@@ -1401,6 +1548,51 @@ unmojang_installer() {
             echo "Fjord Launcher instalado."
         fi
     fi
+}
+
+warehouse_installer() {
+    local state_file="$STATE_DIR/warehouse"
+    local pkg_warehouse="io.github.flattool.Warehouse"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.flattool.Warehouse 2>/dev/null; then
+        if confirm "Warehouse detectado. Desinstalar?"; then
+            echo "Desinstalando Warehouse..."
+            flatpak uninstall --user -y $pkg_warehouse 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Warehouse desinstalado."
+        fi
+    else
+        if confirm "Instalar Warehouse?"; then
+            echo "Instalando Warehouse..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_warehouse
+            touch "$state_file"
+            echo "Warehouse instalado."
+        fi
+    fi
+}
+
+web_apps_menu() {
+    while true; do
+        clear
+        echo "=== Aplicações Web ==="
+        echo "1) DLPSGame (PS4 Games)"
+        echo "2) RomsFun"
+        echo "3) Hydra Library"
+        echo "4) rPiracy"
+        echo "5) Voltar"
+        echo
+        read -p "Selecione uma opção: " opcao
+
+        case $opcao in
+            1) clear; dlpsgame_installer ;;
+            2) clear; romsfun_installer ;;
+            3) clear; hydra_installer ;;
+            4) clear; piracy_installer ;;
+            5) return ;;
+            *) echo "Opção inválida." ;;
+        esac
+        read -p "Pressione Enter para continuar..."
+    done
 }
 
 winboat_installer() {
@@ -1459,6 +1651,26 @@ xpadneo_installer() {
     fi
 }
 
+yt_dlp_installer() {
+    local state_file="$STATE_DIR/yt_dlp"
+
+    if [ -f "$state_file" ] || rpm -q yt-dlp &>/dev/null; then
+        if confirm "yt-dlp detectado. Desinstalar?"; then
+            echo "Desinstalando yt-dlp..."
+            sudo rpm-ostree uninstall yt-dlp 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "yt-dlp desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar yt-dlp?"; then
+            echo "Instalando yt-dlp..."
+            sudo rpm-ostree install yt-dlp
+            touch "$state_file"
+            echo "yt-dlp instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 zen_browser_installer() {
     local state_file="$STATE_DIR/zen_browser"
     local pkg_zen="app.zen_browser.zen"
@@ -1496,7 +1708,6 @@ zsh_ohmyzsh_installer() {
                 cleanup_files "$ohmyzsh_state"
             fi
             sudo rpm-ostree uninstall zsh 2>/dev/null || true
-            sudo chsh -s /usr/bin/bash "$USER" 2>/dev/null || true
             cleanup_files "$zsh_state"
             rm -rf "$HOME/.zshrc" "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc.backup" 2>/dev/null || true
             echo "Zsh desinstalado. Reinicie para aplicar."
@@ -1505,11 +1716,6 @@ zsh_ohmyzsh_installer() {
         if confirm "Instalar Zsh?"; then
             echo "Instalando Zsh..."
             sudo rpm-ostree install zsh
-            sleep 2
-            if command -v /usr/bin/zsh &>/dev/null; then
-                sudo chsh -s /usr/bin/zsh "$USER"
-            fi
-            touch "$HOME/.zshrc"
             touch "$zsh_state"
             echo "Zsh instalado. Reinicie para aplicar."
         fi
@@ -1535,114 +1741,140 @@ zsh_ohmyzsh_installer() {
     fi
 }
 
+fish_fisher_installer() {
+    local fish_state="$STATE_DIR/fish"
+    local fisher_state="$STATE_DIR/fisher"
+    local pkg_fish="fish"
+
+    if [ -f "$fish_state" ] || command -v fish &>/dev/null; then
+        if confirm "Fish Shell detectado. Desinstalar?"; then
+            echo "Desinstalando Fish Shell..."
+            if [ -f "$fisher_state" ]; then
+                echo "Removendo Fisher..."
+                fish -c "fisher remove jorgebucaran/fisher" 2>/dev/null || true
+                cleanup_files "$fisher_state"
+            fi
+            sudo rpm-ostree uninstall fish 2>/dev/null || true
+            cleanup_files "$fish_state"
+            rm -rf "$HOME/.config/fish" 2>/dev/null || true
+            echo "Fish Shell desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Fish Shell?"; then
+            echo "Instalando Fish Shell..."
+            sudo rpm-ostree install fish
+            mkdir -p ~/.config/fish
+            echo "set fish_greeting" > ~/.config/fish/config.fish
+            touch "$fish_state"
+            echo "Fish Shell instalado. Reinicie para aplicar."
+        fi
+    fi
+
+    if [ -f "$fish_state" ] || command -v fish &>/dev/null; then
+        if [ -f "$fisher_state" ]; then
+            if confirm "Fisher detectado. Desinstalar?"; then
+                echo "Desinstalando Fisher..."
+                fish -c "fisher remove jorgebucaran/fisher" 2>/dev/null || true
+                cleanup_files "$fisher_state"
+                echo "Fisher desinstalado."
+            fi
+        elif confirm "Instalar Fisher (plugin manager)?"; then
+            echo "Instalando Fisher..."
+            fish -c "curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher" 2>/dev/null || true
+            touch "$fisher_state"
+            echo "Fisher instalado."
+        fi
+    fi
+}
+
 main_menu() {
     while true; do
         clear
         echo "=== Fedora Atomic Scripts ==="
-        echo "1) RPM Fusion"
-        echo "2) Terra Repository"
-        echo "3) Ostree Auto-updates"
-        echo "4) CachyOS Configs"
-        echo "5) Xpadneo (Xbox Controller)"
-        echo "6) Faugus Launcher"
-        echo "7) Zen Browser"
-        echo "8) Flathub"
-        echo "9) Homebrew"
-        echo "10) Nvidia Proprietary"
-        echo "11) COSMIC Desktop (Fedora Cosmic-Atomic)"
-        echo "12) GNOME Desktop (Silverblue)"
-        echo "13) KDE Plasma Desktop (Kinoite)"
-        echo "14) NeoVim + LazyVim"
-        echo "15) GIMP + PhotoGIMP"
-        echo "16) Steam"
+        echo "1) Affinity Photo (AppImage)"
+        echo "2) aria2"
+        echo "3) CachyOS Configs"
+        echo "4) COSMIC Desktop (Fedora Cosmic-Atomic)"
+        echo "5) CPU Ondemand"
+        echo "6) Distrobox"
+        echo "7) EarlyOOM"
+        echo "8) Eden Emulator (AppImage)"
+        echo "9) Extra Flatpaks"
+        echo "10) Fish Shell + Fisher"
+        echo "11) Flathub"
+        echo "12) GIMP + PhotoGIMP"
+        echo "13) GNOME Desktop (Silverblue)"
+        echo "14) Homebrew"
+        echo "15) HW Acceleration Flatpak"
+        echo "16) Hydra Launcher (AppImage)"
         echo "17) Instalação Base (compactação e fontes)"
-        echo "18) Remover Bloatware"
-        echo "19) Kdenlive"
-        echo "20) Fish Shell + Fisher"
-        echo "21) Gamescope"
-        echo "22) Affinity Photo (AppImage)"
-        echo "23) IWD (iNet Wireless Daemon)"
-        echo "24) Mise (Dev Tools)"
-        echo "25) MangoJuice"
-        echo "26) Fjord Launcher (Unmojang)"
-        echo "27) Helium Browser"
-        echo "28) Hydra Launcher (AppImage)"
-        echo "29) Gear Lever"
-        echo "30) Extension Manager"
-        echo "31) OBS Studio"
-        echo "32) Zsh + Oh My Zsh"
-        echo "33) Oh My Bash"
-        echo "34) CPU Ondemand"
-        echo "35) Shader Booster"
-        echo "36) HW Acceleration Flatpak"
-        echo "37) WinBoat (AppImage)"
-        echo "38) ShadPS4 + PKG Installer"
-        echo "39) Eden Emulator (AppImage)"
-        echo "40) Starship Prompt"
-        echo "41) Preload (otimização de RAM)"
-        echo "42) OnlyOffice"
-        echo "43) EarlyOOM"
-        echo "44) Sober"
-        echo "45) ProtonPlus"
-        echo "46) LACT"
-        echo "47) Distrobox"
-        echo "48) aria2"
-        echo "49) fastfetch"
-        echo "50) Sair"
+        echo "18) IWD (iNet Wireless Daemon)"
+        echo "19) KDE Plasma Desktop (Kinoite)"
+        echo "20) Mise (Dev Tools)"
+        echo "21) NeoVim + LazyVim"
+        echo "22) Nvidia Proprietary"
+        echo "23) Oh My Bash"
+        echo "24) Opencode"
+        echo "25) Ostree Auto-updates"
+        echo "26) Preload (otimização de RAM)"
+        echo "27) Remover Bloatware"
+        echo "28) RPM Fusion"
+        echo "29) ShadPS4 + PKG Installer"
+        echo "30) Shader Booster"
+        echo "31) Snapd"
+        echo "32) Starship Prompt"
+        echo "33) Terra Repository"
+        echo "34) UFW"
+        echo "35) Web Apps"
+        echo "36) WinBoat (AppImage)"
+        echo "37) Xpadneo (Xbox Controller)"
+        echo "38) yt-dlp"
+        echo "39) Zsh + Oh My Zsh"
+        echo "0) Sair"
         echo
         read -p "Selecione uma opção: " opcao
 
         case $opcao in
-            1) rpmfusion_installer ;;
-            2) terra_installer ;;
-            3) ostree_autoupd_installer ;;
-            4) cachyconfs_installer ;;
-            5) xpadneo_installer ;;
-            6) faugus_launcher_installer ;;
-            7) zen_browser_installer ;;
-            8) flathub_installer ;;
-            9) homebrew_installer ;;
-            10) nvidia_proprietary_installer ;;
-            11) de_cosmic_installer ;;
-            12) de_gnome_installer ;;
-            13) de_plasma_installer ;;
-            14) neovim_lazyvim_installer ;;
-            15) gimp_photogimp_installer ;;
-            16) steam_installer ;;
+            1) affinity_installer ;;
+            2) aria2_installer ;;
+            3) cachyconfs_installer ;;
+            4) de_cosmic_installer ;;
+            5) cpu_ondemand_installer ;;
+            6) distrobox_installer ;;
+            7) earlyoom_installer ;;
+            8) eden_emulator_installer ;;
+            9) extra_flatpaks_installer ;;
+            10) fish_fisher_installer ;;
+            11) flathub_installer ;;
+            12) gimp_photogimp_installer ;;
+            13) de_gnome_installer ;;
+            14) homebrew_installer ;;
+            15) hwaccel_flatpak_installer ;;
+            16) hydra_launcher_installer ;;
             17) instalacao_base_installer ;;
-            18) remover_bloatware ;;
-            19) kdenlive_installer ;;
-            20) fish_fisher_installer ;;
-            21) gamescope_installer ;;
-            22) affinity_installer ;;
-            23) iwd_installer ;;
-            24) mise_installer ;;
-            25) mangojuice_installer ;;
-            26) unmojang_installer ;;
-            27) helium_browser_installer ;;
-            28) hydra_launcher_installer ;;
-            29) gearlever_installer ;;
-            30) extension_manager_installer ;;
-            31) obs_installer ;;
-            32) zsh_ohmyzsh_installer ;;
-            33) oh_my_bash_installer ;;
-            34) cpu_ondemand_installer ;;
-            35) shader_booster_installer ;;
-            36) hwaccel_flatpak_installer ;;
-            37) winboat_installer ;;
-            38) shadps4_installer ;;
-            39) eden_emulator_installer ;;
-            40) starship_installer ;;
-            41) preload_installer ;;
-            42) onlyoffice_installer ;;
-            43) earlyoom_installer ;;
-            44) sober_installer ;;
-            45) protonplus_installer ;;
-            46) lact_installer ;;
-            47) distrobox_installer ;;
-            48) aria2_installer ;;
-            49) fastfetch_installer ;;
-            50) exit 0 ;;
+            18) iwd_installer ;;
+            19) de_plasma_installer ;;
+            20) mise_installer ;;
+            21) neovim_lazyvim_installer ;;
+            22) nvidia_proprietary_installer ;;
+            23) oh_my_bash_installer ;;
+            24) opencode_installer ;;
+            25) ostree_autoupd_installer ;;
+            26) preload_installer ;;
+            27) remover_bloatware ;;
+            28) rpmfusion_installer ;;
+            29) shadps4_installer ;;
+            30) shader_booster_installer ;;
+            31) snapd_installer ;;
+            32) starship_installer ;;
+            33) terra_installer ;;
+            34) ufw_installer ;;
+            35) web_apps_menu ;;
+            36) winboat_installer ;;
+            37) xpadneo_installer ;;
+            38) yt_dlp_installer ;;
+            39) zsh_ohmyzsh_installer ;;
+            0) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
