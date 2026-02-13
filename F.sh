@@ -57,6 +57,26 @@ affinity_installer() {
     fi
 }
 
+aria2_installer() {
+    local state_file="$STATE_DIR/aria2"
+
+    if [ -f "$state_file" ] || rpm -q aria2 &>/dev/null; then
+        if confirm "aria2 detectado. Desinstalar?"; then
+            echo "Desinstalando aria2..."
+            sudo rpm-ostree uninstall aria2 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "aria2 desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar aria2?"; then
+            echo "Instalando aria2..."
+            sudo rpm-ostree install aria2
+            touch "$state_file"
+            echo "aria2 instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 cachyconfs_installer() {
     local state_file="$STATE_DIR/cachyconfs"
 
@@ -280,6 +300,26 @@ extension_manager_installer() {
     fi
 }
 
+fastfetch_installer() {
+    local state_file="$STATE_DIR/fastfetch"
+
+    if [ -f "$state_file" ] || rpm -q fastfetch &>/dev/null; then
+        if confirm "fastfetch detectado. Desinstalar?"; then
+            echo "Desinstalando fastfetch..."
+            sudo rpm-ostree uninstall fastfetch 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "fastfetch desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar fastfetch?"; then
+            echo "Instalando fastfetch..."
+            sudo rpm-ostree install fastfetch
+            touch "$state_file"
+            echo "fastfetch instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 faugus_launcher_installer() {
     local state_file="$STATE_DIR/faugus_launcher"
     local pkg_faugus="io.github.Faugus.faugus-launcher"
@@ -355,15 +395,8 @@ fish_fisher_installer() {
     fi
 }
 
-flatpak_flathub_installer() {
-    local flatpak_state="$STATE_DIR/flatpak"
+flathub_installer() {
     local flathub_state="$STATE_DIR/flathub"
-
-    if [ -f "$flatpak_state" ] || command -v flatpak &>/dev/null; then
-        if confirm "Flatpak detectado. Desinstalar?"; then
-            echo "Flatpak é parte do sistema. Remova manualmente se necessário."
-        fi
-    fi
 
     if [ -f "$flathub_state" ] || flatpak remote-list --user 2>/dev/null | grep -q flathub; then
         if confirm "Flathub detectado. Remover?"; then
@@ -377,27 +410,6 @@ flatpak_flathub_installer() {
         flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
         touch "$flathub_state"
         echo "Flathub adicionado."
-    fi
-}
-
-flatseal_installer() {
-    local state_file="$STATE_DIR/flatseal"
-    local pkg_flatseal="com.github.tchx84.Flatseal"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q com.github.tchx84.Flatseal 2>/dev/null; then
-        if confirm "Flatseal detectado. Desinstalar?"; then
-            echo "Desinstalando Flatseal..."
-            flatpak uninstall --user -y $pkg_flatseal 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Flatseal desinstalado."
-        fi
-    else
-        if confirm "Instalar Flatseal?"; then
-            echo "Instalando Flatseal..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_flatseal
-            touch "$state_file"
-            echo "Flatseal instalado."
-        fi
     fi
 }
 
@@ -1391,27 +1403,6 @@ unmojang_installer() {
     fi
 }
 
-vscodium_installer() {
-    local state_file="$STATE_DIR/vscodium"
-    local pkg_vscodium="com.vscodium.codium"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q com.vscodium.codium 2>/dev/null; then
-        if confirm "VSCodium detectado. Desinstalar?"; then
-            echo "Desinstalando VSCodium..."
-            flatpak uninstall --user -y $pkg_vscodium 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "VSCodium desinstalado."
-        fi
-    else
-        if confirm "Instalar VSCodium?"; then
-            echo "Instalando VSCodium..."
-            flatpak install --user --or-update --noninteractive flathub $pkg_vscodium
-            touch "$state_file"
-            echo "VSCodium instalado."
-        fi
-    fi
-}
-
 winboat_installer() {
     local state_file="$STATE_DIR/winboat"
     local winboat_dir="$HOME/WinBoat"
@@ -1555,7 +1546,7 @@ main_menu() {
         echo "5) Xpadneo (Xbox Controller)"
         echo "6) Faugus Launcher"
         echo "7) Zen Browser"
-        echo "8) Flatpak/Flathub"
+        echo "8) Flathub"
         echo "9) Homebrew"
         echo "10) Nvidia Proprietary"
         echo "11) COSMIC Desktop (Fedora Cosmic-Atomic)"
@@ -1574,30 +1565,30 @@ main_menu() {
         echo "24) Mise (Dev Tools)"
         echo "25) MangoJuice"
         echo "26) Fjord Launcher (Unmojang)"
-        echo "27) VSCodium"
-        echo "28) Helium Browser"
-        echo "29) Hydra Launcher (AppImage)"
-        echo "30) Gear Lever"
-        echo "31) Extension Manager"
-        echo "32) OBS Studio"
-        echo "33) Zsh + Oh My Zsh"
-        echo "34) Oh My Bash"
-        echo "35) CPU Ondemand"
-        echo "36) Shader Booster"
-        echo "37) HW Acceleration Flatpak"
-        echo "38) WinBoat (AppImage)"
-        echo "39) ShadPS4 + PKG Installer"
-        echo "40) Eden Emulator (AppImage)"
-        echo "41) Starship Prompt"
-        echo "42) Preload (otimização de RAM)"
-        echo "43) OnlyOffice"
-        echo "44) EarlyOOM"
-        echo "45) Sober"
-        echo "46) ProtonPlus"
-        echo "47) LACT"
-        echo "48) Distrobox"
-        echo "49) Flatseal"
-        echo "0) Sair"
+        echo "27) Helium Browser"
+        echo "28) Hydra Launcher (AppImage)"
+        echo "29) Gear Lever"
+        echo "30) Extension Manager"
+        echo "31) OBS Studio"
+        echo "32) Zsh + Oh My Zsh"
+        echo "33) Oh My Bash"
+        echo "34) CPU Ondemand"
+        echo "35) Shader Booster"
+        echo "36) HW Acceleration Flatpak"
+        echo "37) WinBoat (AppImage)"
+        echo "38) ShadPS4 + PKG Installer"
+        echo "39) Eden Emulator (AppImage)"
+        echo "40) Starship Prompt"
+        echo "41) Preload (otimização de RAM)"
+        echo "42) OnlyOffice"
+        echo "43) EarlyOOM"
+        echo "44) Sober"
+        echo "45) ProtonPlus"
+        echo "46) LACT"
+        echo "47) Distrobox"
+        echo "48) aria2"
+        echo "49) fastfetch"
+        echo "50) Sair"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -1609,7 +1600,7 @@ main_menu() {
             5) xpadneo_installer ;;
             6) faugus_launcher_installer ;;
             7) zen_browser_installer ;;
-            8) flatpak_flathub_installer ;;
+            8) flathub_installer ;;
             9) homebrew_installer ;;
             10) nvidia_proprietary_installer ;;
             11) de_cosmic_installer ;;
@@ -1628,30 +1619,30 @@ main_menu() {
             24) mise_installer ;;
             25) mangojuice_installer ;;
             26) unmojang_installer ;;
-            27) vscodium_installer ;;
-            28) helium_browser_installer ;;
-            29) hydra_launcher_installer ;;
-            30) gearlever_installer ;;
-            31) extension_manager_installer ;;
-            32) obs_installer ;;
-            33) zsh_ohmyzsh_installer ;;
-            34) oh_my_bash_installer ;;
-            35) cpu_ondemand_installer ;;
-            36) shader_booster_installer ;;
-            37) hwaccel_flatpak_installer ;;
-            38) winboat_installer ;;
-            39) shadps4_installer ;;
-            40) eden_emulator_installer ;;
-            41) starship_installer ;;
-            42) preload_installer ;;
-            43) onlyoffice_installer ;;
-            44) earlyoom_installer ;;
-            45) sober_installer ;;
-            46) protonplus_installer ;;
-            47) lact_installer ;;
-            48) distrobox_installer ;;
-            49) flatseal_installer ;;
-            0) exit 0 ;;
+            27) helium_browser_installer ;;
+            28) hydra_launcher_installer ;;
+            29) gearlever_installer ;;
+            30) extension_manager_installer ;;
+            31) obs_installer ;;
+            32) zsh_ohmyzsh_installer ;;
+            33) oh_my_bash_installer ;;
+            34) cpu_ondemand_installer ;;
+            35) shader_booster_installer ;;
+            36) hwaccel_flatpak_installer ;;
+            37) winboat_installer ;;
+            38) shadps4_installer ;;
+            39) eden_emulator_installer ;;
+            40) starship_installer ;;
+            41) preload_installer ;;
+            42) onlyoffice_installer ;;
+            43) earlyoom_installer ;;
+            44) sober_installer ;;
+            45) protonplus_installer ;;
+            46) lact_installer ;;
+            47) distrobox_installer ;;
+            48) aria2_installer ;;
+            49) fastfetch_installer ;;
+            50) exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
