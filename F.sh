@@ -2206,7 +2206,6 @@ nvidia_proprietary_installer() {
         if confirm "Instalar Nvidia Proprietário?"; then
             echo "Instalando Nvidia Proprietário..."
             
-            # Verificar se RPM Fusion está instalado
             if ! rpm -q rpmfusion-free-release &>/dev/null; then
                 echo "AVISO: RPM Fusion não está instalado."
                 echo "O RPM Fusion é necessário para instalar os drivers Nvidia."
@@ -2214,7 +2213,6 @@ nvidia_proprietary_installer() {
                 return 1
             fi
             
-            # Verificar SecureBoot
             local sb_state=""
             if command -v mokutil &>/dev/null; then
                 sb_state=$(sudo mokutil --sb-state 2>/dev/null)
@@ -3348,10 +3346,11 @@ stirling_pdf_installer() {
             echo "Desinstalando Stirling PDF..."
             sudo podman stop stirling-pdf 2>/dev/null || true
             sudo podman rm stirling-pdf 2>/dev/null || true
-            sudo podman rmi stirlingpdf/stirling-pdf:latest 2>/dev/null || true
-            sudo podman rmi stirlingpdf/stirling-pdf:latest-fat 2>/dev/null || true
-            sudo podman rmi stirlingpdf/stirling-pdf:latest-ultra-lite 2>/dev/null || true
+            sudo podman rmi stirlingtools/stirling-pdf:latest 2>/dev/null || true
+            sudo podman rmi stirlingtools/stirling-pdf:latest-fat 2>/dev/null || true
+            sudo podman rmi stirlingtools/stirling-pdf:latest-ultra-lite 2>/dev/null || true
             sudo rm -f /etc/systemd/system/stirling-pdf.service 2>/dev/null || true
+            rm -rf ~/stirling-pdf-data 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Stirling PDF desinstalado."
         fi
@@ -3377,22 +3376,27 @@ stirling_pdf_installer() {
                 return 1
             fi
             
-            sudo podman pull stirlingpdf/stirling-pdf:$TAG
+            mkdir -p ~/stirling-pdf-data
+
+            sudo podman pull stirlingtools/stirling-pdf:$TAG
             
             sudo podman run -d \
                 --name stirling-pdf \
                 --restart unless-stopped \
                 -p 8080:8080 \
-                -v ~/stirling-pdf-data:/usr/share/Stirling-PDF/configs \
-                stirlingpdf/stirling-pdf:$TAG
+                -v ~/stirling-pdf-data:/configs \
+                -e MODE=BOTH \
+                stirlingtools/stirling-pdf:$TAG
             
             sudo podman generate systemd --name stirling-pdf --restart-policy=always > /tmp/stirling-pdf.service
             sudo mv /tmp/stirling-pdf.service /etc/systemd/system/stirling-pdf.service
+            sudo systemctl daemon-reload
             sudo systemctl enable stirling-pdf.service
             sudo systemctl start stirling-pdf.service
             
             touch "$state_file"
             echo "Stirling PDF instalado. Acesse em http://localhost:8080"
+            echo "Dados persistentes salvos em: ~/stirling-pdf-data"
         fi
     fi
 }
