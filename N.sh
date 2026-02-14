@@ -144,6 +144,28 @@ force_unmount_all() {
         sudo swapoff "$partition" 2>/dev/null || true
     done
     
+    # Desativar LVM se existir
+    if command -v vgchange &>/dev/null; then
+        sudo vgchange -an 2>/dev/null || true
+    fi
+    
+    sleep 3
+}
+
+refresh_partitions() {
+    local disk=$(cat "$STATE_DIR/disk")
+    
+    echo "Atualizando tabela de partições / Refreshing partition table..."
+    
+    # Tentar partprobe
+    sudo partprobe "$disk" 2>/dev/null || true
+    
+    # Forçar kernel a reler a tabela de partições
+    sudo blockdev --rereadpt "$disk" 2>/dev/null || true
+    
+    # Alternativa: usar udevadm
+    sudo udevadm settle 2>/dev/null || true
+    
     sleep 3
 }
 
@@ -158,28 +180,19 @@ wipe_disk() {
         
         echo "Apagando assinaturas do disco / Wiping disk signatures..."
         
-        # Tentar wipefs várias vezes
-        for i in {1..3}; do
-            if sudo wipefs -a "$disk" 2>/dev/null; then
-                echo "Assinaturas apagadas com sucesso / Signatures wiped successfully"
-                break
-            else
-                echo "Tentativa $i falhou, tentando novamente... / Attempt $i failed, retrying..."
-                force_unmount_all
-                sleep 2
-            fi
-        done
+        # Tentar wipefs com força
+        sudo wipefs -a -f "$disk" 2>/dev/null || true
         
-        # Método alternativo: zerar o início do disco
+        # Zerar os primeiros 100MB do disco
         echo "Zerando início do disco / Zeroing beginning of disk..."
-        sudo dd if=/dev/zero of="$disk" bs=1M count=10 status=progress 2>/dev/null || true
+        sudo dd if=/dev/zero of="$disk" bs=1M count=100 status=progress 2>/dev/null || true
         
-        # Remover tabela de partições com parted
-        echo "Removendo tabela de partições / Removing partition table..."
+        # Remover tabela de partições
         sudo parted -s "$disk" mklabel gpt 2>/dev/null || true
         sudo parted -s "$disk" mklabel msdos 2>/dev/null || true
         
-        sleep 2
+        refresh_partitions
+        
         echo "Disco limpo com sucesso / Disk successfully wiped"
     else
         echo "Operação cancelada / Operation canceled"
@@ -195,13 +208,14 @@ check_and_prepare_disk() {
     force_unmount_all
     
     # Verificar processos usando o disco
-    echo "Verificando processos usando o disco / Checking processes using the disk..."
-    local using_processes=$(lsof "$disk" 2>/dev/null | grep "$disk" || true)
-    if [ -n "$using_processes" ]; then
-        echo "Processos usando o disco / Processes using the disk:"
-        echo "$using_processes"
-        echo "Por favor, feche esses processos e tente novamente / Please close these processes and try again"
-        exit 1
+    if command -v lsof &>/dev/null; then
+        local using_processes=$(lsof "$disk" 2>/dev/null | grep "$disk" || true)
+        if [ -n "$using_processes" ]; then
+            echo "Processos usando o disco / Processes using the disk:"
+            echo "$using_processes"
+            echo "Por favor, feche esses processos e tente novamente / Please close these processes and try again"
+            exit 1
+        fi
     fi
     
     wipe_disk
@@ -218,38 +232,45 @@ partition_disk() {
         echo "UEFI detectado"
         echo "uefi" > "$STATE_DIR/boot_mode"
         
+        # Criar partições
         sudo parted -s $disk mklabel gpt
         sudo parted -s $disk mkpart primary fat32 1MB 512MB
         sudo parted -s $disk set 1 esp on
         sudo parted -s $disk mkpart primary ext4 512MB 100%
         
-        # Aguardar o kernel reconhecer as partições
-        sleep 3
-        sudo partprobe $disk || true
-        sleep 2
+        refresh_partitions
         
+        # Formatar partições
+        echo "Formatando partição EFI..."
         sudo mkfs.fat -F 32 ${disk}1
         sudo fatlabel ${disk}1 NIXBOOT
+        
+        echo "Formatando partição root..."
         sudo mkfs.ext4 -F ${disk}2 -L NIXROOT
     else
         echo "BIOS/Legacy detectado"
         echo "bios" > "$STATE_DIR/boot_mode"
         
+        # Criar partições
         sudo parted -s $disk mklabel msdos
         sudo parted -s $disk mkpart primary ext4 1MB 512MB
         sudo parted -s $disk set 1 boot on
         sudo parted -s $disk mkpart primary ext4 512MB 100%
         
-        sleep 3
-        sudo partprobe $disk || true
-        sleep 2
+        refresh_partitions
         
+        # Formatar partições
+        echo "Formatando partição boot..."
         sudo mkfs.ext4 -F ${disk}1 -L NIXBOOT
+        
+        echo "Formatando partição root..."
         sudo mkfs.ext4 -F ${disk}2 -L NIXROOT
     fi
     
+    refresh_partitions
+    
     echo "Particionamento concluído / Partitioning complete"
-    sleep 2
+    sleep 3
 }
 
 mount_partitions() {
@@ -262,7 +283,27 @@ mount_partitions() {
     fi
     
     # Aguardar labels aparecerem
-    sleep 3
+    echo "Aguardando partições ficarem disponíveis / Waiting for partitions to become available..."
+    for i in {1..10}; do
+        if [ -e /dev/disk/by-label/NIXROOT ] && [ -e /dev/disk/by-label/NIXBOOT ]; then
+            break
+        fi
+        sleep 2
+        refresh_partitions
+    done
+    
+    # Verificar se as partições existem
+    if [ ! -e /dev/disk/by-label/NIXROOT ]; then
+        echo "ERRO: Partição NIXROOT não encontrada / ERROR: NIXROOT partition not found"
+        ls -la /dev/disk/by-label/
+        exit 1
+    fi
+    
+    if [ ! -e /dev/disk/by-label/NIXBOOT ]; then
+        echo "ERRO: Partição NIXBOOT não encontrada / ERROR: NIXBOOT partition not found"
+        ls -la /dev/disk/by-label/
+        exit 1
+    fi
     
     # Montar partições
     sudo mount /dev/disk/by-label/NIXROOT /mnt
@@ -270,6 +311,7 @@ mount_partitions() {
     sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot
     
     echo "Partições montadas com sucesso / Partitions mounted successfully"
+    df -h /mnt /mnt/boot
 }
 
 create_swap() {
