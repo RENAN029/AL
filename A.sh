@@ -229,7 +229,7 @@ appimage_fuse_installer() {
 }
 
 archiving_compression_installer() {
-    local state_file="$STATE_DIR/pessoal_compactacao"
+    local state_file="$STATE_DIR/compactacao"
     local pkg_compactacao="7zip tar libarchive unrar zip unzip unarchiver lhasa unace"
 
     if [ -f "$state_file" ] || pacman -Q unrar &>/dev/null; then
@@ -352,36 +352,6 @@ audacity_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_audacity
             touch "$state_file"
             echo "Audacity instalado."
-        fi
-    fi
-}
-
-affinity_installer() {
-    local state_file="$STATE_DIR/affinity"
-    local affinity_dir="$HOME/Affinity"
-    local appimage_path="$affinity_dir/Affinity.AppImage"
-
-    if [ -f "$state_file" ] || [ -f "$appimage_path" ]; then
-        if confirm "Affinity detectado. Desinstalar?"; then
-            echo "Desinstalando Affinity..."
-            [ -f "$appimage_path" ] && rm -f "$appimage_path"
-            [ -d "$affinity_dir" ] && rmdir "$affinity_dir" 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Affinity desinstalado."
-        fi
-    else
-        if confirm "Instalar Affinity Photo?"; then
-            echo "Instalando Affinity Photo..."
-            mkdir -p "$affinity_dir"
-            
-            local download_url=$(curl -s https://api.github.com/repos/ryzendew/Linux-Affinity-Installer/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'affinity.*appimage' | head -1 | cut -d'"' -f4)
-            [ -z "$download_url" ] && download_url="https://github.com/ryzendew/Linux-Affinity-Installer/releases/latest/download/Affinity.AppImage"
-            
-            curl -L -o "$appimage_path" "$download_url"
-            chmod +x "$appimage_path"
-            
-            touch "$state_file"
-            echo "Affinity Photo instalado."
         fi
     fi
 }
@@ -567,27 +537,6 @@ btrfs_assistant_installer() {
             sudo pacman -S --noconfirm $pkg_btrfs_assistant
             touch "$state_file"
             echo "Btrfs Assistant instalado."
-        fi
-    fi
-}
-
-btop_installer() {
-    local state_file="$STATE_DIR/btop"
-    local pkg_btop="btop"
-
-    if [ -f "$state_file" ] || pacman -Q btop &>/dev/null; then
-        if confirm "btop detectado. Desinstalar?"; then
-            echo "Desinstalando btop..."
-            pacman -Qq btop &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_btop || true
-            cleanup_files "$state_file"
-            echo "btop desinstalado."
-        fi
-    else
-        if confirm "Instalar btop?"; then
-            echo "Instalando btop..."
-            sudo pacman -S --noconfirm $pkg_btop
-            touch "$state_file"
-            echo "btop instalado."
         fi
     fi
 }
@@ -860,27 +809,6 @@ cryptomator_installer() {
     fi
 }
 
-curl_installer() {
-    local state_file="$STATE_DIR/curl"
-    local pkg_curl="curl"
-
-    if [ -f "$state_file" ] || pacman -Q curl &>/dev/null; then
-        if confirm "curl detectado. Desinstalar?"; then
-            echo "Desinstalando curl..."
-            pacman -Qq curl &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_curl || true
-            cleanup_files "$state_file"
-            echo "curl desinstalado."
-        fi
-    else
-        if confirm "Instalar curl?"; then
-            echo "Instalando curl..."
-            sudo pacman -S --noconfirm $pkg_curl
-            touch "$state_file"
-            echo "curl instalado."
-        fi
-    fi
-}
-
 cups_installer() {
     local state_file="$STATE_DIR/cups"
     local pkg_cups="cups"
@@ -901,6 +829,27 @@ cups_installer() {
             sudo systemctl enable --now cups
             touch "$state_file"
             echo "cups instalado."
+        fi
+    fi
+}
+
+curl_installer() {
+    local state_file="$STATE_DIR/curl"
+    local pkg_curl="curl"
+
+    if [ -f "$state_file" ] || pacman -Q curl &>/dev/null; then
+        if confirm "curl detectado. Desinstalar?"; then
+            echo "Desinstalando curl..."
+            pacman -Qq curl &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_curl || true
+            cleanup_files "$state_file"
+            echo "curl desinstalado."
+        fi
+    else
+        if confirm "Instalar curl?"; then
+            echo "Instalando curl..."
+            sudo pacman -S --noconfirm $pkg_curl
+            touch "$state_file"
+            echo "curl instalado."
         fi
     fi
 }
@@ -1045,7 +994,7 @@ davinci_resolve_menu() {
 }
 
 davinci_ffmpeg_installer() {
-    local state_file="$STATE_DIR/figma"
+    local state_file="$STATE_DIR/davinci_ffmpeg"
     local pkg_davinci="davinci-ffmpeg-encoder-plugin"
 
     if [ -f "$state_file" ] || pacman -Q davinci-ffmpeg-encoder-plugin &>/dev/null; then
@@ -1745,6 +1694,27 @@ f3_installer() {
     fi
 }
 
+fastfetch_installer() {
+    local state_file="$STATE_DIR/fastfetch"
+    local pkg_fastfetch="fastfetch"
+
+    if [ -f "$state_file" ] || pacman -Q fastfetch &>/dev/null; then
+        if confirm "fastfetch detectado. Desinstalar?"; then
+            echo "Desinstalando fastfetch..."
+            pacman -Qq fastfetch &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fastfetch || true
+            cleanup_files "$state_file"
+            echo "fastfetch desinstalado."
+        fi
+    else
+        if confirm "Instalar fastfetch?"; then
+            echo "Instalando fastfetch..."
+            sudo pacman -S --noconfirm $pkg_fastfetch
+            touch "$state_file"
+            echo "fastfetch instalado."
+        fi
+    fi
+}
+
 faugus_launcher_installer() {
     local state_file="$STATE_DIR/faugus_launcher"
     local pkg_faugus="io.github.Faugus.faugus-launcher"
@@ -1767,101 +1737,6 @@ faugus_launcher_installer() {
             echo "Faugus Launcher instalado."
         fi
     fi
-}
-
-fastfetch_installer() {
-    local state_file="$STATE_DIR/fastfetch"
-    local pkg_fastfetch="fastfetch"
-
-    if [ -f "$state_file" ] || pacman -Q fastfetch &>/dev/null; then
-        if confirm "fastfetch detectado. Desinstalar?"; then
-            echo "Desinstalando fastfetch..."
-            pacman -Qq fastfetch &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fastfetch || true
-            cleanup_files "$state_file"
-            echo "fastfetch desinstalado."
-        fi
-    else
-        if confirm "Instalar fastfetch?"; then
-            echo "Instalando fastfetch..."
-            sudo pacman -S --noconfirm $pkg_fastfetch
-            touch "$state_file"
-            echo "fastfetch instalado."
-        fi
-    fi
-}
-
-ferramentas_menu() {
-    while true; do
-        clear
-        echo "=== Ferramentas ==="
-        echo "1) Modern Unix Tools"
-        echo "2) Pacotes Base"
-        echo "3) Pacotes de Mídia"
-        echo "4) AMD ucode"
-        echo "5) Intel ucode"
-        echo "6) aria2"
-        echo "7) btop"
-        echo "8) curl"
-        echo "9) distrobox"
-        echo "10) fastfetch"
-        echo "11) Opencode"
-        echo "12) github-cli"
-        echo "13) git"
-        echo "14) lazygit"
-        echo "15) lazydocker"
-        echo "16) libqalculate"
-        echo "17) smartmontools"
-        echo "18) snapd"
-        echo "19) superfile"
-        echo "20) XDG Base"
-        echo "21) yt-dlp"
-        echo "22) fzf"
-        echo "23) gdu"
-        echo "24) Pacotes de Arquivos"
-        echo "25) Podman"
-        echo "26) Ollama"
-        echo "27) Voxtype"
-        echo "28) Zellij"
-        echo "29) Lucidglyph"
-        echo "30) Voltar"
-        echo
-        read -p "Selecione uma opção: " opcao
-
-        case $opcao in
-            1) clear; modern_unix_installer ;;
-            2) clear; pessoal_fonts_installer ;;
-            3) clear; pessoal_media_installer ;;
-            4) clear; amd_ucode_installer ;;
-            5) clear; intel_ucode_installer ;;
-            6) clear; aria2_installer ;;
-            7) clear; btop_installer ;;
-            8) clear; curl_installer ;;
-            9) clear; distrobox_installer ;;
-            10) clear; fastfetch_installer ;;
-            11) clear; opencode_installer ;;
-            12) clear; github_cli_installer ;;
-            13) clear; git_installer ;;
-            14) clear; lazygit_installer ;;
-            15) clear; lazydocker_installer ;;
-            16) clear; libqalculate_installer ;;
-            17) clear; smartmontools_installer ;;
-            18) clear; snapd_installer ;;
-            19) clear; superfile_installer ;;
-            20) clear; xdg_base_installer ;;
-            21) clear; yt_dlp_installer ;;
-            22) clear; fzf_installer ;;
-            23) clear; gdu_installer ;;
-            24) clear; archiving_compression_installer ;;
-            25) clear; podman_installer ;;
-            26) clear; ollama_menu ;;
-            27) clear; voxtype_installer ;;
-            28) clear; zellij_installer ;;
-            29) clear; lucidglyph_installer ;;
-            30) return ;;
-            *) ;;
-        esac
-        read -p "Pressione Enter para continuar..."
-    done
 }
 
 figma_installer() {
@@ -2028,27 +1903,6 @@ freecad_installer() {
     fi
 }
 
-fwupd_installer() {
-    local state_file="$STATE_DIR/fwupd"
-    local pkg_fwupd="fwupd"
-
-    if [ -f "$state_file" ] || pacman -Q fwupd &>/dev/null; then
-        if confirm "Fwupd detectado. Desinstalar?"; then
-            echo "Desinstalando Fwupd..."
-            pacman -Qq fwupd &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fwupd || true
-            cleanup_files "$state_file"
-            echo "Fwupd desinstalado."
-        fi
-    else
-        if confirm "Instalar Fwupd?"; then
-            echo "Instalando Fwupd..."
-            sudo pacman -S --noconfirm $pkg_fwupd
-            touch "$state_file"
-            echo "Fwupd instalado."
-        fi
-    fi
-}
-
 fzf_installer() {
     local state_file="$STATE_DIR/fzf"
     local pkg_fzf="fzf"
@@ -2066,6 +1920,27 @@ fzf_installer() {
             sudo pacman -S --noconfirm $pkg_fzf
             touch "$state_file"
             echo "Fzf instalado."
+        fi
+    fi
+}
+
+fwupd_installer() {
+    local state_file="$STATE_DIR/fwupd"
+    local pkg_fwupd="fwupd"
+
+    if [ -f "$state_file" ] || pacman -Q fwupd &>/dev/null; then
+        if confirm "Fwupd detectado. Desinstalar?"; then
+            echo "Desinstalando Fwupd..."
+            pacman -Qq fwupd &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_fwupd || true
+            cleanup_files "$state_file"
+            echo "Fwupd desinstalado."
+        fi
+    else
+        if confirm "Instalar Fwupd?"; then
+            echo "Instalando Fwupd..."
+            sudo pacman -S --noconfirm $pkg_fwupd
+            touch "$state_file"
+            echo "Fwupd instalado."
         fi
     fi
 }
@@ -2131,27 +2006,6 @@ gcompris_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_gcompris
             touch "$state_file"
             echo "GCompris instalado."
-        fi
-    fi
-}
-
-gdu_installer() {
-    local state_file="$STATE_DIR/gdu"
-    local pkg_gdu="gdu"
-
-    if [ -f "$state_file" ] || pacman -Q gdu &>/dev/null; then
-        if confirm "Gdu detectado. Desinstalar?"; then
-            echo "Desinstalando Gdu..."
-            pacman -Qq gdu &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_gdu || true
-            cleanup_files "$state_file"
-            echo "Gdu desinstalado."
-        fi
-    else
-        if confirm "Instalar Gdu?"; then
-            echo "Instalando Gdu..."
-            sudo pacman -S --noconfirm $pkg_gdu
-            touch "$state_file"
-            echo "Gdu instalado."
         fi
     fi
 }
@@ -2244,27 +2098,6 @@ github_cli_installer() {
     fi
 }
 
-git_installer() {
-    local state_file="$STATE_DIR/git"
-    local pkg_git="git"
-
-    if [ -f "$state_file" ] || pacman -Q git &>/dev/null; then
-        if confirm "git detectado. Desinstalar?"; then
-            echo "Desinstalando git..."
-            pacman -Qq git &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_git || true
-            cleanup_files "$state_file"
-            echo "git desinstalado."
-        fi
-    else
-        if confirm "Instalar git?"; then
-            echo "Instalando git..."
-            sudo pacman -S --noconfirm $pkg_git
-            touch "$state_file"
-            echo "git instalado."
-        fi
-    fi
-}
-
 gimp_photogimp_installer() {
     local gimp_state="$STATE_DIR/gimp"
     local photogimp_state="$STATE_DIR/photogimp"
@@ -2313,23 +2146,23 @@ gimp_photogimp_installer() {
     fi
 }
 
-gnome_boxes_installer() {
-    local state_file="$STATE_DIR/gnome_boxes"
-    local pkg_boxes="org.gnome.Boxes"
+git_installer() {
+    local state_file="$STATE_DIR/git"
+    local pkg_git="git"
 
-    if [ -f "$state_file" ] || flatpak list --app | grep -q org.gnome.Boxes 2>/dev/null; then
-        if confirm "Gnome Boxes detectado. Desinstalar?"; then
-            echo "Desinstalando Gnome Boxes..."
-            flatpak uninstall --user -y $pkg_boxes 2>/dev/null || true
+    if [ -f "$state_file" ] || pacman -Q git &>/dev/null; then
+        if confirm "git detectado. Desinstalar?"; then
+            echo "Desinstalando git..."
+            pacman -Qq git &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_git || true
             cleanup_files "$state_file"
-            echo "Gnome Boxes desinstalado."
+            echo "git desinstalado."
         fi
     else
-        if confirm "Instalar Gnome Boxes?"; then
-            echo "Instalando Gnome Boxes..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_boxes
+        if confirm "Instalar git?"; then
+            echo "Instalando git..."
+            sudo pacman -S --noconfirm $pkg_git
             touch "$state_file"
-            echo "Gnome Boxes instalado."
+            echo "git instalado."
         fi
     fi
 }
@@ -3033,69 +2866,6 @@ lact_installer() {
     fi
 }
 
-lazydocker_installer() {
-    local state_file="$STATE_DIR/lazydocker"
-    local pkg_lazydocker="lazydocker"
-
-    if [ -f "$state_file" ] || pacman -Q lazydocker &>/dev/null; then
-        if confirm "lazydocker detectado. Desinstalar?"; then
-            echo "Desinstalando lazydocker..."
-            pacman -Qq lazydocker &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_lazydocker || true
-            cleanup_files "$state_file"
-            echo "lazydocker desinstalado."
-        fi
-    else
-        if confirm "Instalar lazydocker?"; then
-            echo "Instalando lazydocker..."
-            sudo pacman -S --noconfirm $pkg_lazydocker
-            touch "$state_file"
-            echo "lazydocker instalado."
-        fi
-    fi
-}
-
-lazygit_installer() {
-    local state_file="$STATE_DIR/lazygit"
-    local pkg_lazygit="lazygit"
-
-    if [ -f "$state_file" ] || pacman -Q lazygit &>/dev/null; then
-        if confirm "lazygit detectado. Desinstalar?"; then
-            echo "Desinstalando lazygit..."
-            pacman -Qq lazygit &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_lazygit || true
-            cleanup_files "$state_file"
-            echo "lazygit desinstalado."
-        fi
-    else
-        if confirm "Instalar lazygit?"; then
-            echo "Instalando lazygit..."
-            sudo pacman -S --noconfirm $pkg_lazygit
-            touch "$state_file"
-            echo "lazygit instalado."
-        fi
-    fi
-}
-
-libqalculate_installer() {
-    local state_file="$STATE_DIR/libqalculate"
-    local pkg_qalc="libqalculate"
-
-    if [ -f "$state_file" ] || pacman -Q libqalculate &>/dev/null; then
-        if confirm "libqalculate detectado. Desinstalar?"; then
-            echo "Desinstalando libqalculate..."
-            pacman -Qq libqalculate &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_qalc || true
-            cleanup_files "$state_file"
-            echo "libqalculate desinstalado."
-        fi
-    else
-        if confirm "Instalar libqalculate?"; then
-            echo "Instalando libqalculate..."
-            sudo pacman -S --noconfirm $pkg_qalc
-            touch "$state_file"
-            echo "libqalculate instalado."
-        fi
-    fi
-}
-
 libreoffice_installer() {
     local state_file="$STATE_DIR/libreoffice"
     local pkg_libreoffice="org.libreoffice.LibreOffice"
@@ -3400,7 +3170,7 @@ missioncenter_installer() {
 
 modern_unix_installer() {
     local state_file="$STATE_DIR/modern_unix"
-    local pkg_unix="tealdeer ripgrep zoxide eza bat fd jq"
+    local pkg_unix="tealdeer ripgrep zoxide eza bat fd jq fzf"
 
     if [ -f "$state_file" ] || pacman -Q tealdeer &>/dev/null; then
         if confirm "Modern Unix Tools detectado. Desinstalar?"; then
@@ -3505,30 +3275,6 @@ mullvad_vpn_installer() {
             sudo pacman -S --noconfirm $pkg_mullvad
             touch "$state_file"
             echo "Mullvad VPN instalado."
-        fi
-    fi
-}
-
-n8n_installer() {
-    local state_file="$STATE_DIR/n8n"
-    local pkg_n8n="n8n"
-
-    if [ -f "$state_file" ] || pacman -Q n8n &>/dev/null; then
-        if confirm "n8n detectado. Desinstalar?"; then
-            echo "Desinstalando n8n..."
-            sudo systemctl stop n8n 2>/dev/null || true
-            sudo systemctl disable n8n 2>/dev/null || true
-            pacman -Qq n8n &>/dev/null && paru -Rsnu --noconfirm $pkg_n8n || true
-            cleanup_files "$state_file"
-            echo "n8n desinstalado."
-        fi
-    else
-        if confirm "Instalar n8n?"; then
-            echo "Instalando n8n..."
-            paru -S --noconfirm $pkg_n8n
-            sudo systemctl enable --now n8n
-            touch "$state_file"
-            echo "n8n instalado."
         fi
     fi
 }
@@ -3834,27 +3580,6 @@ obs_installer() {
     fi
 }
 
-observer_installer() {
-    local state_file="$STATE_DIR/observer"
-    local pkg_observer="observer-ai"
-
-    if [ -f "$state_file" ] || pacman -Q observer-ai &>/dev/null; then
-        if confirm "Observer detectado. Desinstalar?"; then
-            echo "Desinstalando Observer..."
-            pacman -Qq observer-ai &>/dev/null && paru -Rsnu --noconfirm $pkg_observer || true
-            cleanup_files "$state_file"
-            echo "Observer desinstalado."
-        fi
-    else
-        if confirm "Instalar Observer?"; then
-            echo "Instalando Observer..."
-            paru -S --noconfirm $pkg_observer
-            touch "$state_file"
-            echo "Observer instalado."
-        fi
-    fi
-}
-
 obsidian_installer() {
     local state_file="$STATE_DIR/obsidian"
     local pkg_obsidian="md.obsidian.Obsidian"
@@ -3875,8 +3600,6 @@ obsidian_installer() {
         fi
     fi
 }
-
-
 
 office_menu() {
     while true; do
@@ -4237,30 +3960,6 @@ oversteer_installer() {
     fi
 }
 
-paperless_installer() {
-    local state_file="$STATE_DIR/paperless"
-    local pkg_paperless="paperless-ngx-venv"
-
-    if [ -f "$state_file" ] || pacman -Q paperless-ngx-venv &>/dev/null; then
-        if confirm "Paperless detectado. Desinstalar?"; then
-            echo "Desinstalando Paperless..."
-            sudo systemctl stop paperless.target 2>/dev/null || true
-            sudo systemctl disable paperless.target 2>/dev/null || true
-            pacman -Qq paperless-ngx-venv &>/dev/null && paru -Rsnu --noconfirm $pkg_paperless || true
-            cleanup_files "$state_file"
-            echo "Paperless desinstalado."
-        fi
-    else
-        if confirm "Instalar Paperless?"; then
-            echo "Instalando Paperless..."
-            paru -S --noconfirm $pkg_paperless
-            sudo systemctl enable --now paperless.target
-            touch "$state_file"
-            echo "Paperless instalado."
-        fi
-    fi
-}
-
 paru_installer() {
     local state_file="$STATE_DIR/paru"
     local pkg_paru="paru base-devel"
@@ -4335,71 +4034,7 @@ perifericos_menu() {
     done
 }
 
-pessoal_menu() {
-    while true; do
-        clear
-        echo "=== Pessoal ==="
-        echo "1) Ambientes Desktop"
-        echo "2) Alpaca"
-        echo "3) AppImage FUSE"
-        echo "4) Affinity"
-        echo "5) CachyOS Kernel"
-        echo "6) Dlss Updater"
-        echo "7) cups"
-        echo "8) Ferramentas"
-        echo "9) Fjord Launcher"
-        echo "10) Gnome Boxes"
-        echo "11) Gnome Extensoes"
-        echo "12) Helium Browser"
-        echo "13) Hydra Launcher"
-        echo "14) LocalSend"
-        echo "15) n8n"
-        echo "16) Observer"
-        echo "17) Paperless"
-        echo "18) Ryujinx"
-        echo "19) ShadPS4"
-        echo "20) Stirling PDF"
-        echo "21) Spotify"
-        echo "22) Waydroid"
-        echo "23) Linuxtoys"
-        echo "24) Web Sites"
-        echo "25) Voltar"
-        echo
-        read -p "Selecione uma opção: " opcao
-
-        case $opcao in
-            1) clear; de_installer ;;
-            2) clear; alpaca_installer ;;
-            3) clear; appimage_fuse_installer ;;
-            4) clear; affinity_installer ;;
-            5) clear; cachyos_installer ;;
-            6) clear; dlss_installer ;;
-            7) clear; cups_installer ;;
-            8) clear; ferramentas_menu ;;
-            9) clear; unmojang_installer ;;
-            10) clear; gnome_boxes_installer ;;
-            11) clear; gnome_extension_installer ;;
-            12) clear; helium_browser_installer ;;
-            13) clear; hydra_launcher_installer ;;
-            14) clear; localsend_installer ;;
-            15) clear; n8n_installer ;;
-            16) clear; observer_installer ;;
-            17) clear; paperless_installer ;;
-            18) clear; ryujinx_installer ;;
-            19) clear; shadps4_installer ;;
-            20) clear; stirlingpdf_installer ;;
-            21) clear; spotify_installer ;;
-            22) clear; waydroid_installer ;;
-            23) clear; linuxtoys_installer ;;
-            24) clear; web_apps_menu ;;
-            25) return ;;
-            *) ;;
-        esac
-        read -p "Pressione Enter para continuar..."
-    done
-}
-
-pessoal_fonts_installer() {
+pessoal_base_installer() {
     local state_file="$STATE_DIR/pessoal_base"
     local pkg_base="noto-fonts noto-fonts-cjk noto-fonts-emoji noto-fonts-extra ttf-noto-nerd"
 
@@ -4439,6 +4074,96 @@ pessoal_media_installer() {
             echo "Pacotes de Mídia instalados."
         fi
     fi
+}
+
+pessoal_menu() {
+    while true; do
+        clear
+        echo "=== Pessoal ==="
+        echo "1) Ambientes Desktop"
+        echo "2) Alpaca"
+        echo "3) AppImage FUSE"
+        echo "4) AMD ucode"
+        echo "5) Intel ucode"
+        echo "6) aria2"
+        echo "7) CachyOS Kernel"
+        echo "8) cups"
+        echo "9) curl"
+        echo "10) distrobox"
+        echo "11) Dlss Updater"
+        echo "12) fastfetch"
+        echo "13) Fjord Launcher"
+        echo "14) git"
+        echo "15) github-cli"
+        echo "16) Gnome Extensoes"
+        echo "17) Helium Browser"
+        echo "18) Hydra Launcher"
+        echo "19) LocalSend"
+        echo "20) modern unix tools"
+        echo "21) Ollama"
+        echo "22) opencode"
+        echo "23) Pacotes Base"
+        echo "24) Pacotes de Compactação"
+        echo "25) Pacotes de Mídia"
+        echo "26) pip"
+        echo "27) Podman"
+        echo "28) Ryujinx"
+        echo "29) smartmontools"
+        echo "30) ShadPS4"
+        echo "31) snapd"
+        echo "32) Stirling PDF"
+        echo "33) voxtype"
+        echo "34) Waydroid"
+        echo "35) Web Sites"
+        echo "36) XDG Base"
+        echo "37) yt-dlp"
+        echo "38) Voltar"
+        echo
+        read -p "Selecione uma opção: " opcao
+
+        case $opcao in
+            1) clear; de_installer ;;
+            2) clear; alpaca_installer ;;
+            3) clear; appimage_fuse_installer ;;
+            4) clear; amd_ucode_installer ;;
+            5) clear; intel_ucode_installer ;;
+            6) clear; aria2_installer ;;
+            7) clear; cachyos_installer ;;
+            8) clear; cups_installer ;;
+            9) clear; curl_installer ;;
+            10) clear; distrobox_installer ;;
+            11) clear; dlss_installer ;;
+            12) clear; fastfetch_installer ;;
+            13) clear; unmojang_installer ;;
+            14) clear; git_installer ;;
+            15) clear; github_cli_installer ;;
+            16) clear; gnome_extension_installer ;;
+            17) clear; helium_browser_installer ;;
+            18) clear; hydra_launcher_installer ;;
+            19) clear; localsend_installer ;;
+            20) clear; modern_unix_installer ;;
+            21) clear; ollama_menu ;;
+            22) clear; opencode_installer ;;
+            23) clear; pessoal_base_installer ;;
+            24) clear; archiving_compression_installer ;;
+            25) clear; pessoal_media_installer ;;
+            26) clear; pip_installer ;;
+            27) clear; podman_installer ;;
+            28) clear; ryujinx_installer ;;
+            29) clear; smartmontools_installer ;;
+            30) clear; shadps4_installer ;;
+            31) clear; snapd_installer ;;
+            32) clear; stirlingpdf_installer ;;
+            33) clear; voxtype_installer ;;
+            34) clear; waydroid_installer ;;
+            35) clear; web_apps_menu ;;
+            36) clear; xdg_base_installer ;;
+            37) clear; yt_dlp_installer ;;
+            38) return ;;
+            *) ;;
+        esac
+        read -p "Pressione Enter para continuar..."
+    done
 }
 
 pika_backup_installer() {
@@ -4975,9 +4700,8 @@ repositorios_menu() {
         echo "4) Fwupd"
         echo "5) Homebrew"
         echo "6) Paru"
-        echo "7) Pip"
-        echo "8) Yay"
-        echo "9) Voltar"
+        echo "7) Yay"
+        echo "8) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4988,9 +4712,8 @@ repositorios_menu() {
             4) clear; fwupd_installer ;;
             5) clear; homebrew_installer ;;
             6) clear; paru_installer ;;
-            7) clear; pip_installer ;;
-            8) clear; yay_installer ;;
-            9) return ;;
+            7) clear; yay_installer ;;
+            8) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -5458,27 +5181,6 @@ sunshine_installer() {
     fi
 }
 
-superfile_installer() {
-    local state_file="$STATE_DIR/superfile"
-    local pkg_superfile="superfile"
-
-    if [ -f "$state_file" ] || pacman -Q superfile &>/dev/null; then
-        if confirm "superfile detectado. Desinstalar?"; then
-            echo "Desinstalando superfile..."
-            pacman -Qq superfile &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_superfile || true
-            cleanup_files "$state_file"
-            echo "superfile desinstalado."
-        fi
-    else
-        if confirm "Instalar superfile?"; then
-            echo "Instalando superfile..."
-            sudo pacman -S --noconfirm $pkg_superfile
-            touch "$state_file"
-            echo "superfile instalado."
-        fi
-    fi
-}
-
 surfsharkvpn_installer() {
     local state_file="$STATE_DIR/surfsharkvpn"
     local pkg_surfshark="com.surfshark.Surfshark"
@@ -5496,27 +5198,6 @@ surfsharkvpn_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_surfshark
             touch "$state_file"
             echo "Surfshark VPN instalado."
-        fi
-    fi
-}
-
-spotify_installer() {
-    local state_file="$STATE_DIR/spotify"
-    local pkg_spotify="com.spotify.Client"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q com.spotify.Client 2>/dev/null; then
-        if confirm "Spotify detectado. Desinstalar?"; then
-            echo "Desinstalando Spotify..."
-            flatpak uninstall --user -y $pkg_spotify 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Spotify desinstalado."
-        fi
-    else
-        if confirm "Instalar Spotify?"; then
-            echo "Instalando Spotify..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_spotify
-            touch "$state_file"
-            echo "Spotify instalado."
         fi
     fi
 }
@@ -5600,6 +5281,27 @@ swapfile_installer() {
     fi
 }
 
+tac_installer() {
+    local state_file="$STATE_DIR/tac"
+    local pkg_tac="tac-writer"
+
+    if [ -f "$state_file" ] || pacman -Q tac-writer &>/dev/null; then
+        if confirm "Tac Writer detectado. Desinstalar?"; then
+            echo "Desinstalando Tac Writer..."
+            pacman -Qq tac-writer &>/dev/null && paru -Rsnu --noconfirm $pkg_tac || true
+            cleanup_files "$state_file"
+            echo "Tac Writer desinstalado."
+        fi
+    else
+        if confirm "Instalar Tac Writer?"; then
+            echo "Instalando Tac Writer..."
+            paru -S --noconfirm $pkg_tac
+            touch "$state_file"
+            echo "Tac Writer instalado."
+        fi
+    fi
+}
+
 tailscale_installer() {
     local state_file="$STATE_DIR/tailscale"
     local pkg_tailscale="tailscale"
@@ -5620,27 +5322,6 @@ tailscale_installer() {
             sudo systemctl enable --now tailscaled
             touch "$state_file"
             echo "Tailscale instalado."
-        fi
-    fi
-}
-
- tac_installer() {
-    local state_file="$STATE_DIR/tac"
-    local pkg_tac="tac-writer"
-
-    if [ -f "$state_file" ] || pacman -Q tac-writer &>/dev/null; then
-        if confirm "Tac Writer detectado. Desinstalar?"; then
-            echo "Desinstalando Tac Writer..."
-            pacman -Qq tac-writer &>/dev/null && paru -Rsnu --noconfirm $pkg_tac || true
-            cleanup_files "$state_file"
-            echo "Tac Writer desinstalado."
-        fi
-    else
-        if confirm "Instalar Tac Writer?"; then
-            echo "Instalando Tac Writer..."
-            paru -S --noconfirm $pkg_tac
-            touch "$state_file"
-            echo "Tac Writer instalado."
         fi
     fi
 }
@@ -6143,6 +5824,27 @@ yay_installer() {
     fi
 }
 
+yt_dlp_installer() {
+    local state_file="$STATE_DIR/yt_dlp"
+    local pkg_ytdlp="yt-dlp"
+
+    if [ -f "$state_file" ] || pacman -Q yt-dlp &>/dev/null; then
+        if confirm "yt-dlp detectado. Desinstalar?"; then
+            echo "Desinstalando yt-dlp..."
+            pacman -Qq yt-dlp &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ytdlp || true
+            cleanup_files "$state_file"
+            echo "yt-dlp desinstalado."
+        fi
+    else
+        if confirm "Instalar yt-dlp?"; then
+            echo "Instalando yt-dlp..."
+            sudo pacman -S --noconfirm $pkg_ytdlp
+            touch "$state_file"
+            echo "yt-dlp instalado."
+        fi
+    fi
+}
+
 zed_installer() {
     local state_file="$STATE_DIR/zed"
     local pkg_zed="dev.zed.Zed"
@@ -6160,27 +5862,6 @@ zed_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_zed
             touch "$state_file"
             echo "Zed instalado."
-        fi
-    fi
-}
-
-zellij_installer() {
-    local state_file="$STATE_DIR/zellij"
-    local pkg_zellij="zellij"
-
-    if [ -f "$state_file" ] || pacman -Q zellij &>/dev/null; then
-        if confirm "Zellij detectado. Desinstalar?"; then
-            echo "Desinstalando Zellij..."
-            pacman -Qq zellij &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_zellij || true
-            cleanup_files "$state_file"
-            echo "Zellij desinstalado."
-        fi
-    else
-        if confirm "Instalar Zellij?"; then
-            echo "Instalando Zellij..."
-            sudo pacman -S --noconfirm $pkg_zellij
-            touch "$state_file"
-            echo "Zellij instalado."
         fi
     fi
 }
@@ -6321,48 +6002,6 @@ xpadneo_installer() {
     fi
 }
 
-yt_dlp_installer() {
-    local state_file="$STATE_DIR/yt_dlp"
-    local pkg_ytdlp="yt-dlp"
-
-    if [ -f "$state_file" ] || pacman -Q yt-dlp &>/dev/null; then
-        if confirm "yt-dlp detectado. Desinstalar?"; then
-            echo "Desinstalando yt-dlp..."
-            pacman -Qq yt-dlp &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_ytdlp || true
-            cleanup_files "$state_file"
-            echo "yt-dlp desinstalado."
-        fi
-    else
-        if confirm "Instalar yt-dlp?"; then
-            echo "Instalando yt-dlp..."
-            sudo pacman -S --noconfirm $pkg_ytdlp
-            touch "$state_file"
-            echo "yt-dlp instalado."
-        fi
-    fi
-}
-
-linuxtoys_installer() {
-    local state_file="$STATE_DIR/linuxtoys"
-    local pkg_linuxtoys="linuxtoys-bin"
-
-    if [ -f "$state_file" ] || pacman -Q linuxtoys-bin &>/dev/null; then
-        if confirm "Linuxtoys detectado. Desinstalar?"; then
-            echo "Desinstalando Linuxtoys..."
-            pacman -Qq linuxtoys-bin &>/dev/null && paru -Rsnu --noconfirm $pkg_linuxtoys || true
-            cleanup_files "$state_file"
-            echo "Linuxtoys desinstalado."
-        fi
-    else
-        if confirm "Instalar Linuxtoys?"; then
-            echo "Instalando Linuxtoys..."
-            paru -S --noconfirm $pkg_linuxtoys
-            touch "$state_file"
-            echo "Linuxtoys instalado."
-        fi
-    fi
-}
-
 dlpsgame_installer() {
     local state_file="$STATE_DIR/dlpsgame"
     local url="https://dlpsgame.com/category/ps4/"
@@ -6431,6 +6070,27 @@ piracy_installer() {
             xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
             touch "$state_file"
             echo "r/Piracy aberto."
+        fi
+    fi
+}
+
+linuxtoys_installer() {
+    local state_file="$STATE_DIR/linuxtoys"
+    local pkg_linuxtoys="linuxtoys-bin"
+
+    if [ -f "$state_file" ] || pacman -Q linuxtoys-bin &>/dev/null; then
+        if confirm "Linuxtoys detectado. Desinstalar?"; then
+            echo "Desinstalando Linuxtoys..."
+            pacman -Qq linuxtoys-bin &>/dev/null && paru -Rsnu --noconfirm $pkg_linuxtoys || true
+            cleanup_files "$state_file"
+            echo "Linuxtoys desinstalado."
+        fi
+    else
+        if confirm "Instalar Linuxtoys?"; then
+            echo "Instalando Linuxtoys..."
+            paru -S --noconfirm $pkg_linuxtoys
+            touch "$state_file"
+            echo "Linuxtoys instalado."
         fi
     fi
 }
