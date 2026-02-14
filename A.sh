@@ -314,6 +314,36 @@ arch_update_installer() {
     fi
 }
 
+affinity_installer() {
+    local state_file="$STATE_DIR/affinity"
+    local affinity_dir="$HOME/Affinity"
+    local appimage_path="$affinity_dir/Affinity.AppImage"
+
+    if [ -f "$state_file" ] || [ -f "$appimage_path" ]; then
+        if confirm "Affinity detectado. Desinstalar?"; then
+            echo "Desinstalando Affinity..."
+            [ -f "$appimage_path" ] && rm -f "$appimage_path"
+            [ -d "$affinity_dir" ] && rmdir "$affinity_dir" 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Affinity desinstalado."
+        fi
+    else
+        if confirm "Instalar Affinity Photo?"; then
+            echo "Instalando Affinity Photo..."
+            mkdir -p "$affinity_dir"
+            
+            local download_url=$(curl -s https://api.github.com/repos/ryzendew/Linux-Affinity-Installer/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'affinity.*appimage' | head -1 | cut -d'"' -f4)
+            [ -z "$download_url" ] && download_url="https://github.com/ryzendew/Linux-Affinity-Installer/releases/latest/download/Affinity.AppImage"
+            
+            curl -L -o "$appimage_path" "$download_url"
+            chmod +x "$appimage_path"
+            
+            touch "$state_file"
+            echo "Affinity Photo instalado."
+        fi
+    fi
+}
+
 aria2_installer() {
     local state_file="$STATE_DIR/aria2"
     local pkg_aria2="aria2"
@@ -2163,6 +2193,27 @@ git_installer() {
             sudo pacman -S --noconfirm $pkg_git
             touch "$state_file"
             echo "git instalado."
+        fi
+    fi
+}
+
+gnome_boxes_installer() {
+    local state_file="$STATE_DIR/gnome_boxes"
+    local pkg_boxes="org.gnome.Boxes"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.gnome.Boxes 2>/dev/null; then
+        if confirm "Gnome Boxes detectado. Desinstalar?"; then
+            echo "Desinstalando Gnome Boxes..."
+            flatpak uninstall --user -y $pkg_boxes 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Gnome Boxes desinstalado."
+        fi
+    else
+        if confirm "Instalar Gnome Boxes?"; then
+            echo "Instalando Gnome Boxes..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_boxes
+            touch "$state_file"
+            echo "Gnome Boxes instalado."
         fi
     fi
 }
@@ -4095,29 +4146,31 @@ pessoal_menu() {
         echo "13) Fjord Launcher"
         echo "14) git"
         echo "15) github-cli"
-        echo "16) Gnome Extensoes"
-        echo "17) Helium Browser"
-        echo "18) Hydra Launcher"
-        echo "19) LocalSend"
-        echo "20) modern unix tools"
-        echo "21) Ollama"
-        echo "22) opencode"
-        echo "23) Pacotes Base"
-        echo "24) Pacotes de Compactação"
-        echo "25) Pacotes de Mídia"
-        echo "26) pip"
-        echo "27) Podman"
-        echo "28) Ryujinx"
-        echo "29) smartmontools"
-        echo "30) ShadPS4"
-        echo "31) snapd"
-        echo "32) Stirling PDF"
-        echo "33) voxtype"
-        echo "34) Waydroid"
-        echo "35) Web Sites"
-        echo "36) XDG Base"
-        echo "37) yt-dlp"
-        echo "38) Voltar"
+        echo "16) Gnome Boxes"
+        echo "17) Gnome Extensoes"
+        echo "18) Helium Browser"
+        echo "19) Hydra Launcher"
+        echo "20) LocalSend"
+        echo "21) modern unix tools"
+        echo "22) Ollama"
+        echo "23) opencode"
+        echo "24) Pacotes Base"
+        echo "25) Pacotes de Compactação"
+        echo "26) Pacotes de Mídia"
+        echo "27) pip"
+        echo "28) Podman"
+        echo "29) Ryujinx"
+        echo "30) smartmontools"
+        echo "31) ShadPS4"
+        echo "32) snapd"
+        echo "33) Stirling PDF"
+        echo "34) voxtype"
+        echo "35) Waydroid"
+        echo "36) Web Sites"
+        echo "37) XDG Base"
+        echo "38) yt-dlp"
+        echo "39) Affinity"
+        echo "40) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4137,29 +4190,31 @@ pessoal_menu() {
             13) clear; unmojang_installer ;;
             14) clear; git_installer ;;
             15) clear; github_cli_installer ;;
-            16) clear; gnome_extension_installer ;;
-            17) clear; helium_browser_installer ;;
-            18) clear; hydra_launcher_installer ;;
-            19) clear; localsend_installer ;;
-            20) clear; modern_unix_installer ;;
-            21) clear; ollama_menu ;;
-            22) clear; opencode_installer ;;
-            23) clear; pessoal_base_installer ;;
-            24) clear; archiving_compression_installer ;;
-            25) clear; pessoal_media_installer ;;
-            26) clear; pip_installer ;;
-            27) clear; podman_installer ;;
-            28) clear; ryujinx_installer ;;
-            29) clear; smartmontools_installer ;;
-            30) clear; shadps4_installer ;;
-            31) clear; snapd_installer ;;
-            32) clear; stirlingpdf_installer ;;
-            33) clear; voxtype_installer ;;
-            34) clear; waydroid_installer ;;
-            35) clear; web_apps_menu ;;
-            36) clear; xdg_base_installer ;;
-            37) clear; yt_dlp_installer ;;
-            38) return ;;
+            16) clear; gnome_boxes_installer ;;
+            17) clear; gnome_extension_installer ;;
+            18) clear; helium_browser_installer ;;
+            19) clear; hydra_launcher_installer ;;
+            20) clear; localsend_installer ;;
+            21) clear; modern_unix_installer ;;
+            22) clear; ollama_menu ;;
+            23) clear; opencode_installer ;;
+            24) clear; pessoal_base_installer ;;
+            25) clear; archiving_compression_installer ;;
+            26) clear; pessoal_media_installer ;;
+            27) clear; pip_installer ;;
+            28) clear; podman_installer ;;
+            29) clear; ryujinx_installer ;;
+            30) clear; smartmontools_installer ;;
+            31) clear; shadps4_installer ;;
+            32) clear; snapd_installer ;;
+            33) clear; stirlingpdf_installer ;;
+            34) clear; voxtype_installer ;;
+            35) clear; waydroid_installer ;;
+            36) clear; web_apps_menu ;;
+            37) clear; xdg_base_installer ;;
+            38) clear; yt_dlp_installer ;;
+            39) clear; affinity_installer ;;
+            40) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
