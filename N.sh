@@ -124,8 +124,95 @@ show_summary() {
     fi
 }
 
+wipe_disk() {
+    local disk=$(cat "$STATE_DIR/disk")
+    
+    echo "ATENÇÃO: O disco $disk será completamente apagado!"
+    echo "Todos os dados serão perdidos / All data will be lost!"
+    
+    if confirm "Tem certeza que deseja continuar? / Are you sure you want to continue?"; then
+        echo "Apagando assinaturas do disco / Wiping disk signatures..."
+        sudo wipefs -a "$disk"
+        
+        echo "Removendo todas as partições / Removing all partitions..."
+        sudo parted "$disk" -- mklabel msdos 2>/dev/null || true
+        sleep 2
+        
+        echo "Disco limpo com sucesso / Disk successfully wiped"
+    else
+        echo "Operação cancelada / Operation canceled"
+        exit 1
+    fi
+}
+
+check_and_prepare_disk() {
+    local disk=$(cat "$STATE_DIR/disk")
+    
+    echo "Verificando se o disco $disk está montado / Checking if disk $disk is mounted..."
+    
+    local mounted_partitions=$(mount | grep "$disk" | awk '{print $1}' || true)
+    
+    if [ -n "$mounted_partitions" ]; then
+        echo "O disco possui partições montadas / The disk has mounted partitions:"
+        echo "$mounted_partitions"
+        echo
+        echo "Desmontando partições / Unmounting partitions..."
+        
+        for partition in $mounted_partitions; do
+            echo "Desmontando $partition..."
+            sudo umount -l "$partition" 2>/dev/null || true
+        done
+        
+        sleep 2
+    fi
+    
+    local swap_partitions=$(swapon --show | grep "$disk" | awk '{print $1}' || true)
+    
+    if [ -n "$swap_partitions" ]; then
+        echo "Desativando swap / Disabling swap..."
+        for swap in $swap_partitions; do
+            echo "Desativando $swap..."
+            sudo swapoff "$swap" 2>/dev/null || true
+        done
+        
+        sleep 2
+    fi
+    
+    local lvm_volumes=$(pvs | grep "$disk" | awk '{print $1}' || true)
+    
+    if [ -n "$lvm_volumes" ]; then
+        echo "Removendo volumes LVM / Removing LVM volumes..."
+        for volume in $lvm_volumes; do
+            vg_name=$(pvs --noheadings -o vg_name "$volume" 2>/dev/null | tr -d ' ' || true)
+            if [ -n "$vg_name" ]; then
+                sudo vgremove -f "$vg_name" 2>/dev/null || true
+            fi
+            sudo pvremove -f "$volume" 2>/dev/null || true
+        done
+        
+        sleep 2
+    fi
+    
+    local md_arrays=$(cat /proc/mdstat 2>/dev/null | grep -o "md[0-9]*" || true)
+    
+    if [ -n "$md_arrays" ]; then
+        for md in $md_arrays; do
+            if sudo mdadm --detail "/dev/$md" 2>/dev/null | grep -q "$disk"; then
+                echo "Parando array RAID / Stopping RAID array..."
+                sudo mdadm --stop "/dev/$md" 2>/dev/null || true
+            fi
+        done
+        
+        sleep 2
+    fi
+    
+    wipe_disk
+}
+
 partition_disk() {
     local disk=$(cat "$STATE_DIR/disk")
+    
+    check_and_prepare_disk
     
     echo "Particionando $disk..."
     
@@ -140,7 +227,7 @@ partition_disk() {
         
         sudo mkfs.fat -F 32 ${disk}1
         sudo fatlabel ${disk}1 NIXBOOT
-        sudo mkfs.ext4 ${disk}2 -L NIXROOT
+        sudo mkfs.ext4 -F ${disk}2 -L NIXROOT
     else
         echo "BIOS/Legacy detectado"
         echo "bios" > "$STATE_DIR/boot_mode"
@@ -150,15 +237,26 @@ partition_disk() {
         sudo parted $disk -- set 1 boot on
         sudo parted $disk -- mkpart primary 512MB 100%
         
-        sudo mkfs.ext4 ${disk}1 -L NIXBOOT
-        sudo mkfs.ext4 ${disk}2 -L NIXROOT
+        sudo mkfs.ext4 -F ${disk}1 -L NIXBOOT
+        sudo mkfs.ext4 -F ${disk}2 -L NIXROOT
     fi
+    
+    echo "Particionamento concluído / Partitioning complete"
+    sleep 2
 }
 
 mount_partitions() {
+    echo "Montando partições / Mounting partitions..."
+    
+    if mount | grep -q "/mnt"; then
+        sudo umount -l /mnt 2>/dev/null || true
+    fi
+    
     sudo mount /dev/disk/by-label/NIXROOT /mnt
     sudo mkdir -p /mnt/boot
     sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot
+    
+    echo "Partições montadas com sucesso / Partitions mounted successfully"
 }
 
 create_swap() {
@@ -166,16 +264,25 @@ create_swap() {
     
     if [ "$swap_size" != "0" ]; then
         echo "Criando arquivo swap de $swap_size..."
+        
+        if [ -f /mnt/.swapfile ]; then
+            sudo rm -f /mnt/.swapfile
+        fi
+        
         sudo dd if=/dev/zero of=/mnt/.swapfile bs=1G count=$(echo $swap_size | sed 's/G//') status=progress
         sudo chmod 600 /mnt/.swapfile
         sudo mkswap /mnt/.swapfile
         sudo swapon /mnt/.swapfile
+        
+        echo "Swap criado e ativado / Swap created and activated"
     else
         echo "Nenhum swap será criado / No swap will be created"
     fi
 }
 
 generate_configs() {
+    echo "Gerando arquivos de configuração / Generating configuration files..."
+    
     sudo mkdir -p /mnt/etc/nixos
     
     local lang=$(cat "$STATE_DIR/lang")
@@ -191,7 +298,6 @@ generate_configs() {
     
     local pass_hash=$(mkpasswd -m sha-512 "$userpass")
     
-    # Criar flake.nix
     sudo tee /mnt/etc/nixos/flake.nix > /dev/null << EOF
 {
   description = "Renan Desktop configuration";
@@ -217,10 +323,8 @@ generate_configs() {
 }
 EOF
 
-    # Gerar hardware-configuration.nix
     sudo nixos-generate-config --root /mnt
     
-    # Criar configuration.nix
     sudo tee /mnt/etc/nixos/configuration.nix > /dev/null << EOF
 { config, pkgs, lib, inputs, ... }:
 
@@ -370,6 +474,8 @@ EOF
 
     sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXROOT|g" /mnt/etc/nixos/hardware-configuration.nix
     sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXBOOT|g" /mnt/etc/nixos/hardware-configuration.nix
+    
+    echo "Arquivos de configuração gerados com sucesso / Configuration files generated successfully"
 }
 
 install_system() {
