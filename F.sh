@@ -3996,6 +3996,21 @@ flathub_installer() {
     fi
 }
 
+check_reboot() {
+    if [ -f "$STATE_DIR/reboot_required" ]; then
+        echo ""
+        echo "=== REINICIALIZAÇÃO NECESSÁRIA ==="
+        echo "Algumas alterações requerem uma reinicialização para serem aplicadas."
+        if confirm "Deseja reiniciar o sistema agora?"; then
+            echo "Reiniciando o sistema..."
+            sudo systemctl reboot
+        else
+            echo "Lembre-se de reiniciar manualmente mais tarde para aplicar as alterações."
+            rm -f "$STATE_DIR/reboot_required"
+        fi
+    fi
+}
+
 main_menu() {
     while true; do
         clear
@@ -4083,11 +4098,9 @@ main_menu() {
             37) clear; xpadneo_installer ;;
             38) clear; yt_dlp_installer ;;
             39) clear; zsh_ohmyzsh_installer ;;
-            40) exit 0 ;;
+            40) check_reboot; exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
     done
 }
-
-main_menu
