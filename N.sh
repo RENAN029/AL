@@ -42,6 +42,7 @@ select_swap_size() {
     echo "3) 8GB"
     echo "4) 16GB"
     echo "5) 32GB"
+    echo "6) Sem swap / No swap"
     read -p "Opção: " swap_opt
     case $swap_opt in
         1) echo "2G" > "$STATE_DIR/swap" ;;
@@ -49,6 +50,7 @@ select_swap_size() {
         3) echo "8G" > "$STATE_DIR/swap" ;;
         4) echo "16G" > "$STATE_DIR/swap" ;;
         5) echo "32G" > "$STATE_DIR/swap" ;;
+        6) echo "none" > "$STATE_DIR/swap" ;;
         *) echo "4G" > "$STATE_DIR/swap" ;;
     esac
 }
@@ -114,7 +116,12 @@ show_summary() {
     echo "Teclado / Keyboard: $(cat $STATE_DIR/keyboard 2>/dev/null)"
     echo "Disco / Disk: $(cat $STATE_DIR/disk 2>/dev/null)"
     echo "Desktop: $(case $(cat $STATE_DIR/desktop 2>/dev/null) in cosmic) echo "Cosmic";; gnome) echo "GNOME";; plasma) echo "KDE Plasma";; none) echo "Nenhum / None";; esac)"
-    echo "Swap: $(cat $STATE_DIR/swap 2>/dev/null)"
+    local swap_val=$(cat $STATE_DIR/swap 2>/dev/null)
+    if [ "$swap_val" = "none" ]; then
+        echo "Swap: Sem swap / No swap"
+    else
+        echo "Swap: $swap_val"
+    fi
     echo "Bluetooth: $(cat $STATE_DIR/bluetooth 2>/dev/null)"
     echo "CUPS: $(cat $STATE_DIR/cups 2>/dev/null)"
     echo "Usuário / Username: $(cat $STATE_DIR/username 2>/dev/null)"
@@ -166,57 +173,15 @@ mount_partitions() {
 create_swap() {
     local swap_size=$(cat "$STATE_DIR/swap")
     
-    echo "Criando arquivo swap de $swap_size..."
-    sudo dd if=/dev/zero of=/mnt/.swapfile bs=1G count=$(echo $swap_size | sed 's/G//') status=progress
-    sudo chmod 600 /mnt/.swapfile
-    sudo mkswap /mnt/.swapfile
-    sudo swapon /mnt/.swapfile
-}
-
-create_flake() {
-    local username=$(cat "$STATE_DIR/username")
-    
-    sudo tee /mnt/etc/nixos/flake.nix > /dev/null << 'EOF'
-{
-  description = "Renan Desktop configuration";
-
-  inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
-  };
-
-  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils }:
-    let
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-      pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
-    in
-    {
-      nixosConfigurations.renan-desktop = nixpkgs.lib.nixosSystem {
-        inherit system;
-        modules = [
-          ./configuration.nix
-          {
-            nixpkgs.config.allowUnfree = true;
-            _module.args = { inherit pkgs-unstable; };
-          }
-        ];
-      };
-      
-      devShells.${system}.default = nixpkgs.legacyPackages.${system}.mkShell {
-        buildInputs = with pkgs; [
-          git
-          vim
-          nixpkgs-fmt
-          nil
-        ];
-      };
-    };
-}
-EOF
-
-    sudo chmod 644 /mnt/etc/nixos/flake.nix
+    if [ "$swap_size" != "none" ]; then
+        echo "Criando arquivo swap de $swap_size..."
+        sudo dd if=/dev/zero of=/mnt/.swapfile bs=1G count=$(echo $swap_size | sed 's/G//') status=progress
+        sudo chmod 600 /mnt/.swapfile
+        sudo mkswap /mnt/.swapfile
+        sudo swapon /mnt/.swapfile
+    else
+        echo "Nenhum swap será criado / No swap will be created"
+    fi
 }
 
 generate_config() {
@@ -230,19 +195,43 @@ generate_config() {
     local cups=$(cat "$STATE_DIR/cups")
     local username=$(cat "$STATE_DIR/username")
     local userpass=$(cat "$STATE_DIR/userpass")
-    local swap_size=$(cat "$STATE_DIR/swap" | sed 's/G//')
+    local swap_size=$(cat "$STATE_DIR/swap")
     local disk=$(cat "$STATE_DIR/disk")
     
     local pass_hash=$(mkpasswd -m sha-512 "$userpass")
     
+    sudo mkdir -p /mnt/etc/nixos
+    
+    sudo tee /mnt/etc/nixos/flake.nix > /dev/null << EOF
+{
+  description = "Renan Desktop configuration";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils }@inputs: {
+    nixosConfigurations.renan-desktop = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./configuration.nix
+      ];
+      specialArgs = { inherit inputs; };
+    };
+  };
+}
+EOF
+
     sudo tee /mnt/etc/nixos/configuration.nix > /dev/null << EOF
-{ config, pkgs, lib, pkgs-unstable, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 {
   imports = [ ./hardware-configuration.nix ];
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nix.nixPath = [ "nixpkgs=/etc/nixos/flake:nixpkgs" ];
+  nix.settings.trusted-users = [ "root" "$username" ];
 
   boot.loader = {
     $([ "$boot_mode" = "uefi" ] && echo 'systemd-boot.enable = true;' || echo 'grub.enable = true; grub.device = "'$disk'";')
@@ -258,10 +247,11 @@ generate_config() {
   networking.wireless.iwd.enable = true;
   networking.hostName = "renan-desktop";
   
+  $([ "$swap_size" != "none" ] && echo '
   swapDevices = [{
     device = "/.swapfile";
-    size = $((swap_size * 1024));
-  }];
+    size = $(( $(echo $swap_size | sed 's/G//') * 1024 ));
+  }];')
   
   security.rtkit.enable = true;
   services.pipewire = {
@@ -344,7 +334,6 @@ generate_config() {
     ark
     dolphin
     kdenlive
-    kate
     kcalc
     kmail
     kontact
@@ -358,20 +347,7 @@ generate_config() {
     firefox
     fastfetch
     neovim
-    git
-    git-crypt
-    vim
-    killall
-    pciutils
-    usbutils
-    unzip
-    zip
-    ntfs3g
-    openssl
-  ] ++ (with pkgs-unstable; [
-    nixpkgs-fmt
-    nil
-  ]);
+  ];
   
   system.stateVersion = "25.11";
 }
@@ -383,7 +359,7 @@ EOF
 
 install_system() {
     cd /mnt
-    sudo nixos-install --no-root-passwd --flake /mnt/etc/nixos#renan-desktop
+    sudo nixos-install --flake /mnt/etc/nixos#renan-desktop --no-root-passwd
 }
 
 main() {
@@ -405,7 +381,6 @@ main() {
     partition_disk
     mount_partitions
     create_swap
-    create_flake
     generate_config
     
     if confirm "Iniciar instalação do NixOS? / Start NixOS installation?"; then
