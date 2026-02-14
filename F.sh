@@ -3377,7 +3377,7 @@ stirling_pdf_installer() {
             fi
             
             mkdir -p ~/stirling-pdf-data
-
+            
             sudo podman pull stirlingtools/stirling-pdf:$TAG
             
             sudo podman run -d \
@@ -3387,7 +3387,7 @@ stirling_pdf_installer() {
                 -v ~/stirling-pdf-data:/configs \
                 -e MODE=BOTH \
                 stirlingtools/stirling-pdf:$TAG
-            
+
             sudo podman generate systemd --name stirling-pdf --restart-policy=always > /tmp/stirling-pdf.service
             sudo mv /tmp/stirling-pdf.service /etc/systemd/system/stirling-pdf.service
             sudo systemctl daemon-reload
