@@ -2185,6 +2185,7 @@ nvidia_proprietary_installer() {
             sudo rm -f /etc/modprobe.d/blacklist-nouveau-nova.conf
             sudo rpm-ostree kargs --delete=rd.driver.blacklist=nova_core --delete=modprobe.blacklist=nova_core --delete=rd.driver.blacklist=nouveau --delete=modprobe.blacklist=nouveau --delete=nvidia-drm.modeset=1
             cleanup_files "$state_file"
+            touch "$STATE_DIR/reboot_required"
             echo "Nvidia Proprietário desinstalado. Reinicie para aplicar."
         fi
     else
@@ -2199,26 +2200,45 @@ nvidia_proprietary_installer() {
                 return 1
             fi
             
-            # Verificar SecureBoot
-            if sudo mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
-                if confirm "SecureBoot detectado. Deseja configurar assinatura dos módulos?"; then
-                    sudo rpm-ostree install akmods rpmdevtools
-                    sudo kmodgenca
-                    echo "Uma tela azul aparecerá para importar a chave. Escolha 'Enroll MOK' e depois 'Continue'."
+            # Perguntar sobre SecureBoot independentemente do estado
+            if confirm "Deseja configurar assinatura dos módulos para SecureBoot?"; then
+                echo "Configurando assinatura para SecureBoot..."
+                sudo rpm-ostree install akmods rpmdevtools
+                sudo kmodgenca
+                
+                # Verificar se a chave foi gerada
+                if [ -f /etc/pki/akmods/certs/public_key.der ]; then
+                    echo "Chave gerada. Importando para MOK..."
                     sudo mokutil --import /etc/pki/akmods/certs/public_key.der
+                    
                     cd $HOME
-                    git clone https://github.com/CheariX/silverblue-akmods-keys
+                    if [ ! -d "silverblue-akmods-keys" ]; then
+                        git clone https://github.com/CheariX/silverblue-akmods-keys
+                    fi
                     cd silverblue-akmods-keys
                     sudo bash setup.sh
                     sudo rpm-ostree install akmods-keys-*.noarch.rpm
                     cd ..
                     rm -rf silverblue-akmods-keys
-                    echo "Configuração de assinatura concluída. Reinicie para inscrever a chave."
+                    
+                    echo "Configuração de assinatura concluída."
+                    echo "ATENÇÃO: Na próxima reinicialização, você precisará:"
+                    echo "  1. Selecionar 'Enroll MOK'"
+                    echo "  2. Digitar a senha que você definiu"
+                    echo "  3. Selecionar 'Continue' para boot normal"
+                    touch "$STATE_DIR/reboot_required"
                 else
-                    echo "Continuando sem configurar assinatura. O módulo pode não carregar com SecureBoot ativo."
+                    echo "ERRO: Falha ao gerar a chave para assinatura."
+                fi
+            else
+                echo "Continuando sem configurar assinatura."
+                if sudo mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
+                    echo "AVISO: SecureBoot está ativo. O módulo Nvidia pode não carregar."
+                    echo "Recomenda-se configurar a assinatura ou desabilitar SecureBoot no BIOS."
                 fi
             fi
             
+            echo "Instalando drivers Nvidia..."
             sudo rpm-ostree install akmod-nvidia xorg-x11-drv-nvidia-cuda
             sudo tee /etc/modprobe.d/blacklist-nouveau-nova.conf <<EOF
 blacklist nouveau
@@ -2226,6 +2246,7 @@ blacklist nova_core
 EOF
             sudo rpm-ostree kargs --append=rd.driver.blacklist=nova_core --append=modprobe.blacklist=nova_core --append=rd.driver.blacklist=nouveau --append=modprobe.blacklist=nouveau --append=nvidia-drm.modeset=1
             touch "$state_file"
+            touch "$STATE_DIR/reboot_required"
             echo "Nvidia Proprietário instalado. Reinicie para aplicar."
         fi
     fi
