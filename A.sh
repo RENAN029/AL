@@ -4259,7 +4259,7 @@ pessoal_menu() {
         echo "25) Pacotes Base"
         echo "26) Pacotes de Compactação"
         echo "27) Pacotes de Mídia"
-        echo "28) pip"
+        echo "28) Btop e Superfile"
         echo "29) Podman"
         echo "30) Ryujinx"
         echo "31) ShadPS4"
