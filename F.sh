@@ -2206,6 +2206,7 @@ nvidia_proprietary_installer() {
         if confirm "Instalar Nvidia Proprietário?"; then
             echo "Instalando Nvidia Proprietário..."
             
+            # Verificar se RPM Fusion está instalado
             if ! rpm -q rpmfusion-free-release &>/dev/null; then
                 echo "AVISO: RPM Fusion não está instalado."
                 echo "O RPM Fusion é necessário para instalar os drivers Nvidia."
@@ -2213,40 +2214,59 @@ nvidia_proprietary_installer() {
                 return 1
             fi
             
-            local sb_state=""
-            if command -v mokutil &>/dev/null; then
-                sb_state=$(sudo mokutil --sb-state 2>/dev/null)
-            fi
+            # Instalar os pacotes necessários primeiro
+            sudo rpm-ostree install akmod-nvidia xorg-x11-drv-nvidia-cuda
             
-            if echo "$sb_state" | grep -q "SecureBoot enabled"; then
-                if confirm "SecureBoot detectado. Deseja configurar assinatura dos módulos?"; then
-                    sudo rpm-ostree install akmods rpmdevtools
-                    sudo kmodgenca
-                    echo "Uma tela azul aparecerá para importar a chave. Escolha 'Enroll MOK' e depois 'Continue'."
-                    sudo mokutil --import /etc/pki/akmods/certs/public_key.der
-                    cd $HOME
-                    git clone https://github.com/CheariX/silverblue-akmods-keys
-                    cd silverblue-akmods-keys
-                    sudo bash setup.sh
-                    sudo rpm-ostree install akmods-keys-*.noarch.rpm
-                    cd ..
-                    rm -rf silverblue-akmods-keys
-                    echo "Configuração de assinatura concluída. Reinicie para inscrever a chave."
+            # Verificar SecureBoot
+            if command -v mokutil &>/dev/null; then
+                if sudo mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
+                    echo
+                    echo "SecureBoot detectado. Para que os drivers funcionem, você precisa configurar a assinatura dos módulos."
+                    if confirm "Deseja configurar assinatura dos módulos agora?"; then
+                        sudo rpm-ostree install akmods rpmdevtools
+                        sudo kmodgenca
+                        echo
+                        echo "ATENÇÃO: Uma tela azul aparecerá na próxima reinicialização para importar a chave."
+                        echo "Durante a reinicialização, escolha 'Enroll MOK' e depois 'Continue'."
+                        echo
+                        sudo mokutil --import /etc/pki/akmods/certs/public_key.der
+                        
+                        cd $HOME
+                        if [ ! -d "silverblue-akmods-keys" ]; then
+                            git clone https://github.com/CheariX/silverblue-akmods-keys
+                        fi
+                        cd silverblue-akmods-keys
+                        sudo bash setup.sh
+                        sudo rpm-ostree install akmods-keys-*.noarch.rpm
+                        cd ..
+                        echo "Configuração de assinatura concluída."
+                    else
+                        echo "Continuando sem configurar assinatura. O módulo pode não carregar com SecureBoot ativo."
+                    fi
                 else
-                    echo "Continuando sem configurar assinatura. O módulo pode não carregar com SecureBoot ativo."
+                    echo "SecureBoot não está ativo. Continuando instalação..."
                 fi
             else
-                echo "SecureBoot não detectado ou não disponível. Continuando instalação..."
+                echo "mokutil não encontrado. Continuando instalação..."
             fi
             
-            sudo rpm-ostree install akmod-nvidia xorg-x11-drv-nvidia-cuda
+            # Configurar blacklist do nouveau
             sudo tee /etc/modprobe.d/blacklist-nouveau-nova.conf <<EOF
 blacklist nouveau
 blacklist nova_core
 EOF
-            sudo rpm-ostree kargs --append=rd.driver.blacklist=nova_core --append=modprobe.blacklist=nova_core --append=rd.driver.blacklist=nouveau --append=modprobe.blacklist=nouveau --append=nvidia-drm.modeset=1
+            
+            # Adicionar parâmetros de kernel
+            sudo rpm-ostree kargs --append=rd.driver.blacklist=nova_core \
+                                   --append=modprobe.blacklist=nova_core \
+                                   --append=rd.driver.blacklist=nouveau \
+                                   --append=modprobe.blacklist=nouveau \
+                                   --append=nvidia-drm.modeset=1
+            
             touch "$state_file"
-            echo "Nvidia Proprietário instalado. Reinicie para aplicar."
+            echo
+            echo "Nvidia Proprietário instalado. Reinicie o sistema para aplicar as alterações."
+            echo "Após reiniciar, verifique com: nvidia-smi"
         fi
     fi
 }
