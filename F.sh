@@ -2206,7 +2206,6 @@ nvidia_proprietary_installer() {
         if confirm "Instalar Nvidia Proprietário?"; then
             echo "Instalando Nvidia Proprietário..."
             
-            # Verificar se RPM Fusion está instalado
             if ! rpm -q rpmfusion-free-release &>/dev/null; then
                 echo "AVISO: RPM Fusion não está instalado."
                 echo "O RPM Fusion é necessário para instalar os drivers Nvidia."
@@ -2214,10 +2213,8 @@ nvidia_proprietary_installer() {
                 return 1
             fi
             
-            # Instalar os pacotes necessários primeiro
             sudo rpm-ostree install akmod-nvidia xorg-x11-drv-nvidia-cuda
             
-            # Verificar SecureBoot
             if command -v mokutil &>/dev/null; then
                 if sudo mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
                     echo
@@ -2250,13 +2247,11 @@ nvidia_proprietary_installer() {
                 echo "mokutil não encontrado. Continuando instalação..."
             fi
             
-            # Configurar blacklist do nouveau
             sudo tee /etc/modprobe.d/blacklist-nouveau-nova.conf <<EOF
 blacklist nouveau
 blacklist nova_core
 EOF
             
-            # Adicionar parâmetros de kernel
             sudo rpm-ostree kargs --append=rd.driver.blacklist=nova_core \
                                    --append=modprobe.blacklist=nova_core \
                                    --append=rd.driver.blacklist=nouveau \
