@@ -2191,16 +2191,15 @@ nvidia_proprietary_installer() {
         if confirm "Instalar Nvidia Proprietário?"; then
             echo "Instalando Nvidia Proprietário..."
             
+            # Verificar se RPM Fusion está instalado
             if ! rpm -q rpmfusion-free-release &>/dev/null; then
-                echo "RPM Fusion não está instalado."
-                if confirm "Deseja instalar o RPM Fusion primeiro?"; then
-                    rpmfusion_installer
-                else
-                    echo "Instalação cancelada. RPM Fusion é necessário."
-                    return 1
-                fi
+                echo "AVISO: RPM Fusion não está instalado."
+                echo "O RPM Fusion é necessário para instalar os drivers Nvidia."
+                echo "Instale o RPM Fusion primeiro (opção 1 no menu principal) e depois tente novamente."
+                return 1
             fi
             
+            # Verificar SecureBoot
             if sudo mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
                 if confirm "SecureBoot detectado. Deseja configurar assinatura dos módulos?"; then
                     sudo rpm-ostree install akmods rpmdevtools
