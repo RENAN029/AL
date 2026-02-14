@@ -2208,17 +2208,21 @@ nvidia_proprietary_installer() {
         if confirm "Instalar Nvidia Proprietário?"; then
             echo "Instalando Nvidia Proprietário..."
             
+            # Verificar se RPM Fusion está instalado
             if ! rpm -q rpmfusion-free-release &>/dev/null; then
-                echo "RPM Fusion não está instalado."
-                if confirm "Deseja instalar o RPM Fusion primeiro?"; then
-                    rpmfusion_installer
-                else
-                    echo "Instalação cancelada. RPM Fusion é necessário."
-                    return 1
-                fi
+                echo "AVISO: RPM Fusion não está instalado."
+                echo "O RPM Fusion é necessário para instalar os drivers Nvidia."
+                echo "Instale o RPM Fusion primeiro (opção 1 no menu principal) e depois tente novamente."
+                return 1
             fi
             
-            if sudo mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
+            # Verificar SecureBoot
+            local sb_state=""
+            if command -v mokutil &>/dev/null; then
+                sb_state=$(sudo mokutil --sb-state 2>/dev/null)
+            fi
+            
+            if echo "$sb_state" | grep -q "SecureBoot enabled"; then
                 if confirm "SecureBoot detectado. Deseja configurar assinatura dos módulos?"; then
                     sudo rpm-ostree install akmods rpmdevtools
                     sudo kmodgenca
@@ -2235,6 +2239,8 @@ nvidia_proprietary_installer() {
                 else
                     echo "Continuando sem configurar assinatura. O módulo pode não carregar com SecureBoot ativo."
                 fi
+            else
+                echo "SecureBoot não detectado ou não disponível. Continuando instalação..."
             fi
             
             sudo rpm-ostree install akmod-nvidia xorg-x11-drv-nvidia-cuda
