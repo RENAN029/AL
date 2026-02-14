@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-STATE_DIR="/tmp/nixos_install_state" 
+STATE_DIR="/tmp/nixos_install_state"
 mkdir -p "$STATE_DIR"
 
 confirm() {
@@ -87,7 +87,7 @@ detect_disk() {
     echo "Discos disponíveis / Available disks:"
     lsblk -d -o NAME,SIZE,MODEL | grep -v loop
     echo
-    read -p "Digite o disco para instalação (ex: sda, nvme0n1): " disk_name
+    read -p "Digite o disco para instalação (ex: sda, nvme0n1, vda): " disk_name
     echo "/dev/$disk_name" > "$STATE_DIR/disk"
 }
 
@@ -124,6 +124,29 @@ show_summary() {
     fi
 }
 
+force_unmount_all() {
+    local disk=$(cat "$STATE_DIR/disk")
+    local disk_base=$(basename "$disk")
+    
+    echo "Forçando desmontagem de todas as partições de $disk..."
+    
+    # Desmontar todas as partições do disco
+    for partition in $(lsblk -l -o NAME,MOUNTPOINT | grep "^$disk_base" | awk '{print $1}' | grep -v "^$disk_base$"); do
+        if mount | grep -q "/dev/$partition"; then
+            echo "Desmontando /dev/$partition..."
+            sudo umount -l "/dev/$partition" 2>/dev/null || true
+        fi
+    done
+    
+    # Desativar swap
+    for partition in $(swapon --show | grep "$disk" | awk '{print $1}'); do
+        echo "Desativando swap em $partition..."
+        sudo swapoff "$partition" 2>/dev/null || true
+    done
+    
+    sleep 3
+}
+
 wipe_disk() {
     local disk=$(cat "$STATE_DIR/disk")
     
@@ -131,13 +154,32 @@ wipe_disk() {
     echo "Todos os dados serão perdidos / All data will be lost!"
     
     if confirm "Tem certeza que deseja continuar? / Are you sure you want to continue?"; then
+        force_unmount_all
+        
         echo "Apagando assinaturas do disco / Wiping disk signatures..."
-        sudo wipefs -a "$disk"
         
-        echo "Removendo todas as partições / Removing all partitions..."
-        sudo parted "$disk" -- mklabel msdos 2>/dev/null || true
+        # Tentar wipefs várias vezes
+        for i in {1..3}; do
+            if sudo wipefs -a "$disk" 2>/dev/null; then
+                echo "Assinaturas apagadas com sucesso / Signatures wiped successfully"
+                break
+            else
+                echo "Tentativa $i falhou, tentando novamente... / Attempt $i failed, retrying..."
+                force_unmount_all
+                sleep 2
+            fi
+        done
+        
+        # Método alternativo: zerar o início do disco
+        echo "Zerando início do disco / Zeroing beginning of disk..."
+        sudo dd if=/dev/zero of="$disk" bs=1M count=10 status=progress 2>/dev/null || true
+        
+        # Remover tabela de partições com parted
+        echo "Removendo tabela de partições / Removing partition table..."
+        sudo parted -s "$disk" mklabel gpt 2>/dev/null || true
+        sudo parted -s "$disk" mklabel msdos 2>/dev/null || true
+        
         sleep 2
-        
         echo "Disco limpo com sucesso / Disk successfully wiped"
     else
         echo "Operação cancelada / Operation canceled"
@@ -148,62 +190,18 @@ wipe_disk() {
 check_and_prepare_disk() {
     local disk=$(cat "$STATE_DIR/disk")
     
-    echo "Verificando se o disco $disk está montado / Checking if disk $disk is mounted..."
+    echo "Verificando se o disco $disk está em uso / Checking if disk $disk is in use..."
     
-    local mounted_partitions=$(mount | grep "$disk" | awk '{print $1}' || true)
+    force_unmount_all
     
-    if [ -n "$mounted_partitions" ]; then
-        echo "O disco possui partições montadas / The disk has mounted partitions:"
-        echo "$mounted_partitions"
-        echo
-        echo "Desmontando partições / Unmounting partitions..."
-        
-        for partition in $mounted_partitions; do
-            echo "Desmontando $partition..."
-            sudo umount -l "$partition" 2>/dev/null || true
-        done
-        
-        sleep 2
-    fi
-    
-    local swap_partitions=$(swapon --show | grep "$disk" | awk '{print $1}' || true)
-    
-    if [ -n "$swap_partitions" ]; then
-        echo "Desativando swap / Disabling swap..."
-        for swap in $swap_partitions; do
-            echo "Desativando $swap..."
-            sudo swapoff "$swap" 2>/dev/null || true
-        done
-        
-        sleep 2
-    fi
-    
-    local lvm_volumes=$(pvs | grep "$disk" | awk '{print $1}' || true)
-    
-    if [ -n "$lvm_volumes" ]; then
-        echo "Removendo volumes LVM / Removing LVM volumes..."
-        for volume in $lvm_volumes; do
-            vg_name=$(pvs --noheadings -o vg_name "$volume" 2>/dev/null | tr -d ' ' || true)
-            if [ -n "$vg_name" ]; then
-                sudo vgremove -f "$vg_name" 2>/dev/null || true
-            fi
-            sudo pvremove -f "$volume" 2>/dev/null || true
-        done
-        
-        sleep 2
-    fi
-    
-    local md_arrays=$(cat /proc/mdstat 2>/dev/null | grep -o "md[0-9]*" || true)
-    
-    if [ -n "$md_arrays" ]; then
-        for md in $md_arrays; do
-            if sudo mdadm --detail "/dev/$md" 2>/dev/null | grep -q "$disk"; then
-                echo "Parando array RAID / Stopping RAID array..."
-                sudo mdadm --stop "/dev/$md" 2>/dev/null || true
-            fi
-        done
-        
-        sleep 2
+    # Verificar processos usando o disco
+    echo "Verificando processos usando o disco / Checking processes using the disk..."
+    local using_processes=$(lsof "$disk" 2>/dev/null | grep "$disk" || true)
+    if [ -n "$using_processes" ]; then
+        echo "Processos usando o disco / Processes using the disk:"
+        echo "$using_processes"
+        echo "Por favor, feche esses processos e tente novamente / Please close these processes and try again"
+        exit 1
     fi
     
     wipe_disk
@@ -220,10 +218,15 @@ partition_disk() {
         echo "UEFI detectado"
         echo "uefi" > "$STATE_DIR/boot_mode"
         
-        sudo parted $disk -- mklabel gpt
-        sudo parted $disk -- mkpart primary 1MB 512MB
-        sudo parted $disk -- set 1 esp on
-        sudo parted $disk -- mkpart primary 512MB 100%
+        sudo parted -s $disk mklabel gpt
+        sudo parted -s $disk mkpart primary fat32 1MB 512MB
+        sudo parted -s $disk set 1 esp on
+        sudo parted -s $disk mkpart primary ext4 512MB 100%
+        
+        # Aguardar o kernel reconhecer as partições
+        sleep 3
+        sudo partprobe $disk || true
+        sleep 2
         
         sudo mkfs.fat -F 32 ${disk}1
         sudo fatlabel ${disk}1 NIXBOOT
@@ -232,10 +235,14 @@ partition_disk() {
         echo "BIOS/Legacy detectado"
         echo "bios" > "$STATE_DIR/boot_mode"
         
-        sudo parted $disk -- mklabel msdos
-        sudo parted $disk -- mkpart primary 1MB 512MB
-        sudo parted $disk -- set 1 boot on
-        sudo parted $disk -- mkpart primary 512MB 100%
+        sudo parted -s $disk mklabel msdos
+        sudo parted -s $disk mkpart primary ext4 1MB 512MB
+        sudo parted -s $disk set 1 boot on
+        sudo parted -s $disk mkpart primary ext4 512MB 100%
+        
+        sleep 3
+        sudo partprobe $disk || true
+        sleep 2
         
         sudo mkfs.ext4 -F ${disk}1 -L NIXBOOT
         sudo mkfs.ext4 -F ${disk}2 -L NIXROOT
@@ -248,10 +255,16 @@ partition_disk() {
 mount_partitions() {
     echo "Montando partições / Mounting partitions..."
     
+    # Garantir que /mnt não esteja montado
     if mount | grep -q "/mnt"; then
         sudo umount -l /mnt 2>/dev/null || true
+        sudo umount -l /mnt/boot 2>/dev/null || true
     fi
     
+    # Aguardar labels aparecerem
+    sleep 3
+    
+    # Montar partições
     sudo mount /dev/disk/by-label/NIXROOT /mnt
     sudo mkdir -p /mnt/boot
     sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot
@@ -439,9 +452,6 @@ EOF
 
 install_system() {
     cd /mnt
-    
-    # Remover qualquer flake.lock existente para evitar problemas de cache
-    sudo rm -f /mnt/etc/nixos/flake.lock
     
     # Instalar sem usar flakes (método tradicional)
     echo "Iniciando instalação pelo método tradicional / Starting installation using traditional method..."
