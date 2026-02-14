@@ -425,6 +425,132 @@ darktable_installer() {
     fi
 }
 
+davinci_resolve_free_installer() {
+    local state_file="$STATE_DIR/davinci_resolve_free"
+    local pkg_unzip="unzip"
+
+    if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ]; then
+        if confirm "DaVinci Resolve Free detectado. Desinstalar?"; then
+            echo "Desinstalando DaVinci Resolve Free..."
+            sudo rm -rf /opt/resolve
+            sudo rm -f /usr/share/applications/davinci-resolve.desktop
+            if confirm "Desinstalar também unzip?"; then
+                sudo rpm-ostree uninstall unzip 2>/dev/null || true
+            fi
+            cleanup_files "$state_file"
+            echo "DaVinci Resolve Free desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar DaVinci Resolve Free?"; then
+            echo "Instalando DaVinci Resolve Free..."
+            sudo rpm-ostree install unzip
+            local useragent="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+            local releaseinfo=$(curl -s -H "$useragent" "https://www.blackmagicdesign.com/api/support/latest-stable-version/davinci-resolve/linux")
+            local major=$(echo "$releaseinfo" | grep -o '"major":[0-9]*' | cut -d: -f2)
+            local minor=$(echo "$releaseinfo" | grep -o '"minor":[0-9]*' | cut -d: -f2)
+            local releaseNum=$(echo "$releaseinfo" | grep -o '"releaseNum":[0-9]*' | cut -d: -f2)
+            local downloadId=$(echo "$releaseinfo" | grep -o '"downloadId":"[^"]*"' | cut -d'"' -f4)
+            [ "$releaseNum" == "0" ] && filever="${major}.${minor}" || filever="${major}.${minor}.${releaseNum}"
+            local archive_name="DaVinci_Resolve_${filever}_Linux"
+            local reqjson='{"firstname": "Arch", "lastname": "Linux", "email": "someone@archlinux.org", "phone": "202-555-0194", "country": "us", "street": "Bowery 146", "state": "New York", "city": "AUR", "product": "DaVinci Resolve"}'
+            local srcurl=$(curl -s \
+                -H 'Host: www.blackmagicdesign.com' \
+                -H 'Accept: application/json, text/plain, */*' \
+                -H 'Origin: https://www.blackmagicdesign.com' \
+                -H "$useragent" \
+                -H 'Content-Type: application/json;charset=UTF-8' \
+                -H 'Referer: https://www.blackmagicdesign.com/support/download/dfd43085ef224766b06b579ce8a6d097/Linux' \
+                -H 'Accept-Encoding: gzip, deflate, br' \
+                -H 'Accept-Language: en-US,en;q=0.9' \
+                -H 'Authority: www.blackmagicdesign.com' \
+                --data-ascii "$reqjson" \
+                --compressed \
+                "https://www.blackmagicdesign.com/api/register/us/download/${downloadId}")
+            curl -L -o "/tmp/${archive_name}.zip" "$srcurl"
+            cd /tmp
+            unzip "${archive_name}.zip"
+            chmod +x "${archive_name}.run"
+            sudo ./"${archive_name}.run" --appimage-extract-and-run
+            rm -f "/tmp/${archive_name}.zip" "/tmp/${archive_name}.run"
+            touch "$state_file"
+            echo "DaVinci Resolve Free instalado."
+        fi
+    fi
+}
+
+davinci_resolve_menu() {
+    while true; do
+        clear
+        echo "=== DaVinci Resolve ==="
+        echo "1) Free"
+        echo "2) Studio"
+        echo "3) Voltar"
+        echo
+        read -p "Selecione uma opção: " opcao
+
+        case $opcao in
+            1) clear; davinci_resolve_free_installer ;;
+            2) clear; davinci_resolve_studio_installer ;;
+            3) return ;;
+            *) echo "Opção inválida." ;;
+        esac
+        read -p "Pressione Enter para continuar..."
+    done
+}
+
+davinci_resolve_studio_installer() {
+    local state_file="$STATE_DIR/davinci_resolve_studio"
+    local pkg_unzip="unzip"
+
+    if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ]; then
+        if confirm "DaVinci Resolve Studio detectado. Desinstalar?"; then
+            echo "Desinstalando DaVinci Resolve Studio..."
+            sudo rm -rf /opt/resolve
+            sudo rm -f /usr/share/applications/davinci-resolve.desktop
+            if confirm "Desinstalar também unzip?"; then
+                sudo rpm-ostree uninstall unzip 2>/dev/null || true
+            fi
+            cleanup_files "$state_file"
+            echo "DaVinci Resolve Studio desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar DaVinci Resolve Studio?"; then
+            echo "Instalando DaVinci Resolve Studio..."
+            sudo rpm-ostree install unzip
+            local useragent="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+            local releaseinfo=$(curl -s -H "$useragent" "https://www.blackmagicdesign.com/api/support/latest-stable-version/davinci-resolve-studio/linux")
+            local major=$(echo "$releaseinfo" | grep -o '"major":[0-9]*' | cut -d: -f2)
+            local minor=$(echo "$releaseinfo" | grep -o '"minor":[0-9]*' | cut -d: -f2)
+            local releaseNum=$(echo "$releaseinfo" | grep -o '"releaseNum":[0-9]*' | cut -d: -f2)
+            local downloadId=$(echo "$releaseinfo" | grep -o '"downloadId":"[^"]*"' | cut -d'"' -f4)
+            [ "$releaseNum" == "0" ] && filever="${major}.${minor}" || filever="${major}.${minor}.${releaseNum}"
+            local archive_name="DaVinci_Resolve_Studio_${filever}_Linux"
+            local reqjson='{"firstname": "Arch", "lastname": "Linux", "email": "someone@archlinux.org", "phone": "202-555-0194", "country": "us", "street": "Bowery 146", "state": "New York", "city": "AUR", "product": "DaVinci Resolve Studio"}'
+            local srcurl=$(curl -s \
+                -H 'Host: www.blackmagicdesign.com' \
+                -H 'Accept: application/json, text/plain, */*' \
+                -H 'Origin: https://www.blackmagicdesign.com' \
+                -H "$useragent" \
+                -H 'Content-Type: application/json;charset=UTF-8' \
+                -H 'Referer: https://www.blackmagicdesign.com/support/download/0978e9d6e191491da9f4e6eeeb722351/Linux' \
+                -H 'Accept-Encoding: gzip, deflate, br' \
+                -H 'Accept-Language: en-US,en;q=0.9' \
+                -H 'Authority: www.blackmagicdesign.com' \
+                --data-ascii "$reqjson" \
+                --compressed \
+                "https://www.blackmagicdesign.com/api/register/us/download/${downloadId}")
+            curl -L -o "/tmp/${archive_name}.zip" "$srcurl"
+            cd /tmp
+            unzip "${archive_name}.zip"
+            chmod +x "${archive_name}.run"
+            sudo ./"${archive_name}.run" --appimage-extract-and-run
+            rm -f "/tmp/${archive_name}.zip" "/tmp/${archive_name}.run"
+            touch "$state_file"
+            echo "DaVinci Resolve Studio instalado."
+        fi
+    fi
+}
+
 de_cosmic_installer() {
     local state_file="$STATE_DIR/de_cosmic"
 
@@ -775,29 +901,28 @@ extra_flatpaks_2_installer() {
         echo "15) GeoGebra"
         echo "16) Greenlight"
         echo "17) HTTPie"
-        echo "18) Insomnia"
-        echo "19) Kalzium"
-        echo "20) KeePassXC"
-        echo "21) KiCad"
-        echo "22) Kolibri"
-        echo "23) Lutris"
-        echo "24) Microsoft Teams"
-        echo "25) Minecraft Bedrock Launcher"
-        echo "26) Mission Center"
-        echo "27) Moonlight"
-        echo "28) Osu!"
-        echo "29) Postman"
-        echo "30) Prism Launcher"
-        echo "31) Protontricks"
-        echo "32) QPWGraph"
-        echo "33) Rclone UI"
-        echo "34) S3Drive"
-        echo "35) Signal"
-        echo "36) Slack"
-        echo "37) Stellarium"
-        echo "38) Sunshine"
-        echo "39) Telegram"
-        echo "40) Voltar"
+        echo "18) Kalzium"
+        echo "19) KeePassXC"
+        echo "20) KiCad"
+        echo "21) Kolibri"
+        echo "22) Lutris"
+        echo "23) Microsoft Teams"
+        echo "24) Minecraft Bedrock Launcher"
+        echo "25) Mission Center"
+        echo "26) Moonlight"
+        echo "27) Osu!"
+        echo "28) Postman"
+        echo "29) Prism Launcher"
+        echo "30) Protontricks"
+        echo "31) QPWGraph"
+        echo "32) Rclone UI"
+        echo "33) S3Drive"
+        echo "34) Signal"
+        echo "35) Slack"
+        echo "36) Stellarium"
+        echo "37) Sunshine"
+        echo "38) Telegram"
+        echo "39) Voltar"
         echo
         read -p "Selecione uma opção: " flatpak_opcao
 
@@ -819,29 +944,28 @@ extra_flatpaks_2_installer() {
             15) clear; geogebra_installer ;;
             16) clear; greenlight_installer ;;
             17) clear; httpie_installer ;;
-            18) clear; insomnia_installer ;;
-            19) clear; kalzium_installer ;;
-            20) clear; keepassxc_installer ;;
-            21) clear; kicad_installer ;;
-            22) clear; kolibri_installer ;;
-            23) clear; lutris_installer ;;
-            24) clear; microsoft_teams_installer ;;
-            25) clear; minecraft_bedrock_launcher_installer ;;
-            26) clear; missioncenter_installer ;;
-            27) clear; moonlight_installer ;;
-            28) clear; osu_installer ;;
-            29) clear; postman_installer ;;
-            30) clear; prism_launcher_installer ;;
-            31) clear; protontricks_installer ;;
-            32) clear; pwgraph_installer ;;
-            33) clear; rcloneui_installer ;;
-            34) clear; s3drive_installer ;;
-            35) clear; signal_installer ;;
-            36) clear; slack_installer ;;
-            37) clear; stellarium_installer ;;
-            38) clear; sunshine_installer ;;
-            39) clear; telegram_installer ;;
-            40) return ;;
+            18) clear; kalzium_installer ;;
+            19) clear; keepassxc_installer ;;
+            20) clear; kicad_installer ;;
+            21) clear; kolibri_installer ;;
+            22) clear; lutris_installer ;;
+            23) clear; microsoft_teams_installer ;;
+            24) clear; minecraft_bedrock_launcher_installer ;;
+            25) clear; missioncenter_installer ;;
+            26) clear; moonlight_installer ;;
+            27) clear; osu_installer ;;
+            28) clear; postman_installer ;;
+            29) clear; prism_launcher_installer ;;
+            30) clear; protontricks_installer ;;
+            31) clear; pwgraph_installer ;;
+            32) clear; rcloneui_installer ;;
+            33) clear; s3drive_installer ;;
+            34) clear; signal_installer ;;
+            35) clear; slack_installer ;;
+            36) clear; stellarium_installer ;;
+            37) clear; sunshine_installer ;;
+            38) clear; telegram_installer ;;
+            39) return ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -852,18 +976,42 @@ extra_flatpaks_3_installer() {
     while true; do
         clear
         echo "=== Extra Flatpaks 3 ==="
-        echo "1) LACT"
-        echo "2) VSCodium"
-        echo "3) WiVRn"
-        echo "4) Voltar"
+        echo "1) DaVinci Resolve (Free/Studio)"
+        echo "2) Insomnia"
+        echo "3) LACT"
+        echo "4) LibreWolf"
+        echo "5) LogSEQ"
+        echo "6) Mullvad Browser"
+        echo "7) OpenRGB"
+        echo "8) Oversteer"
+        echo "9) Piper"
+        echo "10) SiriKali"
+        echo "11) Solaar"
+        echo "12) StreamController"
+        echo "13) Ungoogled Chromium"
+        echo "14) VSCodium"
+        echo "15) WiVRn"
+        echo "16) Voltar"
         echo
         read -p "Selecione uma opção: " flatpak_opcao
 
         case $flatpak_opcao in
-            1) clear; lact_installer ;;
-            2) clear; vscodium_installer ;;
-            3) clear; wivrn_installer ;;
-            4) return ;;
+            1) clear; davinci_resolve_menu ;;
+            2) clear; insomnia_installer ;;
+            3) clear; lact_installer ;;
+            4) clear; librewolf_installer ;;
+            5) clear; logseq_installer ;;
+            6) clear; mullvad_browser_installer ;;
+            7) clear; openrgb_installer ;;
+            8) clear; oversteer_installer ;;
+            9) clear; piper_installer ;;
+            10) clear; sirikali_installer ;;
+            11) clear; solaar_installer ;;
+            12) clear; streamcontroller_installer ;;
+            13) clear; ungoogled_chromium_installer ;;
+            14) clear; vscodium_installer ;;
+            15) clear; wivrn_installer ;;
+            16) return ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -1664,6 +1812,48 @@ libreoffice_installer() {
     fi
 }
 
+librewolf_installer() {
+    local state_file="$STATE_DIR/librewolf"
+    local pkg_librewolf="io.gitlab.librewolf-community"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.gitlab.librewolf-community 2>/dev/null; then
+        if confirm "LibreWolf detectado. Desinstalar?"; then
+            echo "Desinstalando LibreWolf..."
+            flatpak uninstall --user -y $pkg_librewolf 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "LibreWolf desinstalado."
+        fi
+    else
+        if confirm "Instalar LibreWolf?"; then
+            echo "Instalando LibreWolf..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_librewolf
+            touch "$state_file"
+            echo "LibreWolf instalado."
+        fi
+    fi
+}
+
+logseq_installer() {
+    local state_file="$STATE_DIR/logseq"
+    local pkg_logseq="com.logseq.Logseq"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.logseq.Logseq 2>/dev/null; then
+        if confirm "LogSEQ detectado. Desinstalar?"; then
+            echo "Desinstalando LogSEQ..."
+            flatpak uninstall --user -y $pkg_logseq 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "LogSEQ desinstalado."
+        fi
+    else
+        if confirm "Instalar LogSEQ?"; then
+            echo "Instalando LogSEQ..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_logseq
+            touch "$state_file"
+            echo "LogSEQ instalado."
+        fi
+    fi
+}
+
 lutris_installer() {
     local state_file="$STATE_DIR/lutris"
     local pkg_lutris="net.lutris.Lutris"
@@ -1833,6 +2023,27 @@ moonlight_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_moonlight
             touch "$state_file"
             echo "Moonlight instalado."
+        fi
+    fi
+}
+
+mullvad_browser_installer() {
+    local state_file="$STATE_DIR/mullvad_browser"
+    local pkg_mullvad="net.mullvad.MullvadBrowser"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q net.mullvad.MullvadBrowser 2>/dev/null; then
+        if confirm "Mullvad Browser detectado. Desinstalar?"; then
+            echo "Desinstalando Mullvad Browser..."
+            flatpak uninstall --user -y $pkg_mullvad 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Mullvad Browser desinstalado."
+        fi
+    else
+        if confirm "Instalar Mullvad Browser?"; then
+            echo "Instalando Mullvad Browser..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_mullvad
+            touch "$state_file"
+            echo "Mullvad Browser instalado."
         fi
     fi
 }
@@ -2067,6 +2278,27 @@ opencode_installer() {
     fi
 }
 
+openrgb_installer() {
+    local state_file="$STATE_DIR/openrgb"
+    local pkg_openrgb="org.openrgb.OpenRGB"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.openrgb.OpenRGB 2>/dev/null; then
+        if confirm "OpenRGB detectado. Desinstalar?"; then
+            echo "Desinstalando OpenRGB..."
+            flatpak uninstall --user -y $pkg_openrgb 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "OpenRGB desinstalado."
+        fi
+    else
+        if confirm "Instalar OpenRGB?"; then
+            echo "Instalando OpenRGB..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_openrgb
+            touch "$state_file"
+            echo "OpenRGB instalado."
+        fi
+    fi
+}
+
 ostree_autoupd_installer() {
     local state_file="$STATE_DIR/ostree_autoupd"
     local AUTOPOLICY="stage"
@@ -2123,6 +2355,33 @@ osu_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_osu
             touch "$state_file"
             echo "Osu! instalado."
+        fi
+    fi
+}
+
+oversteer_installer() {
+    local state_file="$STATE_DIR/oversteer"
+    local pkg_oversteer="io.github.berarma.Oversteer"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.berarma.Oversteer 2>/dev/null; then
+        if confirm "Oversteer detectado. Desinstalar?"; then
+            echo "Desinstalando Oversteer..."
+            flatpak uninstall --user -y $pkg_oversteer 2>/dev/null || true
+            sudo rm -f /etc/udev/rules.d/99-fanatec-wheel-perms.rules /etc/udev/rules.d/99-logitech-wheel-perms.rules /etc/udev/rules.d/99-thrustmaster-wheel-perms.rules 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Oversteer desinstalado."
+        fi
+    else
+        if confirm "Instalar Oversteer?"; then
+            echo "Instalando Oversteer..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_oversteer
+            if confirm "Instalar configurações extras (regras udev para volantes)?"; then
+                sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-fanatec-wheel-perms.rules -o /etc/udev/rules.d/99-fanatec-wheel-perms.rules
+                sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-logitech-wheel-perms.rules -o /etc/udev/rules.d/99-logitech-wheel-perms.rules
+                sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-thrustmaster-wheel-perms.rules -o /etc/udev/rules.d/99-thrustmaster-wheel-perms.rules
+            fi
+            touch "$state_file"
+            echo "Oversteer instalado."
         fi
     fi
 }
@@ -2186,6 +2445,27 @@ pinta_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_pinta
             touch "$state_file"
             echo "Pinta instalado."
+        fi
+    fi
+}
+
+piper_installer() {
+    local state_file="$STATE_DIR/piper"
+    local pkg_piper="org.freedesktop.Piper"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q org.freedesktop.Piper 2>/dev/null; then
+        if confirm "Piper detectado. Desinstalar?"; then
+            echo "Desinstalando Piper..."
+            flatpak uninstall --user -y $pkg_piper 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Piper desinstalado."
+        fi
+    else
+        if confirm "Instalar Piper?"; then
+            echo "Instalando Piper..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_piper
+            touch "$state_file"
+            echo "Piper instalado."
         fi
     fi
 }
@@ -2770,6 +3050,27 @@ signal_installer() {
     fi
 }
 
+sirikali_installer() {
+    local state_file="$STATE_DIR/sirikali"
+    local pkg_sirikali="io.github.mhogomchungu.sirikali"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.mhogomchungu.sirikali 2>/dev/null; then
+        if confirm "SiriKali detectado. Desinstalar?"; then
+            echo "Desinstalando SiriKali..."
+            flatpak uninstall --user -y $pkg_sirikali 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "SiriKali desinstalado."
+        fi
+    else
+        if confirm "Instalar SiriKali?"; then
+            echo "Instalando SiriKali..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_sirikali
+            touch "$state_file"
+            echo "SiriKali instalado."
+        fi
+    fi
+}
+
 slack_installer() {
     local state_file="$STATE_DIR/slack"
     local pkg_slack="com.slack.Slack"
@@ -2831,6 +3132,27 @@ sober_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_sober
             touch "$state_file"
             echo "Sober instalado."
+        fi
+    fi
+}
+
+solaar_installer() {
+    local state_file="$STATE_DIR/solaar"
+    local pkg_solaar="io.github.pwr_solaar.solaar"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.pwr_solaar.solaar 2>/dev/null; then
+        if confirm "Solaar detectado. Desinstalar?"; then
+            echo "Desinstalando Solaar..."
+            flatpak uninstall --user -y $pkg_solaar 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Solaar desinstalado."
+        fi
+    else
+        if confirm "Instalar Solaar?"; then
+            echo "Instalando Solaar..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_solaar
+            touch "$state_file"
+            echo "Solaar instalado."
         fi
     fi
 }
@@ -2904,6 +3226,27 @@ stellarium_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_stellarium
             touch "$state_file"
             echo "Stellarium instalado."
+        fi
+    fi
+}
+
+streamcontroller_installer() {
+    local state_file="$STATE_DIR/streamcontroller"
+    local pkg_streamcontroller="com.core447.StreamController"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.core447.StreamController 2>/dev/null; then
+        if confirm "StreamController detectado. Desinstalar?"; then
+            echo "Desinstalando StreamController..."
+            flatpak uninstall --user -y $pkg_streamcontroller 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "StreamController desinstalado."
+        fi
+    else
+        if confirm "Instalar StreamController?"; then
+            echo "Instalando StreamController..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_streamcontroller
+            touch "$state_file"
+            echo "StreamController instalado."
         fi
     fi
 }
@@ -3007,6 +3350,27 @@ ufw_installer() {
             sudo systemctl enable ufw
             touch "$state_file"
             echo "UFW instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+ungoogled_chromium_installer() {
+    local state_file="$STATE_DIR/ungoogled_chromium"
+    local pkg_chromium="io.github.ungoogled_software.ungoogled_chromium"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.ungoogled_software.ungoogled_chromium 2>/dev/null; then
+        if confirm "Ungoogled Chromium detectado. Desinstalar?"; then
+            echo "Desinstalando Ungoogled Chromium..."
+            flatpak uninstall --user -y $pkg_chromium 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Ungoogled Chromium desinstalado."
+        fi
+    else
+        if confirm "Instalar Ungoogled Chromium?"; then
+            echo "Instalando Ungoogled Chromium..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_chromium
+            touch "$state_file"
+            echo "Ungoogled Chromium instalado."
         fi
     fi
 }
