@@ -130,7 +130,6 @@ force_unmount_all() {
     
     echo "Forçando desmontagem de todas as partições de $disk..."
     
-    # Desmontar todas as partições do disco
     for partition in $(lsblk -l -o NAME,MOUNTPOINT | grep "^$disk_base" | awk '{print $1}' | grep -v "^$disk_base$"); do
         if mount | grep -q "/dev/$partition"; then
             echo "Desmontando /dev/$partition..."
@@ -138,13 +137,11 @@ force_unmount_all() {
         fi
     done
     
-    # Desativar swap
     for partition in $(swapon --show | grep "$disk" | awk '{print $1}'); do
         echo "Desativando swap em $partition..."
         sudo swapoff "$partition" 2>/dev/null || true
     done
     
-    # Desativar LVM se existir
     if command -v vgchange &>/dev/null; then
         sudo vgchange -an 2>/dev/null || true
     fi
@@ -157,13 +154,8 @@ refresh_partitions() {
     
     echo "Atualizando tabela de partições / Refreshing partition table..."
     
-    # Tentar partprobe
     sudo partprobe "$disk" 2>/dev/null || true
-    
-    # Forçar kernel a reler a tabela de partições
     sudo blockdev --rereadpt "$disk" 2>/dev/null || true
-    
-    # Alternativa: usar udevadm
     sudo udevadm settle 2>/dev/null || true
     
     sleep 3
@@ -179,15 +171,11 @@ wipe_disk() {
         force_unmount_all
         
         echo "Apagando assinaturas do disco / Wiping disk signatures..."
-        
-        # Tentar wipefs com força
         sudo wipefs -a -f "$disk" 2>/dev/null || true
         
-        # Zerar os primeiros 100MB do disco
         echo "Zerando início do disco / Zeroing beginning of disk..."
         sudo dd if=/dev/zero of="$disk" bs=1M count=100 status=progress 2>/dev/null || true
         
-        # Remover tabela de partições
         sudo parted -s "$disk" mklabel gpt 2>/dev/null || true
         sudo parted -s "$disk" mklabel msdos 2>/dev/null || true
         
@@ -207,7 +195,6 @@ check_and_prepare_disk() {
     
     force_unmount_all
     
-    # Verificar processos usando o disco
     if command -v lsof &>/dev/null; then
         local using_processes=$(lsof "$disk" 2>/dev/null | grep "$disk" || true)
         if [ -n "$using_processes" ]; then
@@ -232,7 +219,6 @@ partition_disk() {
         echo "UEFI detectado"
         echo "uefi" > "$STATE_DIR/boot_mode"
         
-        # Criar partições
         sudo parted -s $disk mklabel gpt
         sudo parted -s $disk mkpart primary fat32 1MB 512MB
         sudo parted -s $disk set 1 esp on
@@ -240,18 +226,13 @@ partition_disk() {
         
         refresh_partitions
         
-        # Formatar partições
-        echo "Formatando partição EFI..."
         sudo mkfs.fat -F 32 ${disk}1
         sudo fatlabel ${disk}1 NIXBOOT
-        
-        echo "Formatando partição root..."
         sudo mkfs.ext4 -F ${disk}2 -L NIXROOT
     else
         echo "BIOS/Legacy detectado"
         echo "bios" > "$STATE_DIR/boot_mode"
         
-        # Criar partições
         sudo parted -s $disk mklabel msdos
         sudo parted -s $disk mkpart primary ext4 1MB 512MB
         sudo parted -s $disk set 1 boot on
@@ -259,11 +240,7 @@ partition_disk() {
         
         refresh_partitions
         
-        # Formatar partições
-        echo "Formatando partição boot..."
         sudo mkfs.ext4 -F ${disk}1 -L NIXBOOT
-        
-        echo "Formatando partição root..."
         sudo mkfs.ext4 -F ${disk}2 -L NIXROOT
     fi
     
@@ -276,13 +253,11 @@ partition_disk() {
 mount_partitions() {
     echo "Montando partições / Mounting partitions..."
     
-    # Garantir que /mnt não esteja montado
     if mount | grep -q "/mnt"; then
         sudo umount -l /mnt 2>/dev/null || true
         sudo umount -l /mnt/boot 2>/dev/null || true
     fi
     
-    # Aguardar labels aparecerem
     echo "Aguardando partições ficarem disponíveis / Waiting for partitions to become available..."
     for i in {1..10}; do
         if [ -e /dev/disk/by-label/NIXROOT ] && [ -e /dev/disk/by-label/NIXBOOT ]; then
@@ -292,7 +267,6 @@ mount_partitions() {
         refresh_partitions
     done
     
-    # Verificar se as partições existem
     if [ ! -e /dev/disk/by-label/NIXROOT ]; then
         echo "ERRO: Partição NIXROOT não encontrada / ERROR: NIXROOT partition not found"
         ls -la /dev/disk/by-label/
@@ -305,7 +279,6 @@ mount_partitions() {
         exit 1
     fi
     
-    # Montar partições
     sudo mount /dev/disk/by-label/NIXROOT /mnt
     sudo mkdir -p /mnt/boot
     sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot
@@ -336,7 +309,7 @@ create_swap() {
 }
 
 generate_configs() {
-    echo "Gerando arquivos de configuração / Generating configuration files..."
+    echo "Gerando arquivos de configuração com flakes / Generating configuration files with flakes..."
     
     sudo mkdir -p /mnt/etc/nixos
     
@@ -353,7 +326,31 @@ generate_configs() {
     
     local pass_hash=$(mkpasswd -m sha-512 "$userpass")
     
-    # Gerar hardware-configuration.nix primeiro
+    # Criar flake.nix
+    sudo tee /mnt/etc/nixos/flake.nix > /dev/null << EOF
+{
+  description = "Renan Desktop configuration";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+  };
+
+  outputs = { self, nixpkgs }: {
+    nixosConfigurations.renan-desktop = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./configuration.nix
+        {
+          nix.settings.experimental-features = [ "nix-command" "flakes" ];
+          nixpkgs.config.allowUnfree = true;
+        }
+      ];
+    };
+  };
+}
+EOF
+
+    # Gerar hardware-configuration.nix
     sudo nixos-generate-config --root /mnt
     
     # Criar configuration.nix
@@ -362,8 +359,6 @@ generate_configs() {
 
 {
   imports = [ ./hardware-configuration.nix ];
-
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   boot.loader = {
     $([ "$boot_mode" = "uefi" ] && echo 'systemd-boot.enable = true;' || echo 'grub.enable = true; grub.device = "'$disk'";')
@@ -495,14 +490,19 @@ EOF
 install_system() {
     cd /mnt
     
-    # Instalar sem usar flakes (método tradicional)
-    echo "Iniciando instalação pelo método tradicional / Starting installation using traditional method..."
-    sudo nixos-install --no-root-passwd
+    echo "Iniciando instalação com flakes / Starting installation with flakes..."
+    
+    # Configurar nix experimental features no ambiente de instalação
+    mkdir -p /mnt/root/.config/nix
+    echo "experimental-features = nix-command flakes" | sudo tee /mnt/root/.config/nix/nix.conf > /dev/null
+    
+    # Instalar usando flakes
+    sudo nixos-install --flake /mnt/etc/nixos#renan-desktop --no-root-passwd
 }
 
 main() {
     clear
-    echo "=== INSTALADOR NIXOS 25.11 / NIXOS 25.11 INSTALLER ==="
+    echo "=== INSTALADOR NIXOS 25.11 COM FLAKES / NIXOS 25.11 WITH FLAKES INSTALLER ==="
     echo
     
     select_language
@@ -521,7 +521,7 @@ main() {
     create_swap
     generate_configs
     
-    if confirm "Iniciar instalação do NixOS? / Start NixOS installation?"; then
+    if confirm "Iniciar instalação do NixOS com flakes? / Start NixOS installation with flakes?"; then
         install_system
         echo "Instalação concluída! Reinicie o sistema. / Installation complete! Reboot the system."
         echo "Digite 'reboot' para reiniciar. / Type 'reboot' to restart."
