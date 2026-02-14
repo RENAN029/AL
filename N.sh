@@ -175,41 +175,8 @@ create_swap() {
     fi
 }
 
-generate_flake() {
-    local username=$(cat "$STATE_DIR/username")
-    
-    sudo tee /mnt/etc/nixos/flake.nix > /dev/null << EOF
-{
-  description = "Renan Desktop configuration";
-
-  inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
-  };
-
-  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils }@inputs: {
-    nixosConfigurations.renan-desktop = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        ./configuration.nix
-        {
-          nix.registry.nixpkgs.flake = nixpkgs;
-          nixpkgs.config.allowUnfree = true;
-          
-          # Adicionar pacotes instáveis se necessário
-          # environment.systemPackages = with nixpkgs-unstable.legacyPackages.x86_64-linux; [ nome-do-pacote ];
-        }
-      ];
-      specialArgs = { inherit inputs; };
-    };
-  };
-}
-EOF
-}
-
-generate_config() {
-    sudo nixos-generate-config --root /mnt
+generate_configs() {
+    sudo mkdir -p /mnt/etc/nixos
     
     local lang=$(cat "$STATE_DIR/lang")
     local keyboard=$(cat "$STATE_DIR/keyboard")
@@ -224,6 +191,36 @@ generate_config() {
     
     local pass_hash=$(mkpasswd -m sha-512 "$userpass")
     
+    # Criar flake.nix
+    sudo tee /mnt/etc/nixos/flake.nix > /dev/null << EOF
+{
+  description = "Renan Desktop configuration";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+  };
+
+  outputs = { self, nixpkgs, nixpkgs-unstable }@inputs: {
+    nixosConfigurations.renan-desktop = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./configuration.nix
+        {
+          nix.registry.nixpkgs.flake = nixpkgs;
+          nixpkgs.config.allowUnfree = true;
+        }
+      ];
+      specialArgs = { inherit inputs; };
+    };
+  };
+}
+EOF
+
+    # Gerar hardware-configuration.nix
+    sudo nixos-generate-config --root /mnt
+    
+    # Criar configuration.nix
     sudo tee /mnt/etc/nixos/configuration.nix > /dev/null << EOF
 { config, pkgs, lib, inputs, ... }:
 
@@ -231,9 +228,7 @@ generate_config() {
   imports = [ ./hardware-configuration.nix ];
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nix.registry = {
-    nixpkgs.flake = inputs.nixpkgs;
-  };
+  nix.registry.nixpkgs.flake = inputs.nixpkgs;
 
   boot.loader = {
     $([ "$boot_mode" = "uefi" ] && echo 'systemd-boot.enable = true;' || echo 'grub.enable = true; grub.device = "'$disk'";')
@@ -401,8 +396,7 @@ main() {
     partition_disk
     mount_partitions
     create_swap
-    generate_flake
-    generate_config
+    generate_configs
     
     if confirm "Iniciar instalação do NixOS? / Start NixOS installation?"; then
         install_system
