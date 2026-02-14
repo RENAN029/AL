@@ -4017,21 +4017,6 @@ flathub_installer() {
     fi
 }
 
-check_reboot() {
-    if [ -f "$STATE_DIR/reboot_required" ]; then
-        echo ""
-        echo "=== REINICIALIZAÇÃO NECESSÁRIA ==="
-        echo "Algumas alterações requerem uma reinicialização para serem aplicadas."
-        if confirm "Deseja reiniciar o sistema agora?"; then
-            echo "Reiniciando o sistema..."
-            sudo systemctl reboot
-        else
-            echo "Lembre-se de reiniciar manualmente mais tarde para aplicar as alterações."
-            rm -f "$STATE_DIR/reboot_required"
-        fi
-    fi
-}
-
 main_menu() {
     while true; do
         clear
