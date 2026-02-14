@@ -4303,7 +4303,7 @@ pessoal_menu() {
             25) clear; pessoal_base_installer ;;
             26) clear; archiving_compression_installer ;;
             27) clear; pessoal_media_installer ;;
-            28) clear;  ;;
+            28) clear; btop_installer ;;
             29) clear; podman_installer ;;
             30) clear; ryujinx_installer ;;
             31) clear; shadps4_installer ;;
@@ -4320,6 +4320,27 @@ pessoal_menu() {
         esac
         read -p "Pressione Enter para continuar..."
     done
+}
+
+btop_installer() {
+    local state_file="$STATE_DIR/btop"
+    local pkg_btop="btop superfile"
+
+    if [ -f "$state_file" ] || pacman -Q btop &>/dev/null; then
+        if confirm "Btop detectado. Desinstalar?"; then
+            echo "Desinstalando Btop..."
+            pacman -Qq btop &>/dev/null && sudo pacman -Rsnu --noconfirm $pkg_btop || true
+            cleanup_files "$state_file"
+            echo "Btop desinstalado."
+        fi
+    else
+        if confirm "Instalar Btop?"; then
+            echo "Instalando Btop..."
+            sudo pacman -S --noconfirm $pkg_btop
+            touch "$state_file"
+            echo "Btop instalado."
+        fi
+    fi
 }
 
 pika_backup_installer() {
