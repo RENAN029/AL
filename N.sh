@@ -173,6 +173,52 @@ create_swap() {
     sudo swapon /mnt/.swapfile
 }
 
+create_flake() {
+    local username=$(cat "$STATE_DIR/username")
+    
+    sudo tee /mnt/etc/nixos/flake.nix > /dev/null << 'EOF'
+{
+  description = "Renan Desktop configuration";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils }:
+    let
+      system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
+    in
+    {
+      nixosConfigurations.renan-desktop = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          ./configuration.nix
+          {
+            nixpkgs.config.allowUnfree = true;
+            _module.args = { inherit pkgs-unstable; };
+          }
+        ];
+      };
+      
+      devShells.${system}.default = nixpkgs.legacyPackages.${system}.mkShell {
+        buildInputs = with pkgs; [
+          git
+          vim
+          nixpkgs-fmt
+          nil
+        ];
+      };
+    };
+}
+EOF
+
+    sudo chmod 644 /mnt/etc/nixos/flake.nix
+}
+
 generate_config() {
     sudo nixos-generate-config --root /mnt
     
@@ -190,10 +236,13 @@ generate_config() {
     local pass_hash=$(mkpasswd -m sha-512 "$userpass")
     
     sudo tee /mnt/etc/nixos/configuration.nix > /dev/null << EOF
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, pkgs-unstable, ... }:
 
 {
   imports = [ ./hardware-configuration.nix ];
+
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.nixPath = [ "nixpkgs=/etc/nixos/flake:nixpkgs" ];
 
   boot.loader = {
     $([ "$boot_mode" = "uefi" ] && echo 'systemd-boot.enable = true;' || echo 'grub.enable = true; grub.device = "'$disk'";')
@@ -207,7 +256,7 @@ generate_config() {
   
   networking.networkmanager.enable = true;
   networking.wireless.iwd.enable = true;
-  networking.hostName = "nixos";
+  networking.hostName = "renan-desktop";
   
   swapDevices = [{
     device = "/.swapfile";
@@ -309,7 +358,20 @@ generate_config() {
     firefox
     fastfetch
     neovim
-  ];
+    git
+    git-crypt
+    vim
+    killall
+    pciutils
+    usbutils
+    unzip
+    zip
+    ntfs3g
+    openssl
+  ] ++ (with pkgs-unstable; [
+    nixpkgs-fmt
+    nil
+  ]);
   
   system.stateVersion = "25.11";
 }
@@ -321,7 +383,7 @@ EOF
 
 install_system() {
     cd /mnt
-    sudo nixos-install --no-root-passwd
+    sudo nixos-install --no-root-passwd --flake /mnt/etc/nixos#renan-desktop
 }
 
 main() {
@@ -343,6 +405,7 @@ main() {
     partition_disk
     mount_partitions
     create_swap
+    create_flake
     generate_config
     
     if confirm "Iniciar instalação do NixOS? / Start NixOS installation?"; then
