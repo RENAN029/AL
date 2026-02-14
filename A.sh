@@ -4303,7 +4303,7 @@ pessoal_menu() {
             25) clear; pessoal_base_installer ;;
             26) clear; archiving_compression_installer ;;
             27) clear; pessoal_media_installer ;;
-            28) clear; pip_installer ;;
+            28) clear;  ;;
             29) clear; podman_installer ;;
             30) clear; ryujinx_installer ;;
             31) clear; shadps4_installer ;;
@@ -4833,7 +4833,8 @@ repositorios_menu() {
         echo "5) Homebrew"
         echo "6) Paru"
         echo "7) Yay"
-        echo "8) Voltar"
+        echo "8) pip"
+        echo "9) Voltar"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4845,7 +4846,8 @@ repositorios_menu() {
             5) clear; homebrew_installer ;;
             6) clear; paru_installer ;;
             7) clear; yay_installer ;;
-            8) return ;;
+            8) clear; pip_installer ;;
+            9) return ;;
             *) ;;
         esac
         read -p "Pressione Enter para continuar..."
