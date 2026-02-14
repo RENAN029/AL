@@ -63,6 +63,27 @@ affinity_installer() {
     fi
 }
 
+android_studio_installer() {
+    local state_file="$STATE_DIR/android_studio"
+    local pkg_android="com.google.AndroidStudio"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.google.AndroidStudio 2>/dev/null; then
+        if confirm "Android Studio detectado. Desinstalar?"; then
+            echo "Desinstalando Android Studio..."
+            flatpak uninstall --user -y $pkg_android 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Android Studio desinstalado."
+        fi
+    else
+        if confirm "Instalar Android Studio?"; then
+            echo "Instalando Android Studio..."
+            flatpak install --user --or-update --noninteractive flathub $pkg_android
+            touch "$state_file"
+            echo "Android Studio instalado."
+        fi
+    fi
+}
+
 anydesk_installer() {
     local state_file="$STATE_DIR/anydesk"
     local pkg_anydesk="com.anydesk.Anydesk"
@@ -425,6 +446,26 @@ darktable_installer() {
     fi
 }
 
+davinci_resolve_menu() {
+    while true; do
+        clear
+        echo "=== DaVinci Resolve ==="
+        echo "1) Free"
+        echo "2) Studio"
+        echo "3) Voltar"
+        echo
+        read -p "Selecione uma opção: " opcao
+
+        case $opcao in
+            1) clear; davinci_resolve_free_installer ;;
+            2) clear; davinci_resolve_studio_installer ;;
+            3) return ;;
+            *) echo "Opção inválida." ;;
+        esac
+        read -p "Pressione Enter para continuar..."
+    done
+}
+
 davinci_resolve_free_installer() {
     local state_file="$STATE_DIR/davinci_resolve_free"
     local pkg_unzip="unzip"
@@ -444,6 +485,7 @@ davinci_resolve_free_installer() {
         if confirm "Instalar DaVinci Resolve Free?"; then
             echo "Instalando DaVinci Resolve Free..."
             sudo rpm-ostree install unzip
+            
             local useragent="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
             local releaseinfo=$(curl -s -H "$useragent" "https://www.blackmagicdesign.com/api/support/latest-stable-version/davinci-resolve/linux")
             local major=$(echo "$releaseinfo" | grep -o '"major":[0-9]*' | cut -d: -f2)
@@ -453,6 +495,8 @@ davinci_resolve_free_installer() {
             [ "$releaseNum" == "0" ] && filever="${major}.${minor}" || filever="${major}.${minor}.${releaseNum}"
             local archive_name="DaVinci_Resolve_${filever}_Linux"
             local reqjson='{"firstname": "Arch", "lastname": "Linux", "email": "someone@archlinux.org", "phone": "202-555-0194", "country": "us", "street": "Bowery 146", "state": "New York", "city": "AUR", "product": "DaVinci Resolve"}'
+            
+            echo "Baixando DaVinci Resolve Free..."
             local srcurl=$(curl -s \
                 -H 'Host: www.blackmagicdesign.com' \
                 -H 'Accept: application/json, text/plain, */*' \
@@ -466,6 +510,7 @@ davinci_resolve_free_installer() {
                 --data-ascii "$reqjson" \
                 --compressed \
                 "https://www.blackmagicdesign.com/api/register/us/download/${downloadId}")
+            
             curl -L -o "/tmp/${archive_name}.zip" "$srcurl"
             cd /tmp
             unzip "${archive_name}.zip"
@@ -473,29 +518,9 @@ davinci_resolve_free_installer() {
             sudo ./"${archive_name}.run" --appimage-extract-and-run
             rm -f "/tmp/${archive_name}.zip" "/tmp/${archive_name}.run"
             touch "$state_file"
-            echo "DaVinci Resolve Free instalado."
+            echo "DaVinci Resolve Free instalado. Reinicie para aplicar."
         fi
     fi
-}
-
-davinci_resolve_menu() {
-    while true; do
-        clear
-        echo "=== DaVinci Resolve ==="
-        echo "1) Free"
-        echo "2) Studio"
-        echo "3) Voltar"
-        echo
-        read -p "Selecione uma opção: " opcao
-
-        case $opcao in
-            1) clear; davinci_resolve_free_installer ;;
-            2) clear; davinci_resolve_studio_installer ;;
-            3) return ;;
-            *) echo "Opção inválida." ;;
-        esac
-        read -p "Pressione Enter para continuar..."
-    done
 }
 
 davinci_resolve_studio_installer() {
@@ -517,6 +542,7 @@ davinci_resolve_studio_installer() {
         if confirm "Instalar DaVinci Resolve Studio?"; then
             echo "Instalando DaVinci Resolve Studio..."
             sudo rpm-ostree install unzip
+            
             local useragent="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
             local releaseinfo=$(curl -s -H "$useragent" "https://www.blackmagicdesign.com/api/support/latest-stable-version/davinci-resolve-studio/linux")
             local major=$(echo "$releaseinfo" | grep -o '"major":[0-9]*' | cut -d: -f2)
@@ -526,6 +552,8 @@ davinci_resolve_studio_installer() {
             [ "$releaseNum" == "0" ] && filever="${major}.${minor}" || filever="${major}.${minor}.${releaseNum}"
             local archive_name="DaVinci_Resolve_Studio_${filever}_Linux"
             local reqjson='{"firstname": "Arch", "lastname": "Linux", "email": "someone@archlinux.org", "phone": "202-555-0194", "country": "us", "street": "Bowery 146", "state": "New York", "city": "AUR", "product": "DaVinci Resolve Studio"}'
+            
+            echo "Baixando DaVinci Resolve Studio..."
             local srcurl=$(curl -s \
                 -H 'Host: www.blackmagicdesign.com' \
                 -H 'Accept: application/json, text/plain, */*' \
@@ -539,6 +567,7 @@ davinci_resolve_studio_installer() {
                 --data-ascii "$reqjson" \
                 --compressed \
                 "https://www.blackmagicdesign.com/api/register/us/download/${downloadId}")
+            
             curl -L -o "/tmp/${archive_name}.zip" "$srcurl"
             cd /tmp
             unzip "${archive_name}.zip"
@@ -546,7 +575,7 @@ davinci_resolve_studio_installer() {
             sudo ./"${archive_name}.run" --appimage-extract-and-run
             rm -f "/tmp/${archive_name}.zip" "/tmp/${archive_name}.run"
             touch "$state_file"
-            echo "DaVinci Resolve Studio instalado."
+            echo "DaVinci Resolve Studio instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -976,8 +1005,8 @@ extra_flatpaks_3_installer() {
     while true; do
         clear
         echo "=== Extra Flatpaks 3 ==="
-        echo "1) DaVinci Resolve (Free/Studio)"
-        echo "2) Insomnia"
+        echo "1) Android Studio"
+        echo "2) DaVinci Resolve"
         echo "3) LACT"
         echo "4) LibreWolf"
         echo "5) LogSEQ"
@@ -988,16 +1017,19 @@ extra_flatpaks_3_installer() {
         echo "10) SiriKali"
         echo "11) Solaar"
         echo "12) StreamController"
-        echo "13) Ungoogled Chromium"
-        echo "14) VSCodium"
-        echo "15) WiVRn"
-        echo "16) Voltar"
+        echo "13) Sublime Text"
+        echo "14) Ungoogled Chromium"
+        echo "15) VSCode"
+        echo "16) VSCodium"
+        echo "17) WiVRn"
+        echo "18) Zed"
+        echo "19) Voltar"
         echo
         read -p "Selecione uma opção: " flatpak_opcao
 
         case $flatpak_opcao in
-            1) clear; davinci_resolve_menu ;;
-            2) clear; insomnia_installer ;;
+            1) clear; android_studio_installer ;;
+            2) clear; davinci_resolve_menu ;;
             3) clear; lact_installer ;;
             4) clear; librewolf_installer ;;
             5) clear; logseq_installer ;;
@@ -1008,10 +1040,13 @@ extra_flatpaks_3_installer() {
             10) clear; sirikali_installer ;;
             11) clear; solaar_installer ;;
             12) clear; streamcontroller_installer ;;
-            13) clear; ungoogled_chromium_installer ;;
-            14) clear; vscodium_installer ;;
-            15) clear; wivrn_installer ;;
-            16) return ;;
+            13) clear; sublime_text_installer ;;
+            14) clear; ungoogled_chromium_installer ;;
+            15) clear; vscode_installer ;;
+            16) clear; vscodium_installer ;;
+            17) clear; wivrn_installer ;;
+            18) clear; zed_installer ;;
+            19) return ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -1567,27 +1602,6 @@ inkscape_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_inkscape
             touch "$state_file"
             echo "Inkscape instalado."
-        fi
-    fi
-}
-
-insomnia_installer() {
-    local state_file="$STATE_DIR/insomnia"
-    local pkg_insomnia="rest.insomnia.Insomnia"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q rest.insomnia.Insomnia 2>/dev/null; then
-        if confirm "Insomnia detectado. Desinstalar?"; then
-            echo "Desinstalando Insomnia..."
-            flatpak uninstall --user -y $pkg_insomnia 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Insomnia desinstalado."
-        fi
-    else
-        if confirm "Instalar Insomnia?"; then
-            echo "Instalando Insomnia..."
-            flatpak install --user --or-update --noninteractive flathub $pkg_insomnia
-            touch "$state_file"
-            echo "Insomnia instalado."
         fi
     fi
 }
@@ -2375,11 +2389,16 @@ oversteer_installer() {
         if confirm "Instalar Oversteer?"; then
             echo "Instalando Oversteer..."
             flatpak install --or-update --user --noninteractive flathub $pkg_oversteer
+            
             if confirm "Instalar configurações extras (regras udev para volantes)?"; then
+                echo "Instalando regras udev..."
+                sudo mkdir -p /etc/udev/rules.d
                 sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-fanatec-wheel-perms.rules -o /etc/udev/rules.d/99-fanatec-wheel-perms.rules
                 sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-logitech-wheel-perms.rules -o /etc/udev/rules.d/99-logitech-wheel-perms.rules
                 sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-thrustmaster-wheel-perms.rules -o /etc/udev/rules.d/99-thrustmaster-wheel-perms.rules
+                echo "Regras udev instaladas."
             fi
+            
             touch "$state_file"
             echo "Oversteer instalado."
         fi
@@ -3251,6 +3270,27 @@ streamcontroller_installer() {
     fi
 }
 
+sublime_text_installer() {
+    local state_file="$STATE_DIR/sublime"
+    local pkg_sublime="com.sublimehq.SublimeText"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.sublimehq.SublimeText 2>/dev/null; then
+        if confirm "Sublime Text detectado. Desinstalar?"; then
+            echo "Desinstalando Sublime Text..."
+            flatpak uninstall --user -y $pkg_sublime 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Sublime Text desinstalado."
+        fi
+    else
+        if confirm "Instalar Sublime Text?"; then
+            echo "Instalando Sublime Text..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_sublime
+            touch "$state_file"
+            echo "Sublime Text instalado."
+        fi
+    fi
+}
+
 sunshine_installer() {
     local state_file="$STATE_DIR/sunshine"
     local pkg_sunshine="dev.lizardbyte.app.Sunshine"
@@ -3419,6 +3459,27 @@ vlc_installer() {
     fi
 }
 
+vscode_installer() {
+    local state_file="$STATE_DIR/vscode"
+    local pkg_vscode="com.visualstudio.code"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.visualstudio.code 2>/dev/null; then
+        if confirm "VSCode detectado. Desinstalar?"; then
+            echo "Desinstalando VSCode..."
+            flatpak uninstall --user -y $pkg_vscode 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "VSCode desinstalado."
+        fi
+    else
+        if confirm "Instalar VSCode?"; then
+            echo "Instalando VSCode..."
+            flatpak install --user --or-update --noninteractive flathub $pkg_vscode
+            touch "$state_file"
+            echo "VSCode instalado."
+        fi
+    fi
+}
+
 vscodium_installer() {
     local state_file="$STATE_DIR/vscodium"
     local pkg_vscodium="com.vscodium.codium"
@@ -3578,6 +3639,27 @@ yt_dlp_installer() {
             sudo rpm-ostree install yt-dlp
             touch "$state_file"
             echo "yt-dlp instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+zed_installer() {
+    local state_file="$STATE_DIR/zed"
+    local pkg_zed="dev.zed.Zed"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q dev.zed.Zed 2>/dev/null; then
+        if confirm "Zed detectado. Desinstalar?"; then
+            echo "Desinstalando Zed..."
+            flatpak uninstall --user -y $pkg_zed 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Zed desinstalado."
+        fi
+    else
+        if confirm "Instalar Zed?"; then
+            echo "Instalando Zed..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_zed
+            touch "$state_file"
+            echo "Zed instalado."
         fi
     fi
 }
