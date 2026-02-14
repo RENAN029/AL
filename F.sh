@@ -36,6 +36,23 @@ cleanup_files() {
     done
 }
 
+check_reboot() {
+    if [ -f "$STATE_DIR/reboot_required" ] || [ -f "$STATE_DIR/bloatware_removed" ] || [ -f "$STATE_DIR/nvidia_proprietary" ] || [ -f "$STATE_DIR/de_cosmic" ] || [ -f "$STATE_DIR/de_plasma" ] || [ -f "$STATE_DIR/de_gnome" ]; then
+        echo
+        echo "=== ALTERAÇÕES QUE REQUEREM REINICIALIZAÇÃO DETECTADAS ==="
+        echo "Algumas instalações/remoções realizadas exigem uma reinicialização"
+        echo "para aplicar todas as alterações corretamente."
+        
+        if confirm "Deseja reiniciar o sistema agora?"; then
+            echo "Reiniciando o sistema em 5 segundos. Pressione Ctrl+C para cancelar..."
+            sleep 5
+            sudo systemctl reboot
+        else
+            echo "Lembre-se de reiniciar o sistema manualmente para aplicar todas as alterações."
+        fi
+    fi
+}
+
 affinity_installer() {
     local state_file="$STATE_DIR/affinity"
     local appimage_path="$APPIMAGE_DIR/Affinity.AppImage"
@@ -4084,7 +4101,7 @@ main_menu() {
             37) clear; xpadneo_installer ;;
             38) clear; yt_dlp_installer ;;
             39) clear; zsh_ohmyzsh_installer ;;
-            40) exit 0 ;;
+            40) clear; check_reboot; exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
