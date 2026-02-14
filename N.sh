@@ -40,16 +40,14 @@ select_swap_size() {
     echo "1) 2GB"
     echo "2) 4GB"
     echo "3) 8GB"
-    echo "4) 16GB"
-    echo "5) 32GB"
+    echo "4) Sem swap / No swap"
     read -p "Opção: " swap_opt
     case $swap_opt in
         1) echo "2G" > "$STATE_DIR/swap" ;;
         2) echo "4G" > "$STATE_DIR/swap" ;;
         3) echo "8G" > "$STATE_DIR/swap" ;;
-        4) echo "16G" > "$STATE_DIR/swap" ;;
-        5) echo "32G" > "$STATE_DIR/swap" ;;
-        *) echo "4G" > "$STATE_DIR/swap" ;;
+        4) echo "0" > "$STATE_DIR/swap" ;;
+        *) echo "2G" > "$STATE_DIR/swap" ;;
     esac
 }
 
@@ -114,7 +112,7 @@ show_summary() {
     echo "Teclado / Keyboard: $(cat $STATE_DIR/keyboard 2>/dev/null)"
     echo "Disco / Disk: $(cat $STATE_DIR/disk 2>/dev/null)"
     echo "Desktop: $(case $(cat $STATE_DIR/desktop 2>/dev/null) in cosmic) echo "Cosmic";; gnome) echo "GNOME";; plasma) echo "KDE Plasma";; none) echo "Nenhum / None";; esac)"
-    echo "Swap: $(cat $STATE_DIR/swap 2>/dev/null)"
+    echo "Swap: $(cat $STATE_DIR/swap 2>/dev/null | sed 's/0/Sem swap\/No swap/g')"
     echo "Bluetooth: $(cat $STATE_DIR/bluetooth 2>/dev/null)"
     echo "CUPS: $(cat $STATE_DIR/cups 2>/dev/null)"
     echo "Usuário / Username: $(cat $STATE_DIR/username 2>/dev/null)"
@@ -166,11 +164,48 @@ mount_partitions() {
 create_swap() {
     local swap_size=$(cat "$STATE_DIR/swap")
     
-    echo "Criando arquivo swap de $swap_size..."
-    sudo dd if=/dev/zero of=/mnt/.swapfile bs=1G count=$(echo $swap_size | sed 's/G//') status=progress
-    sudo chmod 600 /mnt/.swapfile
-    sudo mkswap /mnt/.swapfile
-    sudo swapon /mnt/.swapfile
+    if [ "$swap_size" != "0" ]; then
+        echo "Criando arquivo swap de $swap_size..."
+        sudo dd if=/dev/zero of=/mnt/.swapfile bs=1G count=$(echo $swap_size | sed 's/G//') status=progress
+        sudo chmod 600 /mnt/.swapfile
+        sudo mkswap /mnt/.swapfile
+        sudo swapon /mnt/.swapfile
+    else
+        echo "Nenhum swap será criado / No swap will be created"
+    fi
+}
+
+generate_flake() {
+    local username=$(cat "$STATE_DIR/username")
+    
+    sudo tee /mnt/etc/nixos/flake.nix > /dev/null << EOF
+{
+  description = "Renan Desktop configuration";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils }@inputs: {
+    nixosConfigurations.renan-desktop = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./configuration.nix
+        {
+          nix.registry.nixpkgs.flake = nixpkgs;
+          nixpkgs.config.allowUnfree = true;
+          
+          # Adicionar pacotes instáveis se necessário
+          # environment.systemPackages = with nixpkgs-unstable.legacyPackages.x86_64-linux; [ nome-do-pacote ];
+        }
+      ];
+      specialArgs = { inherit inputs; };
+    };
+  };
+}
+EOF
 }
 
 generate_config() {
@@ -190,10 +225,15 @@ generate_config() {
     local pass_hash=$(mkpasswd -m sha-512 "$userpass")
     
     sudo tee /mnt/etc/nixos/configuration.nix > /dev/null << EOF
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 {
   imports = [ ./hardware-configuration.nix ];
+
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.registry = {
+    nixpkgs.flake = inputs.nixpkgs;
+  };
 
   boot.loader = {
     $([ "$boot_mode" = "uefi" ] && echo 'systemd-boot.enable = true;' || echo 'grub.enable = true; grub.device = "'$disk'";')
@@ -207,12 +247,9 @@ generate_config() {
   
   networking.networkmanager.enable = true;
   networking.wireless.iwd.enable = true;
-  networking.hostName = "nixos";
+  networking.hostName = "renan-desktop";
   
-  swapDevices = [{
-    device = "/.swapfile";
-    size = $((swap_size * 1024));
-  }];
+  $([ "$swap_size" != "0" ] && echo 'swapDevices = [{ device = "/.swapfile"; size = '$((swap_size * 1024))'; }];')
   
   security.rtkit.enable = true;
   services.pipewire = {
@@ -249,6 +286,12 @@ generate_config() {
     cosmic-edit
     cosmic-screenshot
     cosmic-workspaces-epoch
+    cosmic-comp
+    cosmic-applibrary
+    cosmic-notifications
+    cosmic-osd
+    cosmic-panel
+    cosmic-launcher
   ];')
   
   $([ "$desktop" = "gnome" ] && echo '
@@ -279,6 +322,11 @@ generate_config() {
     gnome-weather
     gnome-contacts
     gnome-calendar
+    gnome-logs
+    gnome-system-monitor
+    baobab
+    eog
+    file-roller
   ];')
   
   $([ "$desktop" = "plasma" ] && echo '
@@ -303,12 +351,22 @@ generate_config() {
     ksystemlog
     kwalletmanager
     spectacle
+    dragon
+    k3b
+    kaddressbook
+    kfind
+    kgpg
+    ktimer
+    print-manager
   ];')
   
   environment.systemPackages = with pkgs; [
     firefox
     fastfetch
     neovim
+    git
+    curl
+    wget
   ];
   
   system.stateVersion = "25.11";
@@ -321,7 +379,7 @@ EOF
 
 install_system() {
     cd /mnt
-    sudo nixos-install --no-root-passwd
+    sudo nixos-install --flake /mnt/etc/nixos#renan-desktop --no-root-passwd
 }
 
 main() {
@@ -343,6 +401,7 @@ main() {
     partition_disk
     mount_partitions
     create_swap
+    generate_flake
     generate_config
     
     if confirm "Iniciar instalação do NixOS? / Start NixOS installation?"; then
