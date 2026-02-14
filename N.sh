@@ -298,41 +298,17 @@ generate_configs() {
     
     local pass_hash=$(mkpasswd -m sha-512 "$userpass")
     
-    sudo tee /mnt/etc/nixos/flake.nix > /dev/null << EOF
-{
-  description = "Renan Desktop configuration";
-
-  inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
-  };
-
-  outputs = { self, nixpkgs, nixpkgs-unstable }@inputs: {
-    nixosConfigurations.renan-desktop = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        ./configuration.nix
-        {
-          nix.registry.nixpkgs.flake = nixpkgs;
-          nixpkgs.config.allowUnfree = true;
-        }
-      ];
-      specialArgs = { inherit inputs; };
-    };
-  };
-}
-EOF
-
+    # Gerar hardware-configuration.nix primeiro
     sudo nixos-generate-config --root /mnt
     
+    # Criar configuration.nix
     sudo tee /mnt/etc/nixos/configuration.nix > /dev/null << EOF
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   imports = [ ./hardware-configuration.nix ];
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nix.registry.nixpkgs.flake = inputs.nixpkgs;
 
   boot.loader = {
     $([ "$boot_mode" = "uefi" ] && echo 'systemd-boot.enable = true;' || echo 'grub.enable = true; grub.device = "'$disk'";')
@@ -348,7 +324,7 @@ EOF
   networking.wireless.iwd.enable = true;
   networking.hostName = "renan-desktop";
   
-  $([ "$swap_size" != "0" ] && echo 'swapDevices = [{ device = "/.swapfile"; size = '$((swap_size * 1024))'; }];')
+  $([ "$swap_size" != "0" ] && echo 'swapDevices = [{ device = "/.swapfile"; }];')
   
   security.rtkit.enable = true;
   services.pipewire = {
@@ -385,12 +361,6 @@ EOF
     cosmic-edit
     cosmic-screenshot
     cosmic-workspaces-epoch
-    cosmic-comp
-    cosmic-applibrary
-    cosmic-notifications
-    cosmic-osd
-    cosmic-panel
-    cosmic-launcher
   ];')
   
   $([ "$desktop" = "gnome" ] && echo '
@@ -421,11 +391,6 @@ EOF
     gnome-weather
     gnome-contacts
     gnome-calendar
-    gnome-logs
-    gnome-system-monitor
-    baobab
-    eog
-    file-roller
   ];')
   
   $([ "$desktop" = "plasma" ] && echo '
@@ -450,13 +415,6 @@ EOF
     ksystemlog
     kwalletmanager
     spectacle
-    dragon
-    k3b
-    kaddressbook
-    kfind
-    kgpg
-    ktimer
-    print-manager
   ];')
   
   environment.systemPackages = with pkgs; [
@@ -472,6 +430,7 @@ EOF
 }
 EOF
 
+    # Corrigir hardware-configuration.nix para usar labels
     sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXROOT|g" /mnt/etc/nixos/hardware-configuration.nix
     sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXBOOT|g" /mnt/etc/nixos/hardware-configuration.nix
     
@@ -480,7 +439,13 @@ EOF
 
 install_system() {
     cd /mnt
-    sudo nixos-install --flake /mnt/etc/nixos#renan-desktop --no-root-passwd
+    
+    # Remover qualquer flake.lock existente para evitar problemas de cache
+    sudo rm -f /mnt/etc/nixos/flake.lock
+    
+    # Instalar sem usar flakes (método tradicional)
+    echo "Iniciando instalação pelo método tradicional / Starting installation using traditional method..."
+    sudo nixos-install --no-root-passwd
 }
 
 main() {
