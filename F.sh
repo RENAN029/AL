@@ -686,25 +686,24 @@ extra_flatpaks_installer() {
         echo "20) Inkscape"
         echo "21) Kdenlive"
         echo "22) Krita"
-        echo "23) LACT"
-        echo "24) LibreOffice"
-        echo "25) MangoJuice"
-        echo "26) OBS Studio"
-        echo "27) Obsidian"
-        echo "28) OnlyOffice"
-        echo "29) PeaZip"
-        echo "30) Pika Backup"
-        echo "31) Pinta"
-        echo "32) ProtonPlus"
-        echo "33) ProtonUp"
-        echo "34) Sober"
-        echo "35) Steam"
-        echo "36) VLC"
-        echo "37) VSCodium"
-        echo "38) Warehouse"
-        echo "39) Zen Browser"
-        echo "40) Extra Flatpaks 2"
-        echo "41) Voltar"
+        echo "23) LibreOffice"
+        echo "24) MangoJuice"
+        echo "25) OBS Studio"
+        echo "26) Obsidian"
+        echo "27) OnlyOffice"
+        echo "28) PeaZip"
+        echo "29) Pika Backup"
+        echo "30) Pinta"
+        echo "31) ProtonPlus"
+        echo "32) ProtonUp"
+        echo "33) Sober"
+        echo "34) Steam"
+        echo "35) VLC"
+        echo "36) Warehouse"
+        echo "37) Zen Browser"
+        echo "38) Extra Flatpaks 2"
+        echo "39) Extra Flatpaks 3"
+        echo "40) Voltar"
         echo
         read -p "Selecione uma opção: " flatpak_opcao
 
@@ -731,25 +730,24 @@ extra_flatpaks_installer() {
             20) clear; inkscape_installer ;;
             21) clear; kdenlive_installer ;;
             22) clear; krita_installer ;;
-            23) clear; lact_installer ;;
-            24) clear; libreoffice_installer ;;
-            25) clear; mangojuice_installer ;;
-            26) clear; obs_installer ;;
-            27) clear; obsidian_installer ;;
-            28) clear; onlyoffice_installer ;;
-            29) clear; peazip_installer ;;
-            30) clear; pika_backup_installer ;;
-            31) clear; pinta_installer ;;
-            32) clear; protonplus_installer ;;
-            33) clear; protonup_installer ;;
-            34) clear; sober_installer ;;
-            35) clear; steam_installer ;;
-            36) clear; vlc_installer ;;
-            37) clear; vscodium_installer ;;
-            38) clear; warehouse_installer ;;
-            39) clear; zen_browser_installer ;;
-            40) clear; extra_flatpaks_2_installer ;;
-            41) return ;;
+            23) clear; libreoffice_installer ;;
+            24) clear; mangojuice_installer ;;
+            25) clear; obs_installer ;;
+            26) clear; obsidian_installer ;;
+            27) clear; onlyoffice_installer ;;
+            28) clear; peazip_installer ;;
+            29) clear; pika_backup_installer ;;
+            30) clear; pinta_installer ;;
+            31) clear; protonplus_installer ;;
+            32) clear; protonup_installer ;;
+            33) clear; sober_installer ;;
+            34) clear; steam_installer ;;
+            35) clear; vlc_installer ;;
+            36) clear; warehouse_installer ;;
+            37) clear; zen_browser_installer ;;
+            38) clear; extra_flatpaks_2_installer ;;
+            39) clear; extra_flatpaks_3_installer ;;
+            40) return ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -799,8 +797,7 @@ extra_flatpaks_2_installer() {
         echo "37) Stellarium"
         echo "38) Sunshine"
         echo "39) Telegram"
-        echo "40) WiVRn"
-        echo "41) Voltar"
+        echo "40) Voltar"
         echo
         read -p "Selecione uma opção: " flatpak_opcao
 
@@ -844,8 +841,29 @@ extra_flatpaks_2_installer() {
             37) clear; stellarium_installer ;;
             38) clear; sunshine_installer ;;
             39) clear; telegram_installer ;;
-            40) clear; wivrn_installer ;;
-            41) return ;;
+            40) return ;;
+            *) echo "Opção inválida." ;;
+        esac
+        read -p "Pressione Enter para continuar..."
+    done
+}
+
+extra_flatpaks_3_installer() {
+    while true; do
+        clear
+        echo "=== Extra Flatpaks 3 ==="
+        echo "1) LACT"
+        echo "2) VSCodium"
+        echo "3) WiVRn"
+        echo "4) Voltar"
+        echo
+        read -p "Selecione uma opção: " flatpak_opcao
+
+        case $flatpak_opcao in
+            1) clear; lact_installer ;;
+            2) clear; vscodium_installer ;;
+            3) clear; wivrn_installer ;;
+            4) return ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
