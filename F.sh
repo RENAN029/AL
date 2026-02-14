@@ -37,19 +37,17 @@ cleanup_files() {
 }
 
 check_reboot() {
-    if [ -f "$STATE_DIR/reboot_required" ] || [ -f "$STATE_DIR/bloatware_removed" ] || [ -f "$STATE_DIR/nvidia_proprietary" ] || [ -f "$STATE_DIR/de_cosmic" ] || [ -f "$STATE_DIR/de_plasma" ] || [ -f "$STATE_DIR/de_gnome" ]; then
-        echo
-        echo "=== ALTERAÇÕES QUE REQUEREM REINICIALIZAÇÃO DETECTADAS ==="
-        echo "Algumas instalações/remoções realizadas exigem uma reinicialização"
-        echo "para aplicar todas as alterações corretamente."
-        
-        if confirm "Deseja reiniciar o sistema agora?"; then
-            echo "Reiniciando o sistema em 5 segundos. Pressione Ctrl+C para cancelar..."
-            sleep 5
-            sudo systemctl reboot
-        else
-            echo "Lembre-se de reiniciar o sistema manualmente para aplicar todas as alterações."
-        fi
+    echo
+    echo "=== REINICIALIZAÇÃO DO SISTEMA ==="
+    echo "Deseja reiniciar o sistema agora?"
+    echo "Algumas alterações podem exigir uma reinicialização para aplicar completamente."
+    
+    if confirm "Reiniciar o sistema?"; then
+        echo "Reiniciando o sistema em 5 segundos. Pressione Ctrl+C para cancelar..."
+        sleep 5
+        sudo systemctl reboot
+    else
+        echo "Lembre-se de reiniciar o sistema manualmente se necessário."
     fi
 }
 
