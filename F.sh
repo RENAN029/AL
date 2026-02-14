@@ -26,6 +26,9 @@ if confirm "Limpar cache de pacotes e repositórios?"; then
     echo "Cache limpo."
 fi
 
+APPIMAGE_DIR="$HOME/AppImages"
+mkdir -p "$APPIMAGE_DIR"
+
 cleanup_files() {
     local files=("$@")
     for file in "${files[@]}"; do
@@ -35,23 +38,18 @@ cleanup_files() {
 
 affinity_installer() {
     local state_file="$STATE_DIR/affinity"
-    local appimages_dir="$HOME/AppImages"
-    local affinity_dir="$appimages_dir/Affinity"
-    local appimage_path="$affinity_dir/Affinity.AppImage"
+    local appimage_path="$APPIMAGE_DIR/Affinity.AppImage"
 
     if [ -f "$state_file" ] || [ -f "$appimage_path" ]; then
         if confirm "Affinity detectado. Desinstalar?"; then
             echo "Desinstalando Affinity..."
             [ -f "$appimage_path" ] && rm -f "$appimage_path"
-            [ -d "$affinity_dir" ] && rmdir "$affinity_dir" 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Affinity desinstalado."
         fi
     else
         if confirm "Instalar Affinity Photo?"; then
             echo "Instalando Affinity Photo..."
-            mkdir -p "$affinity_dir"
-            
             local download_url=$(curl -s https://api.github.com/repos/ryzendew/Linux-Affinity-Installer/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'affinity.*appimage' | head -1 | cut -d'"' -f4)
             [ -z "$download_url" ] && download_url="https://github.com/ryzendew/Linux-Affinity-Installer/releases/latest/download/Affinity.AppImage"
             
@@ -450,25 +448,16 @@ darktable_installer() {
 davinci_resolve_free_installer() {
     local state_file="$STATE_DIR/davinci_resolve_free"
     local pkg_unzip="unzip"
-    local appimages_dir="$HOME/AppImages"
-    local davinci_dir="$appimages_dir/DaVinciResolve"
-    local appimage_path="$davinci_dir/DaVinciResolve.run"
 
-    if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ] || [ -f "$appimage_path" ]; then
+    if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ]; then
         if confirm "DaVinci Resolve Free detectado. Desinstalar?"; then
-            if [ -f "/opt/resolve/bin/resolve" ]; then
-                sudo rm -rf /opt/resolve
-                sudo rm -f /usr/share/applications/davinci-resolve.desktop
-            fi
-            if [ -f "$appimage_path" ]; then
-                rm -f "$appimage_path"
-                rmdir "$davinci_dir" 2>/dev/null || true
-            fi
+            sudo rm -rf /opt/resolve
+            sudo rm -f /usr/share/applications/davinci-resolve.desktop
             if confirm "Desinstalar também unzip?"; then
                 sudo rpm-ostree uninstall unzip 2>/dev/null || true
             fi
             cleanup_files "$state_file"
-            echo "DaVinci Resolve Free desinstalado. Reinicie para aplicar."
+            echo "DaVinci Resolve desinstalado. Reinicie para aplicar."
         fi
     else
         if confirm "Instalar DaVinci Resolve Free?"; then
@@ -495,15 +484,14 @@ davinci_resolve_free_installer() {
                 --data-ascii "$reqjson" \
                 --compressed \
                 "https://www.blackmagicdesign.com/api/register/us/download/${downloadId}")
-            mkdir -p "$davinci_dir"
             curl -L -o "/tmp/${archive_name}.zip" "$srcurl"
             cd /tmp
             unzip "${archive_name}.zip"
             chmod +x "${archive_name}.run"
-            mv "${archive_name}.run" "$appimage_path"
-            cleanup_files "/tmp/${archive_name}.zip"
+            sudo ./"${archive_name}.run" --appimage-extract-and-run
+            cleanup_files "/tmp/${archive_name}.zip" "/tmp/${archive_name}.run"
             touch "$state_file"
-            echo "DaVinci Resolve Free instalado em $appimage_path"
+            echo "DaVinci Resolve instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -511,25 +499,16 @@ davinci_resolve_free_installer() {
 davinci_resolve_studio_installer() {
     local state_file="$STATE_DIR/davinci_resolve_studio"
     local pkg_unzip="unzip"
-    local appimages_dir="$HOME/AppImages"
-    local davinci_dir="$appimages_dir/DaVinciResolve"
-    local appimage_path="$davinci_dir/DaVinciResolveStudio.run"
 
-    if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ] || [ -f "$appimage_path" ]; then
+    if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ]; then
         if confirm "DaVinci Resolve Studio detectado. Desinstalar?"; then
-            if [ -f "/opt/resolve/bin/resolve" ]; then
-                sudo rm -rf /opt/resolve
-                sudo rm -f /usr/share/applications/davinci-resolve.desktop
-            fi
-            if [ -f "$appimage_path" ]; then
-                rm -f "$appimage_path"
-                rmdir "$davinci_dir" 2>/dev/null || true
-            fi
+            sudo rm -rf /opt/resolve
+            sudo rm -f /usr/share/applications/davinci-resolve.desktop
             if confirm "Desinstalar também unzip?"; then
                 sudo rpm-ostree uninstall unzip 2>/dev/null || true
             fi
             cleanup_files "$state_file"
-            echo "DaVinci Resolve Studio desinstalado. Reinicie para aplicar."
+            echo "DaVinci Resolve desinstalado. Reinicie para aplicar."
         fi
     else
         if confirm "Instalar DaVinci Resolve Studio?"; then
@@ -556,15 +535,14 @@ davinci_resolve_studio_installer() {
                 --data-ascii "$reqjson" \
                 --compressed \
                 "https://www.blackmagicdesign.com/api/register/us/download/${downloadId}")
-            mkdir -p "$davinci_dir"
             curl -L -o "/tmp/${archive_name}.zip" "$srcurl"
             cd /tmp
             unzip "${archive_name}.zip"
             chmod +x "${archive_name}.run"
-            mv "${archive_name}.run" "$appimage_path"
-            cleanup_files "/tmp/${archive_name}.zip"
+            sudo ./"${archive_name}.run" --appimage-extract-and-run
+            cleanup_files "/tmp/${archive_name}.zip" "/tmp/${archive_name}.run"
             touch "$state_file"
-            echo "DaVinci Resolve Studio instalado em $appimage_path"
+            echo "DaVinci Resolve instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -778,22 +756,18 @@ easyeffects_installer() {
 
 eden_emulator_installer() {
     local state_file="$STATE_DIR/eden"
-    local appimages_dir="$HOME/AppImages"
-    local eden_dir="$appimages_dir/Eden"
-    local appimage_path="$eden_dir/Eden-Linux.AppImage"
+    local appimage_path="$APPIMAGE_DIR/Eden-Linux.AppImage"
 
     if [ -f "$state_file" ] || [ -f "$appimage_path" ]; then
         if confirm "Eden Emulator detectado. Desinstalar?"; then
             echo "Desinstalando Eden Emulator..."
             [ -f "$appimage_path" ] && rm -f "$appimage_path"
-            [ -d "$eden_dir" ] && rmdir "$eden_dir" 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Eden Emulator desinstalado."
         fi
     else
         if confirm "Instalar Eden Emulator?"; then
             echo "Instalando Eden Emulator..."
-            mkdir -p "$eden_dir"
             local download_url=$(curl -s https://api.github.com/repos/eden-emulator/Releases/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'Eden-Linux.*AppImage' | head -1 | cut -d'"' -f4)
             [ -z "$download_url" ] && download_url="https://github.com/eden-emulator/Releases/releases/latest/download/Eden-Linux-amd64-gcc-standard.AppImage"
             curl -L -o "$appimage_path" "$download_url"
@@ -1018,51 +992,59 @@ extra_flatpaks_3_installer() {
         clear
         echo "=== Extra Flatpaks 3 ==="
         echo "1) Android Studio"
-        echo "2) DaVinci Resolve"
-        echo "3) Gnome Boxes"
-        echo "4) LACT"
-        echo "5) LibreWolf"
-        echo "6) LocalSend"
-        echo "7) LogSEQ"
-        echo "8) Mullvad Browser"
-        echo "9) OpenRGB"
-        echo "10) Oversteer"
-        echo "11) Piper"
-        echo "12) SiriKali"
-        echo "13) Solaar"
-        echo "14) StreamController"
-        echo "15) Sublime Text"
-        echo "16) Ungoogled Chromium"
-        echo "17) VSCode"
-        echo "18) VSCodium"
-        echo "19) WiVRn"
-        echo "20) Zed"
-        echo "21) Voltar"
+        echo "2) Cockpit Client"
+        echo "3) DaVinci Resolve (Menu)"
+        echo "4) Gnome Boxes"
+        echo "5) LACT"
+        echo "6) LibreWolf"
+        echo "7) Linux Toys"
+        echo "8) LocalSend"
+        echo "9) LogSEQ"
+        echo "10) Mullvad Browser"
+        echo "11) OpenRGB"
+        echo "12) Oversteer"
+        echo "13) Piper"
+        echo "14) SiriKali"
+        echo "15) Solaar"
+        echo "16) Stirling PDF (Podman)"
+        echo "17) StreamController"
+        echo "18) Sublime Text"
+        echo "19) Termius"
+        echo "20) Ungoogled Chromium"
+        echo "21) VSCode"
+        echo "22) VSCodium"
+        echo "23) WiVRn"
+        echo "24) Zed"
+        echo "25) Voltar"
         echo
         read -p "Selecione uma opção: " flatpak_opcao
 
         case $flatpak_opcao in
             1) clear; android_studio_installer ;;
-            2) clear; davinci_resolve_menu ;;
-            3) clear; gnome_boxes_installer ;;
-            4) clear; lact_installer ;;
-            5) clear; librewolf_installer ;;
-            6) clear; localsend_installer ;;
-            7) clear; logseq_installer ;;
-            8) clear; mullvad_browser_installer ;;
-            9) clear; openrgb_installer ;;
-            10) clear; oversteer_installer ;;
-            11) clear; piper_installer ;;
-            12) clear; sirikali_installer ;;
-            13) clear; solaar_installer ;;
-            14) clear; streamcontroller_installer ;;
-            15) clear; sublime_text_installer ;;
-            16) clear; ungoogled_chromium_installer ;;
-            17) clear; vscode_installer ;;
-            18) clear; vscodium_installer ;;
-            19) clear; wivrn_installer ;;
-            20) clear; zed_installer ;;
-            21) return ;;
+            2) clear; cockpit_client_installer ;;
+            3) clear; davinci_resolve_menu ;;
+            4) clear; gnome_boxes_installer ;;
+            5) clear; lact_installer ;;
+            6) clear; librewolf_installer ;;
+            7) clear; linux_toys_installer ;;
+            8) clear; localsend_installer ;;
+            9) clear; logseq_installer ;;
+            10) clear; mullvad_browser_installer ;;
+            11) clear; openrgb_installer ;;
+            12) clear; oversteer_installer ;;
+            13) clear; piper_installer ;;
+            14) clear; sirikali_installer ;;
+            15) clear; solaar_installer ;;
+            16) clear; stirling_pdf_installer ;;
+            17) clear; streamcontroller_installer ;;
+            18) clear; sublime_text_installer ;;
+            19) clear; termius_installer ;;
+            20) clear; ungoogled_chromium_installer ;;
+            21) clear; vscode_installer ;;
+            22) clear; vscodium_installer ;;
+            23) clear; wivrn_installer ;;
+            24) clear; zed_installer ;;
+            25) return ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -1597,22 +1579,18 @@ hydra_installer() {
 
 hydra_launcher_installer() {
     local state_file="$STATE_DIR/hydra_launcher"
-    local appimages_dir="$HOME/AppImages"
-    local hydra_dir="$appimages_dir/HydraLauncher"
-    local appimage_path="$hydra_dir/hydralauncher.AppImage"
+    local appimage_path="$APPIMAGE_DIR/hydralauncher.AppImage"
 
     if [ -f "$state_file" ] || [ -f "$appimage_path" ]; then
         if confirm "Hydra Launcher detectado. Desinstalar?"; then
             echo "Desinstalando Hydra Launcher..."
             [ -f "$appimage_path" ] && rm -f "$appimage_path"
-            [ -d "$hydra_dir" ] && rmdir "$hydra_dir" 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Hydra Launcher desinstalado."
         fi
     else
         if confirm "Instalar Hydra Launcher?"; then
             echo "Instalando Hydra Launcher..."
-            mkdir -p "$hydra_dir"
             local download_url=$(curl -s https://api.github.com/repos/hydralauncher/hydra/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'hydralauncher.*AppImage' | head -1 | cut -d'"' -f4)
             [ -z "$download_url" ] && download_url="https://github.com/hydralauncher/hydra/releases/latest/download/hydralauncher-latest.AppImage"
             curl -L -o "$appimage_path" "$download_url"
@@ -1902,6 +1880,24 @@ librewolf_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_librewolf
             touch "$state_file"
             echo "LibreWolf instalado."
+        fi
+    fi
+}
+
+linux_toys_installer() {
+    local state_file="$STATE_DIR/linux_toys"
+
+    if [ -f "$state_file" ] || command -v linux-toys &>/dev/null; then
+        if confirm "Linux Toys detectado. Desinstalar?"; then
+            echo "Desinstalação manual necessária. Remova ~/.local/bin/linux-toys"
+            cleanup_files "$state_file"
+        fi
+    else
+        if confirm "Instalar Linux Toys?"; then
+            echo "Instalando Linux Toys..."
+            curl -fsSL https://linux.toys/install.sh | bash
+            touch "$state_file"
+            echo "Linux Toys instalado."
         fi
     fi
 }
@@ -2460,12 +2456,13 @@ oversteer_installer() {
     if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.berarma.Oversteer 2>/dev/null; then
         if confirm "Oversteer detectado. Desinstalar?"; then
             flatpak uninstall --user -y $pkg_oversteer 2>/dev/null || true
-            sudo rm -f /etc/udev/rules.d/99-fanatec-wheel-perms.rules /etc/udev/rules.d/99-logitech-wheel-perms.rules /etc/udev/rules.d/99-thrustmaster-wheel-perms.rules
+            sudo rm -f /etc/udev/rules.d/99-fanatec-wheel-perms.rules /etc/udev/rules.d/99-logitech-wheel-perms.rules /etc/udev/rules.d/99-thrustmaster-wheel-perms.rules 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Oversteer desinstalado."
         fi
     else
         if confirm "Instalar Oversteer?"; then
+            echo "Instalando Oversteer..."
             flatpak install --or-update --user --noninteractive flathub $pkg_oversteer
             if confirm "Instalar configurações extras (regras udev para volantes)?"; then
                 sudo curl -s https://github.com/berarma/oversteer/raw/refs/heads/master/data/udev/99-fanatec-wheel-perms.rules -o /etc/udev/rules.d/99-fanatec-wheel-perms.rules
@@ -3042,8 +3039,7 @@ shadps4_installer() {
     local shad_state="$STATE_DIR/shadps4"
     local pkg_state="$STATE_DIR/pkginstaller"
     local pkg_shadps4="net.shadps4.shadPS4"
-    local appimages_dir="$HOME/AppImages"
-    local pkg_dir="$appimages_dir/PKGInstaller"
+    local pkg_dir="$HOME/PKGInstaller"
     local zip_path="$pkg_dir/PKGInstall.zip"
     local appimage_path="$pkg_dir/PKGInstall.AppImage"
 
@@ -3323,6 +3319,63 @@ stellarium_installer() {
     fi
 }
 
+stirling_pdf_installer() {
+    local state_file="$STATE_DIR/stirling_pdf"
+
+    if [ -f "$state_file" ] || sudo podman ps -a --format "{{.Names}}" | grep -q "stirling-pdf"; then
+        if confirm "Stirling PDF detectado. Desinstalar?"; then
+            echo "Desinstalando Stirling PDF..."
+            sudo podman stop stirling-pdf 2>/dev/null || true
+            sudo podman rm stirling-pdf 2>/dev/null || true
+            sudo podman rmi stirlingpdf/stirling-pdf:latest 2>/dev/null || true
+            sudo podman rmi stirlingpdf/stirling-pdf:latest-fat 2>/dev/null || true
+            sudo podman rmi stirlingpdf/stirling-pdf:latest-ultra-lite 2>/dev/null || true
+            sudo rm -f /etc/systemd/system/stirling-pdf.service 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Stirling PDF desinstalado."
+        fi
+    else
+        if confirm "Instalar Stirling PDF (via Podman)?"; then
+            echo "Selecione a versão:"
+            echo "1) Standard (latest) - All PDF features, balanced features & size"
+            echo "2) Fat (latest-fat) - Everything + extra tools, maximum features"
+            echo "3) Ultra-Lite (latest-ultra-lite) - Core features only, minimal size"
+            read -p "Escolha (1-3): " version_choice
+            
+            case $version_choice in
+                1) TAG="latest" ;;
+                2) TAG="latest-fat" ;;
+                3) TAG="latest-ultra-lite" ;;
+                *) echo "Opção inválida. Usando latest."; TAG="latest" ;;
+            esac
+            
+            echo "Instalando Stirling PDF com tag: $TAG"
+            
+            if ! command -v podman &>/dev/null; then
+                echo "Podman não encontrado. Instale a instalação base primeiro."
+                return 1
+            fi
+            
+            sudo podman pull stirlingpdf/stirling-pdf:$TAG
+            
+            sudo podman run -d \
+                --name stirling-pdf \
+                --restart unless-stopped \
+                -p 8080:8080 \
+                -v ~/stirling-pdf-data:/usr/share/Stirling-PDF/configs \
+                stirlingpdf/stirling-pdf:$TAG
+            
+            sudo podman generate systemd --name stirling-pdf --restart-policy=always > /tmp/stirling-pdf.service
+            sudo mv /tmp/stirling-pdf.service /etc/systemd/system/stirling-pdf.service
+            sudo systemctl enable stirling-pdf.service
+            sudo systemctl start stirling-pdf.service
+            
+            touch "$state_file"
+            echo "Stirling PDF instalado. Acesse em http://localhost:8080"
+        fi
+    fi
+}
+
 streamcontroller_installer() {
     local state_file="$STATE_DIR/streamcontroller"
     local pkg_streamcontroller="com.core447.StreamController"
@@ -3404,6 +3457,27 @@ telegram_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_telegram
             touch "$state_file"
             echo "Telegram instalado."
+        fi
+    fi
+}
+
+termius_installer() {
+    local state_file="$STATE_DIR/termius"
+    local pkg_termius="com.termius.Termius"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.termius.Termius 2>/dev/null; then
+        if confirm "Termius detectado. Desinstalar?"; then
+            echo "Desinstalando Termius..."
+            flatpak uninstall --user -y $pkg_termius 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Termius desinstalado."
+        fi
+    else
+        if confirm "Instalar Termius?"; then
+            echo "Instalando Termius..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_termius
+            touch "$state_file"
+            echo "Termius instalado."
         fi
     fi
 }
@@ -3622,9 +3696,7 @@ web_apps_menu() {
 
 winboat_installer() {
     local state_file="$STATE_DIR/winboat"
-    local appimages_dir="$HOME/AppImages"
-    local winboat_dir="$appimages_dir/WinBoat"
-    local appimage_path="$winboat_dir/winboat.AppImage"
+    local appimage_path="$APPIMAGE_DIR/winboat.AppImage"
 
     if ! lsmod | grep -q kvm; then
         echo "KVM não está disponível. Verifique se a virtualização está habilitada no BIOS."
@@ -3635,14 +3707,12 @@ winboat_installer() {
         if confirm "WinBoat detectado. Desinstalar?"; then
             echo "Desinstalando WinBoat..."
             [ -f "$appimage_path" ] && rm -f "$appimage_path"
-            [ -d "$winboat_dir" ] && rmdir "$winboat_dir" 2>/dev/null || true
             cleanup_files "$state_file" "$HOME/lsw" "$HOME/txtbox"
             echo "WinBoat desinstalado."
         fi
     else
         if confirm "Instalar WinBoat (Windows em container Docker)?"; then
             echo "Instalando WinBoat..."
-            mkdir -p "$winboat_dir"
             local download_url=$(curl -s https://api.github.com/repos/TibixDev/winboat/releases/latest | grep -o '"browser_download_url": *"[^"]*"' | grep -i 'winboat.*AppImage' | head -1 | cut -d'"' -f4)
             [ -z "$download_url" ] && download_url="https://github.com/TibixDev/winboat/releases/latest/download/winboat-x86_64.AppImage"
             curl -L -o "$appimage_path" "$download_url"
@@ -3959,7 +4029,7 @@ main_menu() {
         echo "26) Preload (otimização de RAM)"
         echo "27) Remover Bloatware"
         echo "28) RPM Fusion"
-        echo "29) ShadPS4 + PKG Installer (AppImage)"
+        echo "29) ShadPS4 + PKG Installer"
         echo "30) Shader Booster"
         echo "31) Snapd"
         echo "32) Starship Prompt"
