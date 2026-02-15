@@ -448,14 +448,41 @@ handle_busy_disk() {
     fi
 }
 
-wait_for_partitions() {
-    echo "Aguardando partições ficarem disponíveis..."
-    
-    local max_attempts=10
+setup_luks_encryption() {
+    local partition="$1"
+    local max_attempts=3
     local attempt=1
     
     while [ $attempt -le $max_attempts ]; do
-        if [ -e /dev/disk/by-label/NIXBOOT ] && [ -e /dev/disk/by-label/NIXROOT ]; then
+        echo ""
+        echo "Configurando criptografia LUKS em $partition"
+        echo "ATENÇÃO: Digite 'YES' em maiúsculas para confirmar / Type 'YES' in uppercase to confirm"
+        echo ""
+        
+        if sudo cryptsetup luksFormat --type luks2 "$partition"; then
+            echo "Criptografia configurada com sucesso!"
+            return 0
+        else
+            echo ""
+            echo "Falha na configuração. Tentativa $attempt de $max_attempts"
+            echo "Lembre-se: é necessário digitar 'YES' em maiúsculas!"
+            attempt=$((attempt + 1))
+            sleep 2
+        fi
+    done
+    
+    echo "ERRO: Não foi possível configurar a criptografia após $max_attempts tentativas."
+    exit 1
+}
+
+wait_for_partitions() {
+    echo "Aguardando partições ficarem disponíveis..."
+    
+    local max_attempts=15
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        if [ -e /dev/disk/by-label/NIXBOOT ] && { [ -e /dev/disk/by-label/NIXROOT ] || [ -e /dev/mapper/cryptroot ]; }; then
             echo "Partições encontradas!"
             return 0
         fi
@@ -508,10 +535,13 @@ partition_disk_ext4() {
     fi
     
     if [ "$(cat "$STATE_DIR/encrypt")" = "yes" ]; then
-        echo "Configurando criptografia LUKS em ${disk}2..."
-        sudo cryptsetup luksFormat --type luks2 ${disk}2
+        echo ""
+        echo "=== CRIPTOGRAFIA DA PARTIÇÃO ROOT ==="
+        setup_luks_encryption ${disk}2
         sudo cryptsetup open ${disk}2 cryptroot
-        sudo mkfs.ext4 -F /dev/mapper/cryptroot -L NIXROOT
+        sudo mkfs.ext4 -F /dev/mapper/cryptroot
+        # Label no mapper
+        sudo e2label /dev/mapper/cryptroot NIXROOT
     else
         echo "Formatando partição root..."
         sudo mkfs.ext4 -F ${disk}2 -L NIXROOT
@@ -559,14 +589,16 @@ partition_disk_btrfs() {
     fi
     
     if [ "$(cat "$STATE_DIR/encrypt")" = "yes" ]; then
-        echo "Configurando criptografia LUKS em ${disk}2..."
-        sudo cryptsetup luksFormat --type luks2 ${disk}2
+        echo ""
+        echo "=== CRIPTOGRAFIA DA PARTIÇÃO ROOT ==="
+        setup_luks_encryption ${disk}2
         sudo cryptsetup open ${disk}2 cryptroot
         sudo mkfs.btrfs -f /dev/mapper/cryptroot
         local root_dev="/dev/mapper/cryptroot"
+        # Label não funciona diretamente no mapper, usaremos o caminho
     else
         echo "Formatando partição root como btrfs..."
-        sudo mkfs.btrfs -f ${disk}2
+        sudo mkfs.btrfs -f ${disk}2 -L NIXROOT
         local root_dev="${disk}2"
     fi
     
@@ -583,8 +615,6 @@ partition_disk_btrfs() {
     sudo btrfs subvolume create /mnt/@log
     
     sudo umount /mnt
-    
-    sudo e2label ${disk}1 NIXBOOT 2>/dev/null || sudo fatlabel ${disk}1 NIXBOOT
 }
 
 partition_disk() {
@@ -604,10 +634,30 @@ partition_disk() {
         btrfs) partition_disk_btrfs ;;
     esac
     
-    wait_for_partitions || {
-        echo "ERRO: Falha ao criar partições"
-        exit 1
-    }
+    # Listar dispositivos disponíveis para debug
+    echo "Dispositivos disponíveis:"
+    lsblk $disk
+    echo ""
+    echo "Labels disponíveis:"
+    ls -la /dev/disk/by-label/ 2>/dev/null || echo "Nenhum label encontrado"
+    echo ""
+    
+    if [ "$encrypt" = "yes" ] && [ "$fs" = "btrfs" ]; then
+        # Para btrfs com criptografia, não esperamos label NIXROOT
+        if [ -e /dev/mapper/cryptroot ]; then
+            echo "Partição criptografada encontrada: /dev/mapper/cryptroot"
+        else
+            wait_for_partitions || {
+                echo "ERRO: Falha ao criar partições"
+                exit 1
+            }
+        fi
+    else
+        wait_for_partitions || {
+            echo "ERRO: Falha ao criar partições"
+            exit 1
+        }
+    fi
     
     echo "Particionamento concluído com sucesso!"
 }
@@ -624,20 +674,28 @@ mount_partitions() {
         sudo umount -l /mnt 2>/dev/null || true
     fi
     
-    if [ "$encrypt" = "yes" ] && [ ! -e /dev/mapper/cryptroot ]; then
-        echo "Abrindo partição criptografada..."
-        sudo cryptsetup open /dev/disk/by-label/NIXROOT cryptroot
-    fi
-    
-    local root_dev="/dev/disk/by-label/NIXROOT"
+    local root_dev=""
     local boot_dev="/dev/disk/by-label/NIXBOOT"
     
     if [ "$encrypt" = "yes" ]; then
+        if [ ! -e /dev/mapper/cryptroot ]; then
+            echo "Abrindo partição criptografada..."
+            # Encontrar a partição criptografada
+            local crypt_part=$(sudo blkid | grep LUKS | cut -d: -f1)
+            if [ -n "$crypt_part" ]; then
+                sudo cryptsetup open $crypt_part cryptroot
+            else
+                echo "ERRO: Partição LUKS não encontrada"
+                exit 1
+            fi
+        fi
         root_dev="/dev/mapper/cryptroot"
+    else
+        root_dev="/dev/disk/by-label/NIXROOT"
     fi
     
     for i in {1..5}; do
-        if [ -e $root_dev ] && [ -e $boot_dev ]; then
+        if [ -e $boot_dev ] && { [ "$encrypt" = "yes" ] || [ -e $root_dev ]; }; then
             break
         fi
         echo "Aguardando partições... (tentativa $i/5)"
@@ -646,9 +704,15 @@ mount_partitions() {
         sleep 2
     done
     
-    if [ ! -e $root_dev ] || [ ! -e $boot_dev ]; then
-        echo "ERRO: Partições não encontradas:"
-        ls -la /dev/disk/by-label/ 2>/dev/null || echo "Nenhuma partição com label encontrada"
+    if [ ! -e $boot_dev ]; then
+        echo "ERRO: Partição boot não encontrada: $boot_dev"
+        ls -la /dev/disk/by-label/
+        exit 1
+    fi
+    
+    if [ "$encrypt" != "yes" ] && [ ! -e $root_dev ]; then
+        echo "ERRO: Partição root não encontrada: $root_dev"
+        ls -la /dev/disk/by-label/
         exit 1
     fi
     
@@ -740,10 +804,13 @@ generate_configs() {
     sudo nixos-generate-config --root /mnt
     
     if [ "$encrypt" = "yes" ]; then
+        # Para criptografia, precisamos do UUID da partição física
+        local crypt_part=$(sudo blkid | grep LUKS | cut -d: -f1)
+        local crypt_uuid=$(sudo blkid -s UUID -o value $crypt_part)
         sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/mapper/cryptroot|g" /mnt/etc/nixos/hardware-configuration.nix
         sudo tee -a /mnt/etc/nixos/hardware-configuration.nix > /dev/null << EOF
 
-boot.initrd.luks.devices."cryptroot".device = "/dev/disk/by-uuid/$(sudo blkid -s UUID -o value ${disk}2)";
+boot.initrd.luks.devices."cryptroot".device = "/dev/disk/by-uuid/$crypt_uuid";
 EOF
     else
         sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXROOT|g" /mnt/etc/nixos/hardware-configuration.nix
