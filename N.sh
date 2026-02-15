@@ -173,12 +173,16 @@ select_gpu_driver() {
     clear
     echo "=== DRIVERS DE VÍDEO ==="
     echo "1) Intel/AMD (drivers open-source padrão)"
-    echo "2) NVIDIA (drivers proprietários)"
+    echo "2) NVIDIA (drivers proprietários - requer licença unfree)"
     while true; do
         read -p "Opção: " gpu_opcao
         case $gpu_opcao in
             1) echo "intel-amd" > "$STATE_DIR/gpu_driver"; break ;;
-            2) echo "nvidia" > "$STATE_DIR/gpu_driver"; break ;;
+            2) 
+                echo "nvidia" > "$STATE_DIR/gpu_driver"
+                echo "yes" > "$STATE_DIR/unfree"
+                break
+                ;;
             *) echo "Opção inválida. Escolha 1 ou 2." ;;
         esac
     done
@@ -187,7 +191,13 @@ select_gpu_driver() {
 select_flakes() {
     clear
     echo "=== NIX FLAKES ==="
-    if confirm "Habilitar flakes (recomendado)?"; then
+    echo "Flakes são um recurso experimental que permite"
+    echo "gerenciar configurações de forma mais reprodutível."
+    echo
+    echo "O script irá APENAS gerar um arquivo flake.nix de exemplo"
+    echo "mas NÃO irá habilitar flakes na instalação para evitar erros."
+    echo
+    if confirm "Gerar arquivo flake.nix de exemplo?"; then
         echo "yes" > "$STATE_DIR/flakes"
     else
         echo "no" > "$STATE_DIR/flakes"
@@ -353,7 +363,6 @@ create_swap() {
     
     echo "Criando arquivo swap de ${swap_size}G..."
     
-    # Criar arquivo de swap com fallocate
     sudo fallocate -l ${swap_size}G /mnt/.swapfile
     sudo chmod 600 /mnt/.swapfile
     sudo mkswap /mnt/.swapfile
@@ -419,7 +428,7 @@ show_summary() {
     echo "CUPS: $(cat "$STATE_DIR/cups")"
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Driver GPU: $(cat "$STATE_DIR/gpu_driver")"
-    echo "Flakes: $(cat "$STATE_DIR/flakes")"
+    echo "Flakes (gerar exemplo): $(cat "$STATE_DIR/flakes")"
     echo "Disco: $(cat "$STATE_DIR/disk")"
     echo "Usuário: $(cat "$STATE_DIR/username")"
     echo "================================="
@@ -448,7 +457,6 @@ generate_config() {
     local cups=$(cat "$STATE_DIR/cups")
     local encryption=$(cat "$STATE_DIR/encryption")
     local gpu_driver=$(cat "$STATE_DIR/gpu_driver")
-    local flakes=$(cat "$STATE_DIR/flakes")
     local username=$(cat "$STATE_DIR/username")
     local pass_hash=$(cat "$STATE_DIR/pass_hash")
     local disk=$(cat "$STATE_DIR/disk")
@@ -461,6 +469,9 @@ generate_config() {
 
 {
   imports = [ ./hardware-configuration.nix ];
+
+  # Permitir software unfree (necessário para drivers NVIDIA)
+  nixpkgs.config.allowUnfree = true;
 
   # Bootloader
   $([ "$bootloader" = "systemd-boot" ] && echo 'boot.loader.systemd-boot.enable = true;' || echo 'boot.loader.grub.enable = true; boot.loader.grub.device = "'$disk'";')
@@ -661,10 +672,8 @@ EOF
   ];
 EOF
 
-    # Flakes e criptografia
+    # Criptografia
     cat >> "$config_file" << EOF
-  
-  $([ "$flakes" = "yes" ] && echo 'nix.settings.experimental-features = [ "nix-command" "flakes" ];')
   
   $([ "$encryption" = "yes" ] && echo 'boot.initrd.luks.devices.cryptroot.device = "'$disk'2";')
   
@@ -673,6 +682,42 @@ EOF
 EOF
 
     echo "Configuração gerada com sucesso!"
+    
+    # Gerar arquivo flake.nix de exemplo se solicitado
+    if [ "$(cat "$STATE_DIR/flakes")" = "yes" ]; then
+        generate_flake_example
+    fi
+}
+
+generate_flake_example() {
+    local flake_file="/mnt/etc/nixos/flake.nix"
+    local hostname="nixos"
+    
+    sudo tee "$flake_file" > /dev/null << EOF
+{
+  description = "Configuração NixOS com flakes";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  };
+
+  outputs = { self, nixpkgs }: {
+    nixosConfigurations.$hostname = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./configuration.nix
+      ];
+    };
+  };
+}
+EOF
+    
+    echo
+    echo "=== ARQUIVO FLAKE.NIX GERADO ==="
+    echo "Um arquivo flake.nix de exemplo foi criado em /mnt/etc/nixos/"
+    echo "Para usar flakes após a instalação:"
+    echo "  sudo nixos-rebuild switch --flake /etc/nixos#$hostname"
+    echo
 }
 
 install_system() {
@@ -683,15 +728,6 @@ install_system() {
     
     cd /mnt
     sudo nixos-install --no-root-passwd
-    
-    if [ "$flakes" = "yes" ]; then
-        echo
-        echo "=== FLAKES HABILITADOS ==="
-        echo "Para usar flakes após a instalação:"
-        echo "  cd /etc/nixos"
-        echo "  sudo nix flake init -t templates#full"
-        echo "  sudo nixos-rebuild switch --flake .#nixos"
-    fi
     
     echo
     echo "=== INSTALAÇÃO CONCLUÍDA ==="
