@@ -355,24 +355,34 @@ partition_disk() {
         echo "UEFI detectado"
         echo "uefi" > "$STATE_DIR/boot_mode"
         
-        sudo parted $disk -- mklabel gpt
-        sudo parted $disk -- mkpart primary 1MB 512MB
-        sudo parted $disk -- set 1 esp on
-        sudo parted $disk -- mkpart primary 512MB 100%
+        # Limpar qualquer tabela de partição existente
+        sudo wipefs -a "$disk"
         
-        # Garantir que a partição EFI seja FAT32 e tenha o tipo correto
-        sudo mkfs.fat -F 32 -n NIXBOOT ${disk}1
+        # Criar nova tabela GPT
+        sudo parted "$disk" -- mklabel gpt
         
-        if [ "$fs" = "btrfs" ]; then
-            sudo mkfs.btrfs -f -L NIXROOT ${disk}2
-        else
-            sudo mkfs.ext4 -F -L NIXROOT ${disk}2
+        # Criar partição EFI (tipo 1 = EFI System)
+        sudo parted "$disk" -- mkpart primary fat32 1MB 512MB
+        sudo parted "$disk" -- set 1 esp on
+        
+        # Criar partição root
+        sudo parted "$disk" -- mkpart primary 512MB 100%
+        
+        # Formatar partição EFI com FAT32 e verificar
+        echo "Formatando partição EFI como FAT32..."
+        sudo mkfs.fat -F 32 -n NIXBOOT "${disk}1"
+        
+        # Verificar se a formatação foi bem-sucedida
+        if ! sudo blkid "${disk}1" | grep -q "TYPE=\"vfat\""; then
+            echo "ERRO: Falha ao formatar partição EFI como FAT32"
+            exit 1
         fi
         
-        # Verificar se a partição EFI foi criada corretamente
-        if ! sudo blkid ${disk}1 | grep -q "TYPE=\"vfat\""; then
-            echo "ERRO: Partição EFI não foi formatada como FAT32 corretamente."
-            exit 1
+        # Formatar partição root
+        if [ "$fs" = "btrfs" ]; then
+            sudo mkfs.btrfs -f -L NIXROOT "${disk}2"
+        else
+            sudo mkfs.ext4 -F -L NIXROOT "${disk}2"
         fi
     else
         echo "BIOS/Legacy detectado"
@@ -391,16 +401,19 @@ partition_disk() {
             sudo mkfs.ext4 -F -L NIXROOT ${disk}2
         fi
     fi
+    
+    echo "Particionamento concluído com sucesso!"
+    lsblk "$disk"
 }
 
 setup_encryption() {
     local disk=$(cat "$STATE_DIR/disk")
     
     echo "Configurando criptografia LUKS..."
-    sudo cryptsetup luksFormat ${disk}2
-    sudo cryptsetup open ${disk}2 cryptroot
+    sudo cryptsetup luksFormat "${disk}2"
+    sudo cryptsetup open "${disk}2" cryptroot
     
-    local uuid=$(sudo blkid -s UUID -o value ${disk}2)
+    local uuid=$(sudo blkid -s UUID -o value "${disk}2")
     echo "$uuid" > "$STATE_DIR/luks_uuid"
     
     local fs=$(cat "$STATE_DIR/filesystem")
@@ -441,6 +454,9 @@ mount_partitions() {
     local boot_mode=$(cat "$STATE_DIR/boot_mode")
     local disk=$(cat "$STATE_DIR/disk")
     
+    echo "Montando partições..."
+    
+    # Montar partição root
     if [ "$encryption" = "yes" ]; then
         if [ ! -e /dev/mapper/cryptroot ]; then
             setup_encryption
@@ -455,35 +471,48 @@ mount_partitions() {
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
-            sudo mount /dev/disk/by-label/NIXROOT /mnt
+            # Aguardar o dispositivo ficar disponível
+            sleep 2
+            if ! sudo mount /dev/disk/by-label/NIXROOT /mnt 2>/dev/null; then
+                sudo mount "${disk}2" /mnt
+            fi
         fi
     fi
     
-    # Montar a partição de boot
+    # Montar partição de boot
     sudo mkdir -p /mnt/boot
     
     if [ "$boot_mode" = "uefi" ]; then
-        # Para UEFI, montar a partição EFI em /boot
+        echo "Montando partição EFI em /mnt/boot..."
+        
+        # Tentar montar por label
         if ! sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot 2>/dev/null; then
-            # Se falhar, tentar montar pelo dispositivo
-            sudo mount ${disk}1 /mnt/boot
+            sudo mount "${disk}1" /mnt/boot
         fi
         
-        # Verificar se a partição está montada e é FAT
-        if ! mount | grep -q "/mnt/boot.*vfat"; then
-            echo "ERRO: Partição /boot não é FAT32 ou não está montada corretamente."
-            echo "Verificando partição:"
-            sudo blkid ${disk}1
+        # Verificar se a partição está montada corretamente
+        if mount | grep -q "/mnt/boot"; then
+            echo "Partição EFI montada com sucesso em /mnt/boot"
+            mount | grep "/mnt/boot"
+            
+            # Verificar o tipo de filesystem
+            if ! mount | grep "/mnt/boot" | grep -q "vfat"; then
+                echo "ERRO: Partição /mnt/boot não é FAT32!"
+                mount | grep "/mnt/boot"
+                exit 1
+            fi
+        else
+            echo "ERRO: Falha ao montar partição de boot"
             exit 1
         fi
     else
-        # Para BIOS, montar a partição de boot
+        # Para BIOS Legacy
         if ! sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot 2>/dev/null; then
-            sudo mount ${disk}1 /mnt/boot
+            sudo mount "${disk}1" /mnt/boot
         fi
     fi
     
-    echo "Partições montadas com sucesso:"
+    echo "Todas as partições montadas com sucesso:"
     mount | grep "/mnt"
 }
 
@@ -541,8 +570,10 @@ generate_config() {
     clear
     echo "=== GERANDO CONFIGURAÇÃO ==="
     
+    # Gerar configuração básica
     sudo nixos-generate-config --root /mnt
     
+    # Coletar variáveis
     local lang=$(cat "$STATE_DIR/lang")
     local keyboard=$(cat "$STATE_DIR/keyboard")
     local timezone=$(cat "$STATE_DIR/timezone")
@@ -565,6 +596,9 @@ generate_config() {
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
     
     local config_file="/mnt/etc/nixos/configuration.nix"
+    
+    # Fazer backup do hardware-config original
+    sudo cp /mnt/etc/nixos/hardware-configuration.nix /mnt/etc/nixos/hardware-configuration.nix.bak
     
     sudo tee "$config_file" > /dev/null << EOF
 { config, pkgs, lib, ... }:
@@ -842,6 +876,10 @@ EOF
 EOF
 
     echo "Configuração gerada com sucesso!"
+    
+    # Mostrar o conteúdo do hardware-configuration.nix para depuração
+    echo "=== hardware-configuration.nix ==="
+    cat /mnt/etc/nixos/hardware-configuration.nix
 }
 
 generate_flake() {
@@ -880,7 +918,7 @@ install_system() {
     echo
     
     cd /mnt
-    sudo nixos-install --no-root-passwd
+    sudo nixos-install --no-root-passwd --show-trace
     
     echo
     echo "=== INSTALAÇÃO CONCLUÍDA ==="
@@ -891,7 +929,7 @@ install_system() {
 check_dependencies() {
     local missing_deps=()
     
-    for cmd in parted mkfs.fat mkfs.ext4 mkfs.btrfs cryptsetup fallocate mkpasswd; do
+    for cmd in parted mkfs.fat mkfs.ext4 mkfs.btrfs cryptsetup fallocate mkpasswd wipefs; do
         if ! command -v $cmd >/dev/null 2>&1; then
             missing_deps+=($cmd)
         fi
