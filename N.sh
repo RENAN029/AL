@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
- 
+
 STATE_DIR="/tmp/nixos_install_state"
-mkdir -p "$STATE_DIR" 
+mkdir -p "$STATE_DIR"
 
 confirm() {
     local prompt="$1"
