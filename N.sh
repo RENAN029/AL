@@ -297,7 +297,7 @@ select_ssd_trim() {
 detect_disk() {
     while true; do
         clear
-        echo "=== DISPONÍVEIS / AVAILABLE DISKS ==="
+        echo "=== DISCOS DISPONÍVEIS / AVAILABLE DISKS ==="
         lsblk -d -o NAME,SIZE,MODEL,TYPE | grep -v loop
         echo
         read -p "Digite o disco para instalação (ex: sda, nvme0n1): " disk_name
@@ -364,49 +364,117 @@ select_timezone() {
     esac
 }
 
-check_disk_busy() {
+check_disk_has_partitions() {
     local disk=$(cat "$STATE_DIR/disk")
-    
-    if mount | grep -q "$disk"; then
-        return 0
-    fi
-    
-    if swapon --show | grep -q "$disk"; then
-        return 0
-    fi
-    
-    return 1
+    local partitions=$(lsblk -l -o NAME,TYPE | grep "^$(basename $disk)[0-9]" | wc -l)
+    [ $partitions -gt 0 ]
+}
+
+check_disk_mounted() {
+    local disk=$(cat "$STATE_DIR/disk")
+    mount | grep -q "$disk"
+}
+
+check_disk_swap() {
+    local disk=$(cat "$STATE_DIR/disk")
+    swapon --show | grep -q "$disk"
 }
 
 handle_busy_disk() {
     local disk=$(cat "$STATE_DIR/disk")
     
+    echo ""
+    echo "=================================================="
     echo "ATENÇÃO: O disco $disk está em uso!"
     echo "WARNING: Disk $disk is in use!"
-    echo
-    echo "O cfdisk será aberto para você remover as partições manualmente."
-    echo "cfdisk will be opened for you to manually remove the partitions."
-    echo
-    echo "Instruções / Instructions:"
-    echo "1) Selecione a partição com as setas / Select partition with arrows"
-    echo "2) Use 'Delete' para remover / Use 'Delete' to remove"
-    echo "3) Use 'Write' para salvar / Use 'Write' to save"
-    echo "4) Use 'Quit' para sair / Use 'Quit' to exit"
-    echo
-    read -p "Pressione Enter para continuar... / Press Enter to continue..."
+    echo "=================================================="
+    echo ""
     
-    sudo cfdisk $disk
-    
-    echo "Verificando se o disco ainda está em uso... / Checking if disk is still in use..."
-    if check_disk_busy; then
-        echo "Disco ainda está em uso. Por favor, remova todas as partições manualmente."
-        echo "Disk still in use. Please remove all partitions manually."
-        exit 1
+    if check_disk_mounted; then
+        echo "Partições montadas detectadas / Mounted partitions detected:"
+        mount | grep "$disk"
+        echo ""
+        if confirm "Tentar desmontar automaticamente? / Try to unmount automatically?"; then
+            for part in $(mount | grep "$disk" | awk '{print $1}'); do
+                echo "Desmontando $part..."
+                sudo umount -l $part 2>/dev/null || true
+            done
+            sleep 2
+        fi
     fi
+    
+    if check_disk_swap; then
+        echo "Swap ativo detectado / Active swap detected"
+        if confirm "Desativar swap automaticamente? / Disable swap automatically?"; then
+            for part in $(swapon --show | grep "$disk" | awk '{print $1}'); do
+                echo "Desativando swap em $part..."
+                sudo swapoff $part 2>/dev/null || true
+            done
+            sleep 2
+        fi
+    fi
+    
+    if check_disk_has_partitions; then
+        echo ""
+        echo "O cfdisk será aberto para você remover as partições manualmente."
+        echo "cfdisk will be opened for you to manually remove the partitions."
+        echo ""
+        echo "INSTRUÇÕES / INSTRUCTIONS:"
+        echo "1) Use as setas para selecionar uma partição / Use arrows to select a partition"
+        echo "2) Pressione 'Delete' para remover / Press 'Delete' to remove"
+        echo "3) Repita para todas as partições / Repeat for all partitions"
+        echo "4) Pressione 'Write' para salvar / Press 'Write' to save"
+        echo "5) Pressione 'Quit' para sair / Press 'Quit' to exit"
+        echo ""
+        read -p "Pressione Enter para abrir o cfdisk... / Press Enter to open cfdisk..."
+        
+        sudo cfdisk $disk
+        
+        echo "Aguardando o kernel reconhecer as mudanças..."
+        sudo partprobe $disk 2>/dev/null || true
+        sleep 3
+        sudo udevadm settle
+        sleep 2
+        
+        if check_disk_has_partitions; then
+            echo ""
+            echo "AVISO: Ainda existem partições no disco."
+            echo "WARNING: There are still partitions on the disk."
+            if ! confirm "Continuar mesmo assim? (pode causar erros) / Continue anyway? (may cause errors)"; then
+                echo "Instalação cancelada / Installation canceled"
+                exit 1
+            fi
+        fi
+    fi
+}
+
+wait_for_partitions() {
+    echo "Aguardando partições ficarem disponíveis..."
+    
+    local max_attempts=10
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        if [ -e /dev/disk/by-label/NIXBOOT ] && [ -e /dev/disk/by-label/NIXROOT ]; then
+            echo "Partições encontradas!"
+            return 0
+        fi
+        echo "Tentativa $attempt/$max_attempts..."
+        sudo partprobe 2>/dev/null || true
+        sudo udevadm settle
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+    
+    echo "AVISO: Partições não encontradas após formatação"
+    ls -la /dev/disk/by-label/ 2>/dev/null || echo "Nenhuma partição encontrada"
+    return 1
 }
 
 partition_disk_ext4() {
     local disk=$(cat "$STATE_DIR/disk")
+    
+    echo "Criando novas partições em $disk..."
     
     if [ -d /sys/firmware/efi ]; then
         echo "UEFI detectado"
@@ -416,21 +484,6 @@ partition_disk_ext4() {
         sudo parted -s $disk mkpart primary fat32 1MB 512MB
         sudo parted -s $disk set 1 esp on
         sudo parted -s $disk mkpart primary ext4 512MB 100%
-        
-        sudo partprobe $disk || true
-        sleep 2
-        
-        if [ "$(cat "$STATE_DIR/encrypt")" = "yes" ]; then
-            echo "Configurando criptografia LUKS..."
-            sudo cryptsetup luksFormat --type luks2 ${disk}2
-            sudo cryptsetup open ${disk}2 cryptroot
-            sudo mkfs.ext4 -F /dev/mapper/cryptroot -L NIXROOT
-        else
-            sudo mkfs.ext4 -F ${disk}2 -L NIXROOT
-        fi
-        
-        sudo mkfs.fat -F 32 ${disk}1
-        sudo fatlabel ${disk}1 NIXBOOT
     else
         echo "BIOS/Legacy detectado"
         echo "bios" > "$STATE_DIR/boot_mode"
@@ -439,25 +492,40 @@ partition_disk_ext4() {
         sudo parted -s $disk mkpart primary ext4 1MB 512MB
         sudo parted -s $disk set 1 boot on
         sudo parted -s $disk mkpart primary ext4 512MB 100%
-        
-        sudo partprobe $disk || true
-        sleep 2
-        
-        if [ "$(cat "$STATE_DIR/encrypt")" = "yes" ]; then
-            echo "Configurando criptografia LUKS..."
-            sudo cryptsetup luksFormat --type luks2 ${disk}2
-            sudo cryptsetup open ${disk}2 cryptroot
-            sudo mkfs.ext4 -F /dev/mapper/cryptroot -L NIXROOT
-        else
-            sudo mkfs.ext4 -F ${disk}2 -L NIXROOT
-        fi
-        
+    fi
+    
+    sudo partprobe $disk
+    sudo udevadm settle
+    sleep 3
+    
+    if [ -d /sys/firmware/efi ]; then
+        echo "Formatando partição EFI..."
+        sudo mkfs.fat -F 32 ${disk}1
+        sudo fatlabel ${disk}1 NIXBOOT
+    else
+        echo "Formatando partição boot..."
         sudo mkfs.ext4 -F ${disk}1 -L NIXBOOT
     fi
+    
+    if [ "$(cat "$STATE_DIR/encrypt")" = "yes" ]; then
+        echo "Configurando criptografia LUKS em ${disk}2..."
+        sudo cryptsetup luksFormat --type luks2 ${disk}2
+        sudo cryptsetup open ${disk}2 cryptroot
+        sudo mkfs.ext4 -F /dev/mapper/cryptroot -L NIXROOT
+    else
+        echo "Formatando partição root..."
+        sudo mkfs.ext4 -F ${disk}2 -L NIXROOT
+    fi
+    
+    sudo partprobe $disk
+    sudo udevadm settle
+    sleep 3
 }
 
 partition_disk_btrfs() {
     local disk=$(cat "$STATE_DIR/disk")
+    
+    echo "Criando novas partições em $disk..."
     
     if [ -d /sys/firmware/efi ]; then
         echo "UEFI detectado"
@@ -467,21 +535,6 @@ partition_disk_btrfs() {
         sudo parted -s $disk mkpart primary fat32 1MB 512MB
         sudo parted -s $disk set 1 esp on
         sudo parted -s $disk mkpart primary btrfs 512MB 100%
-        
-        sudo partprobe $disk || true
-        sleep 2
-        
-        if [ "$(cat "$STATE_DIR/encrypt")" = "yes" ]; then
-            echo "Configurando criptografia LUKS..."
-            sudo cryptsetup luksFormat --type luks2 ${disk}2
-            sudo cryptsetup open ${disk}2 cryptroot
-            sudo mkfs.btrfs -f /dev/mapper/cryptroot
-        else
-            sudo mkfs.btrfs -f ${disk}2
-        fi
-        
-        sudo mkfs.fat -F 32 ${disk}1
-        sudo fatlabel ${disk}1 NIXBOOT
     else
         echo "BIOS/Legacy detectado"
         echo "bios" > "$STATE_DIR/boot_mode"
@@ -490,51 +543,73 @@ partition_disk_btrfs() {
         sudo parted -s $disk mkpart primary btrfs 1MB 512MB
         sudo parted -s $disk set 1 boot on
         sudo parted -s $disk mkpart primary btrfs 512MB 100%
-        
-        sudo partprobe $disk || true
-        sleep 2
-        
-        if [ "$(cat "$STATE_DIR/encrypt")" = "yes" ]; then
-            echo "Configurando criptografia LUKS..."
-            sudo cryptsetup luksFormat --type luks2 ${disk}2
-            sudo cryptsetup open ${disk}2 cryptroot
-            sudo mkfs.btrfs -f /dev/mapper/cryptroot
-        else
-            sudo mkfs.btrfs -f ${disk}2
-        fi
-        
+    fi
+    
+    sudo partprobe $disk
+    sudo udevadm settle
+    sleep 3
+    
+    if [ -d /sys/firmware/efi ]; then
+        echo "Formatando partição EFI..."
+        sudo mkfs.fat -F 32 ${disk}1
+        sudo fatlabel ${disk}1 NIXBOOT
+    else
+        echo "Formatando partição boot..."
         sudo mkfs.ext4 -F ${disk}1 -L NIXBOOT
     fi
     
-    local root_dev="/dev/disk/by-label/NIXROOT"
     if [ "$(cat "$STATE_DIR/encrypt")" = "yes" ]; then
-        root_dev="/dev/mapper/cryptroot"
+        echo "Configurando criptografia LUKS em ${disk}2..."
+        sudo cryptsetup luksFormat --type luks2 ${disk}2
+        sudo cryptsetup open ${disk}2 cryptroot
+        sudo mkfs.btrfs -f /dev/mapper/cryptroot
+        local root_dev="/dev/mapper/cryptroot"
+    else
+        echo "Formatando partição root como btrfs..."
+        sudo mkfs.btrfs -f ${disk}2
+        local root_dev="${disk}2"
     fi
     
+    sudo partprobe $disk
+    sudo udevadm settle
+    sleep 3
+    
+    echo "Criando subvolumes btrfs..."
     sudo mount $root_dev /mnt
+    
     sudo btrfs subvolume create /mnt/@
     sudo btrfs subvolume create /mnt/@home
     sudo btrfs subvolume create /mnt/@nix
     sudo btrfs subvolume create /mnt/@log
+    
     sudo umount /mnt
+    
+    sudo e2label ${disk}1 NIXBOOT 2>/dev/null || sudo fatlabel ${disk}1 NIXBOOT
 }
 
 partition_disk() {
+    local disk=$(cat "$STATE_DIR/disk")
     local fs=$(cat "$STATE_DIR/filesystem")
     
-    if check_disk_busy; then
+    echo "Verificando se o disco $disk está pronto para particionamento..."
+    
+    if check_disk_mounted || check_disk_swap || check_disk_has_partitions; then
         handle_busy_disk
     fi
     
-    echo "Particionando $disk..."
+    echo "Iniciando particionamento automático..."
     
     case $fs in
         ext4) partition_disk_ext4 ;;
         btrfs) partition_disk_btrfs ;;
     esac
     
-    sudo partprobe $(cat "$STATE_DIR/disk") || true
-    sleep 2
+    wait_for_partitions || {
+        echo "ERRO: Falha ao criar partições"
+        exit 1
+    }
+    
+    echo "Particionamento concluído com sucesso!"
 }
 
 mount_partitions() {
@@ -545,6 +620,7 @@ mount_partitions() {
     echo "Montando partições..."
     
     if mount | grep -q "/mnt"; then
+        echo "Desmontando /mnt existente..."
         sudo umount -l /mnt 2>/dev/null || true
     fi
     
@@ -560,9 +636,19 @@ mount_partitions() {
         root_dev="/dev/mapper/cryptroot"
     fi
     
+    for i in {1..5}; do
+        if [ -e $root_dev ] && [ -e $boot_dev ]; then
+            break
+        fi
+        echo "Aguardando partições... (tentativa $i/5)"
+        sudo partprobe 2>/dev/null || true
+        sudo udevadm settle
+        sleep 2
+    done
+    
     if [ ! -e $root_dev ] || [ ! -e $boot_dev ]; then
-        echo "ERRO: Partições não encontradas"
-        ls -la /dev/disk/by-label/
+        echo "ERRO: Partições não encontradas:"
+        ls -la /dev/disk/by-label/ 2>/dev/null || echo "Nenhuma partição com label encontrada"
         exit 1
     fi
     
@@ -591,6 +677,9 @@ mount_partitions() {
     fi
     
     sudo mount $boot_dev /mnt/boot
+    
+    echo "Partições montadas:"
+    df -h /mnt /mnt/boot 2>/dev/null || mount | grep "/mnt"
 }
 
 create_swap() {
@@ -607,6 +696,10 @@ create_swap() {
         sudo chmod 600 /mnt/.swapfile
         sudo mkswap /mnt/.swapfile
         sudo swapon /mnt/.swapfile
+        
+        echo "Swap criado e ativado"
+    else
+        echo "Nenhum swap será criado"
     fi
 }
 
@@ -657,7 +750,9 @@ EOF
     fi
     sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXBOOT|g" /mnt/etc/nixos/hardware-configuration.nix
     
-    if [ "$fs" = "btrfs" ]; then
+    if [ "$fs" = "btrfs" ] && [ "$compress" = "yes" ]; then
+        sudo sed -i '/fsType = "btrfs";/a \ \ \ \ options = [ "subvol=@" "compress=zstd" ];' /mnt/etc/nixos/hardware-configuration.nix
+    elif [ "$fs" = "btrfs" ]; then
         sudo sed -i '/fsType = "btrfs";/a \ \ \ \ options = [ "subvol=@" ];' /mnt/etc/nixos/hardware-configuration.nix
     fi
     
@@ -852,10 +947,6 @@ EOF
         
         echo ""
         echo "Arquivo flake.nix criado em /mnt/etc/nixos/flake.nix"
-        echo "Para usar flakes após a instalação:"
-        echo "1) sudo nixos-rebuild switch --flake /etc/nixos#$hostname"
-        echo "2) Ou copie os arquivos para /etc/nixos e execute o comando acima"
-        echo ""
     fi
 }
 
@@ -863,6 +954,34 @@ install_system() {
     cd /mnt
     echo "Iniciando instalação do NixOS (pode levar alguns minutos)..."
     sudo nixos-install --no-root-passwd
+}
+
+show_summary() {
+    clear
+    echo "=== RESUMO DA INSTALAÇÃO ==="
+    echo "Idioma: $(cat $STATE_DIR/lang)"
+    echo "Teclado: $(cat $STATE_DIR/keyboard)"
+    echo "Tipo: $(cat $STATE_DIR/device_type)"
+    echo "Disco: $(cat $STATE_DIR/disk)"
+    echo "FS: $(cat $STATE_DIR/filesystem)"
+    echo "Bootloader: $(cat $STATE_DIR/bootloader)"
+    echo "Criptografia: $(cat $STATE_DIR/encrypt)"
+    if [ "$(cat $STATE_DIR/filesystem)" = "btrfs" ]; then
+        echo "Compressão: $(cat $STATE_DIR/compress)"
+    fi
+    echo "GPU: $(cat $STATE_DIR/gpu_driver)"
+    echo "Desktop: $(cat $STATE_DIR/desktop)"
+    echo "Swap: $(cat $STATE_DIR/swap)GB"
+    echo "Wi-Fi: $(cat $STATE_DIR/wifi_backend)"
+    echo "Flakes: $(cat $STATE_DIR/flakes)"
+    echo "Bluetooth: $(cat $STATE_DIR/bluetooth)"
+    echo "CUPS: $(cat $STATE_DIR/cups)"
+    echo "PipeWire: $(cat $STATE_DIR/pipewire)"
+    echo "TRIM: $(cat $STATE_DIR/trim)"
+    echo "Usuário: $(cat $STATE_DIR/username)"
+    echo "Hostname: $(cat $STATE_DIR/hostname)"
+    echo "Timezone: $(cat $STATE_DIR/timezone)"
+    echo ""
 }
 
 show_final_instructions() {
@@ -918,28 +1037,7 @@ main() {
     select_hostname
     select_timezone
     
-    clear
-    echo "=== RESUMO DA INSTALAÇÃO ==="
-    echo "Idioma: $(cat $STATE_DIR/lang)"
-    echo "Teclado: $(cat $STATE_DIR/keyboard)"
-    echo "Tipo: $(cat $STATE_DIR/device_type)"
-    echo "Disco: $(cat $STATE_DIR/disk)"
-    echo "FS: $(cat $STATE_DIR/filesystem)"
-    echo "Bootloader: $(cat $STATE_DIR/bootloader)"
-    echo "Criptografia: $(cat $STATE_DIR/encrypt)"
-    echo "GPU: $(cat $STATE_DIR/gpu_driver)"
-    echo "Desktop: $(cat $STATE_DIR/desktop)"
-    echo "Swap: $(cat $STATE_DIR/swap)GB"
-    echo "Wi-Fi: $(cat $STATE_DIR/wifi_backend)"
-    echo "Flakes: $(cat $STATE_DIR/flakes)"
-    echo "Bluetooth: $(cat $STATE_DIR/bluetooth)"
-    echo "CUPS: $(cat $STATE_DIR/cups)"
-    echo "PipeWire: $(cat $STATE_DIR/pipewire)"
-    echo "TRIM: $(cat $STATE_DIR/trim)"
-    echo "Usuário: $(cat $STATE_DIR/username)"
-    echo "Hostname: $(cat $STATE_DIR/hostname)"
-    echo "Timezone: $(cat $STATE_DIR/timezone)"
-    echo ""
+    show_summary
     
     if ! confirm "Continuar com a instalação?"; then
         echo "Instalação cancelada."
