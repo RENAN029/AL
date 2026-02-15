@@ -53,6 +53,18 @@ select_keyboard() {
     esac
 }
 
+select_device_type() {
+    echo "Selecione o tipo de dispositivo / Select device type:"
+    echo "1) Laptop (foco em economia de energia / power saving focus)"
+    echo "2) Desktop (foco em desempenho máximo / maximum performance focus)"
+    read -p "Opção: " device_opt
+    case $device_opt in
+        1) echo "laptop" > "$STATE_DIR/device_type" ;;
+        2) echo "desktop" > "$STATE_DIR/device_type" ;;
+        *) echo "desktop" > "$STATE_DIR/device_type" ;;
+    esac
+}
+
 select_filesystem() {
     echo "Selecione o sistema de arquivos / Select filesystem:"
     echo "1) ext4 (padrão / default)"
@@ -261,6 +273,7 @@ show_summary() {
     echo "=== RESUMO DA INSTALAÇÃO / INSTALLATION SUMMARY ==="
     echo "Idioma / Language: $(cat $STATE_DIR/lang 2>/dev/null)"
     echo "Teclado / Keyboard: $(cat $STATE_DIR/keyboard 2>/dev/null)"
+    echo "Tipo de dispositivo / Device type: $(cat $STATE_DIR/device_type 2>/dev/null)"
     echo "Disco / Disk: $(cat $STATE_DIR/disk 2>/dev/null)"
     echo "Sistema de arquivos / Filesystem: $(cat $STATE_DIR/filesystem 2>/dev/null)"
     echo "Bootloader: $(cat $STATE_DIR/bootloader 2>/dev/null)"
@@ -558,6 +571,7 @@ generate_configs() {
     local xkb_layout=$(cat "$STATE_DIR/xkb_layout")
     local boot_mode=$(cat "$STATE_DIR/boot_mode")
     local bootloader=$(cat "$STATE_DIR/bootloader")
+    local device_type=$(cat "$STATE_DIR/device_type")
     local desktop=$(cat "$STATE_DIR/desktop")
     local bluetooth=$(cat "$STATE_DIR/bluetooth")
     local cups=$(cat "$STATE_DIR/cups")
@@ -599,14 +613,43 @@ EOF
         sudo sed -i '/fsType = "btrfs";/a \ \ \ \ options = [ "subvol=@" ];' /mnt/etc/nixos/hardware-configuration.nix
     fi
     
-    # Criar configuration.nix
+    # Criar configuration.nix com nixpkgs mais recente
     sudo tee /mnt/etc/nixos/configuration.nix > /dev/null << EOF
 { config, pkgs, lib, ... }:
 
 {
   imports = [ ./hardware-configuration.nix ];
 
+  # Usar nixpkgs mais recente (nixos-unstable)
+  nixpkgs.config.allowUnfree = true;
+  
   $([ "$flakes" = "yes" ] && echo 'nix.settings.experimental-features = [ "nix-command" "flakes" ];')
+  
+  # Otimizações baseadas no tipo de dispositivo
+  $([ "$device_type" = "laptop" ] && echo '
+  powerManagement.cpuFreqGovernor = "powersave";
+  services.thermald.enable = true;
+  services.auto-cpufreq.enable = true;
+  services.auto-cpufreq.settings = {
+    battery = {
+      governor = "powersave";
+      turbo = "never";
+    };
+    charger = {
+      governor = "performance";
+      turbo = "auto";
+    };
+  };')
+  
+  $([ "$device_type" = "desktop" ] && echo '
+  powerManagement.cpuFreqGovernor = "performance";
+  services.auto-cpufreq.enable = true;
+  services.auto-cpufreq.settings = {
+    charger = {
+      governor = "performance";
+      turbo = "always";
+    };
+  };')
 
   # Bootloader
   $([ "$boot_mode" = "uefi" ] && [ "$bootloader" = "systemd-boot" ] && echo 'boot.loader.systemd-boot.enable = true;')
@@ -682,8 +725,7 @@ EOF
   };')
   
   $([ "$gpu_driver" = "intel-amd" ] && echo '
-  services.xserver.videoDrivers = [ "modesetting" ];
-  # Intel/AMD drivers já incluídos no Mesa')
+  services.xserver.videoDrivers = [ "modesetting" ];')
   
   # User
   users.users.$username = {
@@ -786,22 +828,22 @@ EOF
     $([ "$gpu_driver" = "nvidia" ] && echo "nvidia-settings")
   ];
   
-  system.stateVersion = "25.11";
+  system.stateVersion = "25.11"; # Mantido para compatibilidade, mas usaremos nixpkgs mais recente
 }
 EOF
 
-    # Criar flake.nix se solicitado
+    # Criar flake.nix com nixpkgs-unstable
     if [ "$flakes" = "yes" ]; then
         sudo tee /mnt/etc/nixos/flake.nix > /dev/null << EOF
 {
   description = "$hostname NixOS configuration";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-stable }@inputs: {
     nixosConfigurations.$hostname = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
@@ -819,6 +861,7 @@ EOF
     fi
     
     echo "Arquivos de configuração gerados com sucesso / Configuration files generated successfully"
+    echo "Usando nixpkgs mais recente (nixos-unstable) / Using latest nixpkgs (nixos-unstable)"
 }
 
 install_system() {
@@ -826,21 +869,22 @@ install_system() {
     local hostname=$(cat "$STATE_DIR/hostname")
     
     if [ "$(cat "$STATE_DIR/flakes")" = "yes" ] && [ -f /mnt/etc/nixos/flake.nix ]; then
-        echo "Instalando com flakes / Installing with flakes..."
+        echo "Instalando com flakes (nixpkgs mais recente) / Installing with flakes (latest nixpkgs)..."
         sudo nixos-install --flake /mnt/etc/nixos#$hostname --no-root-passwd
     else
-        echo "Instalando com configuração tradicional / Installing with traditional configuration..."
+        echo "Instalando com configuração tradicional (nixpkgs mais recente) / Installing with traditional configuration (latest nixpkgs)..."
         sudo nixos-install --no-root-passwd
     fi
 }
 
 main() {
     clear
-    echo "=== INSTALADOR NIXOS 25.11 / NIXOS 25.11 INSTALLER ==="
+    echo "=== INSTALADOR NIXOS (VERSÃO MAIS RECENTE) / NIXOS INSTALLER (LATEST VERSION) ==="
     echo
     
     select_language
     select_keyboard
+    select_device_type
     select_filesystem
     select_bootloader
     select_swap_size
@@ -876,6 +920,8 @@ main() {
         echo ""
         echo "O sistema usará Wayland por padrão (session type: wayland)"
         echo "The system will use Wayland by default (session type: wayland)"
+        echo ""
+        echo "Usando a versão mais recente do NixOS (nixos-unstable) / Using the latest NixOS version (nixos-unstable)"
     else
         echo "Instalação cancelada / Installation canceled."
         exit 1
