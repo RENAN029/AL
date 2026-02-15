@@ -360,12 +360,19 @@ partition_disk() {
         sudo parted $disk -- set 1 esp on
         sudo parted $disk -- mkpart primary 512MB 100%
         
+        # Garantir que a partição EFI seja FAT32 e tenha o tipo correto
         sudo mkfs.fat -F 32 -n NIXBOOT ${disk}1
         
         if [ "$fs" = "btrfs" ]; then
             sudo mkfs.btrfs -f -L NIXROOT ${disk}2
         else
             sudo mkfs.ext4 -F -L NIXROOT ${disk}2
+        fi
+        
+        # Verificar se a partição EFI foi criada corretamente
+        if ! sudo blkid ${disk}1 | grep -q "TYPE=\"vfat\""; then
+            echo "ERRO: Partição EFI não foi formatada como FAT32 corretamente."
+            exit 1
         fi
     else
         echo "BIOS/Legacy detectado"
@@ -431,6 +438,8 @@ setup_btrfs_subvolumes() {
 mount_partitions() {
     local encryption=$(cat "$STATE_DIR/encryption")
     local fs=$(cat "$STATE_DIR/filesystem")
+    local boot_mode=$(cat "$STATE_DIR/boot_mode")
+    local disk=$(cat "$STATE_DIR/disk")
     
     if [ "$encryption" = "yes" ]; then
         if [ ! -e /dev/mapper/cryptroot ]; then
@@ -450,8 +459,32 @@ mount_partitions() {
         fi
     fi
     
+    # Montar a partição de boot
     sudo mkdir -p /mnt/boot
-    sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot
+    
+    if [ "$boot_mode" = "uefi" ]; then
+        # Para UEFI, montar a partição EFI em /boot
+        if ! sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot 2>/dev/null; then
+            # Se falhar, tentar montar pelo dispositivo
+            sudo mount ${disk}1 /mnt/boot
+        fi
+        
+        # Verificar se a partição está montada e é FAT
+        if ! mount | grep -q "/mnt/boot.*vfat"; then
+            echo "ERRO: Partição /boot não é FAT32 ou não está montada corretamente."
+            echo "Verificando partição:"
+            sudo blkid ${disk}1
+            exit 1
+        fi
+    else
+        # Para BIOS, montar a partição de boot
+        if ! sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot 2>/dev/null; then
+            sudo mount ${disk}1 /mnt/boot
+        fi
+    fi
+    
+    echo "Partições montadas com sucesso:"
+    mount | grep "/mnt"
 }
 
 create_swap() {
