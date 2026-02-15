@@ -23,6 +23,7 @@ select_language() {
             *) echo "Opção inválida"; sleep 2 ;;
         esac
     done
+    
     case $lang_opt in
         1) echo "pt_BR.UTF-8" > "$STATE_DIR/lang" ;;
         2) echo "en_US.UTF-8" > "$STATE_DIR/lang" ;;
@@ -41,6 +42,7 @@ select_keyboard() {
             *) echo "Opção inválida"; sleep 2 ;;
         esac
     done
+    
     case $kb_opt in
         1) echo "br" > "$STATE_DIR/keyboard" ;;
         2) echo "us" > "$STATE_DIR/keyboard" ;;
@@ -59,6 +61,7 @@ select_timezone() {
             *) echo "Opção inválida"; sleep 2 ;;
         esac
     done
+    
     case $tz_opt in
         1) echo "America/Sao_Paulo" > "$STATE_DIR/timezone" ;;
         2) echo "America/New_York" > "$STATE_DIR/timezone" ;;
@@ -79,14 +82,15 @@ select_device_type() {
     while true; do
         clear
         echo "=== TIPO DE DISPOSITIVO / DEVICE TYPE ==="
-        echo "1) Laptop (economia de energia)"
-        echo "2) Desktop (desempenho máximo)"
+        echo "1) Laptop (foco em economia de energia)"
+        echo "2) Desktop (foco em desempenho máximo)"
         read -p "Opção: " device_opt
         case $device_opt in
             1|2) break ;;
             *) echo "Opção inválida"; sleep 2 ;;
         esac
     done
+    
     case $device_opt in
         1) echo "laptop" > "$STATE_DIR/device_type" ;;
         2) echo "desktop" > "$STATE_DIR/device_type" ;;
@@ -98,13 +102,14 @@ select_filesystem() {
         clear
         echo "=== SISTEMA DE ARQUIVOS / FILESYSTEM ==="
         echo "1) ext4 (estável, simples)"
-        echo "2) btrfs (com snapshots e compressão zstd automática)"
+        echo "2) btrfs (com snapshots e compressão automática)"
         read -p "Opção: " fs_opt
         case $fs_opt in
             1|2) break ;;
             *) echo "Opção inválida"; sleep 2 ;;
         esac
     done
+    
     case $fs_opt in
         1) echo "ext4" > "$STATE_DIR/filesystem" ;;
         2) echo "btrfs" > "$STATE_DIR/filesystem" ;;
@@ -116,13 +121,14 @@ select_bootloader() {
         clear
         echo "=== BOOTLOADER ==="
         echo "1) systemd-boot (recomendado para UEFI)"
-        echo "2) GRUB (compatível com BIOS/UEFI)"
+        echo "2) GRUB (compatível com BIOS e UEFI)"
         read -p "Opção: " bl_opt
         case $bl_opt in
             1|2) break ;;
             *) echo "Opção inválida"; sleep 2 ;;
         esac
     done
+    
     case $bl_opt in
         1) echo "systemd-boot" > "$STATE_DIR/bootloader" ;;
         2) echo "grub" > "$STATE_DIR/bootloader" ;;
@@ -143,6 +149,7 @@ select_swap_size() {
             *) echo "Opção inválida"; sleep 2 ;;
         esac
     done
+    
     case $swap_opt in
         1) echo "2" > "$STATE_DIR/swap" ;;
         2) echo "4" > "$STATE_DIR/swap" ;;
@@ -153,6 +160,7 @@ select_swap_size() {
 
 select_encryption() {
     clear
+    echo "=== CRIPTOGRAFIA / ENCRYPTION ==="
     if confirm "Criptografar disco com LUKS?"; then
         echo "yes" > "$STATE_DIR/encryption"
     else
@@ -164,7 +172,7 @@ select_gpu_drivers() {
     while true; do
         clear
         echo "=== DRIVERS DE GPU / GPU DRIVERS ==="
-        echo "1) NVIDIA (módulos open para GPUs Turing+)"
+        echo "1) NVIDIA (proprietário - módulos open para Turing+)"
         echo "2) Intel/AMD (open source - padrão)"
         read -p "Opção: " gpu_opt
         case $gpu_opt in
@@ -172,6 +180,7 @@ select_gpu_drivers() {
             *) echo "Opção inválida"; sleep 2 ;;
         esac
     done
+    
     case $gpu_opt in
         1) 
             echo "nvidia" > "$STATE_DIR/gpu_driver"
@@ -188,9 +197,9 @@ select_desktop() {
     while true; do
         clear
         echo "=== AMBIENTE DESKTOP / DESKTOP ENVIRONMENT ==="
-        echo "1) COSMIC (Rust, Wayland nativo)"
-        echo "2) GNOME (Wayland)"
-        echo "3) KDE Plasma (Wayland)"
+        echo "1) COSMIC (minimal, Wayland nativo)"
+        echo "2) GNOME (minimal, Wayland)"
+        echo "3) KDE Plasma (minimal, Wayland)"
         echo "4) Nenhum (apenas terminal)"
         read -p "Opção: " de_opt
         case $de_opt in
@@ -198,6 +207,7 @@ select_desktop() {
             *) echo "Opção inválida"; sleep 2 ;;
         esac
     done
+    
     case $de_opt in
         1) echo "cosmic" > "$STATE_DIR/desktop" ;;
         2) echo "gnome" > "$STATE_DIR/desktop" ;;
@@ -206,7 +216,7 @@ select_desktop() {
     esac
 }
 
-select_wireless_backend() {
+select_network_backend() {
     while true; do
         clear
         echo "=== BACKEND DE REDE SEM FIO / WIRELESS BACKEND ==="
@@ -218,6 +228,7 @@ select_wireless_backend() {
             *) echo "Opção inválida"; sleep 2 ;;
         esac
     done
+    
     case $net_opt in
         1) echo "iwd" > "$STATE_DIR/wireless_backend" ;;
         2) echo "wpa_supplicant" > "$STATE_DIR/wireless_backend" ;;
@@ -226,6 +237,7 @@ select_wireless_backend() {
 
 select_bluetooth() {
     clear
+    echo "=== BLUETOOTH ==="
     if confirm "Habilitar Bluetooth?"; then
         echo "yes" > "$STATE_DIR/bluetooth"
     else
@@ -235,7 +247,8 @@ select_bluetooth() {
 
 select_cups() {
     clear
-    if confirm "Habilitar suporte a impressão (CUPS)?"; then
+    echo "=== IMPRESSÃO (CUPS) / PRINTING (CUPS) ==="
+    if confirm "Habilitar suporte a impressão?"; then
         echo "yes" > "$STATE_DIR/cups"
     else
         echo "no" > "$STATE_DIR/cups"
@@ -244,6 +257,7 @@ select_cups() {
 
 select_ssd_trim() {
     clear
+    echo "=== TRIM PARA SSD ==="
     if confirm "Habilitar TRIM para SSD?"; then
         echo "yes" > "$STATE_DIR/trim"
     else
@@ -254,8 +268,7 @@ select_ssd_trim() {
 select_flakes() {
     clear
     echo "=== FLAKES (EXPERIMENTAL) ==="
-    echo "Flakes permitem configuração reprodutível e gerenciamento de dependências."
-    if confirm "Criar flake.nix de exemplo?"; then
+    if confirm "Criar arquivo flake.nix de exemplo?"; then
         echo "yes" > "$STATE_DIR/flakes"
     else
         echo "no" > "$STATE_DIR/flakes"
@@ -317,8 +330,7 @@ check_existing_partitions() {
         echo "O disco $disk já possui partições:"
         lsblk "$disk"
         echo
-        echo "Remova todas as partições manualmente."
-        echo "Pressione Enter para abrir o cfdisk."
+        echo "Pressione Enter para abrir o cfdisk e remover as partições."
         read
         
         sudo cfdisk "$disk"
@@ -386,9 +398,9 @@ setup_encryption() {
     
     local fs=$(cat "$STATE_DIR/filesystem")
     if [ "$fs" = "btrfs" ]; then
-        sudo mkfs.btrfs -f /dev/mapper/cryptroot
+        sudo mkfs.btrfs /dev/mapper/cryptroot
     else
-        sudo mkfs.ext4 -F /dev/mapper/cryptroot
+        sudo mkfs.ext4 /dev/mapper/cryptroot
     fi
 }
 
@@ -410,12 +422,10 @@ setup_btrfs_subvolumes() {
     
     sudo umount /mnt
     
-    local compress_opt="compress=zstd,"
-    
-    sudo mount -o ${compress_opt}subvol=@ $root_dev /mnt
+    sudo mount -o compress=zstd,subvol=@ $root_dev /mnt
     sudo mkdir -p /mnt/{home,nix}
-    sudo mount -o ${compress_opt}subvol=@home $root_dev /mnt/home
-    sudo mount -o ${compress_opt}subvol=@nix,noatime $root_dev /mnt/nix
+    sudo mount -o compress=zstd,subvol=@home $root_dev /mnt/home
+    sudo mount -o compress=zstd,noatime,subvol=@nix $root_dev /mnt/nix
 }
 
 mount_partitions() {
@@ -452,7 +462,7 @@ create_swap() {
     fi
     
     echo "Criando arquivo swap de ${swap_size}G..."
-    sudo fallocate -l ${swap_size}G /mnt/.swapfile
+    sudo dd if=/dev/zero of=/mnt/.swapfile bs=1M count=$((swap_size * 1024)) status=progress
     sudo chmod 600 /mnt/.swapfile
     sudo mkswap /mnt/.swapfile
 }
@@ -460,11 +470,11 @@ create_swap() {
 show_summary() {
     clear
     echo "=== RESUMO DA INSTALAÇÃO / INSTALLATION SUMMARY ==="
-    echo "Idioma: $(cat "$STATE_DIR/lang")"
-    echo "Teclado: $(cat "$STATE_DIR/keyboard")"
-    echo "Fuso: $(cat "$STATE_DIR/timezone")"
+    echo "Idioma/Language: $(cat "$STATE_DIR/lang")"
+    echo "Teclado/Keyboard: $(cat "$STATE_DIR/keyboard")"
+    echo "Fuso/Timezone: $(cat "$STATE_DIR/timezone")"
     echo "Hostname: $(cat "$STATE_DIR/hostname")"
-    echo "Tipo: $(cat "$STATE_DIR/device_type")"
+    echo "Tipo/Type: $(cat "$STATE_DIR/device_type")"
     
     local swap=$(cat "$STATE_DIR/swap")
     if [ "$swap" = "0" ]; then
@@ -476,15 +486,15 @@ show_summary() {
     echo "Filesystem: $(cat "$STATE_DIR/filesystem")"
     echo "Bootloader: $(cat "$STATE_DIR/bootloader")"
     echo "Desktop: $(cat "$STATE_DIR/desktop")"
-    echo "GPU: $(cat "$STATE_DIR/gpu_driver")"
+    echo "GPU Driver: $(cat "$STATE_DIR/gpu_driver")"
     echo "Wireless: $(cat "$STATE_DIR/wireless_backend")"
     echo "Bluetooth: $(cat "$STATE_DIR/bluetooth")"
     echo "CUPS: $(cat "$STATE_DIR/cups")"
-    echo "TRIM: $(cat "$STATE_DIR/trim")"
+    echo "TRIM SSD: $(cat "$STATE_DIR/trim")"
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
-    echo "Disco: $(cat "$STATE_DIR/disk")"
-    echo "Usuário: $(cat "$STATE_DIR/username")"
+    echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
+    echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
     echo
     
@@ -528,45 +538,86 @@ generate_config() {
 
 {
   imports = [ ./hardware-configuration.nix ];
+EOF
 
-  $([ "$gpu_driver" = "nvidia" ] && echo 'nixpkgs.config.allowUnfree = true;')
-  
-  # Bootloader
-  $([ "$bootloader" = "systemd-boot" ] && echo 'boot.loader.systemd-boot.enable = true;')
-  $([ "$bootloader" = "grub" ] && [ "$boot_mode" = "uefi" ] && echo 'boot.loader.grub = { enable = true; efiSupport = true; device = "nodev"; };')
-  $([ "$bootloader" = "grub" ] && [ "$boot_mode" = "bios" ] && echo 'boot.loader.grub = { enable = true; device = "'$disk'"; };')
-  
-  # Locale e Teclado
+    if [ "$gpu_driver" = "nvidia" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  nixpkgs.config.allowUnfree = true;
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
+
+  boot.loader = {
+EOF
+
+    if [ "$bootloader" = "systemd-boot" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+    systemd-boot.enable = true;
+    efi.canTouchEfiVariables = true;
+EOF
+    else
+        if [ "$boot_mode" = "uefi" ]; then
+            sudo tee -a "$config_file" > /dev/null << EOF
+    grub = {
+      enable = true;
+      efiSupport = true;
+      device = "nodev";
+    };
+    efi.canTouchEfiVariables = true;
+EOF
+        else
+            sudo tee -a "$config_file" > /dev/null << EOF
+    grub = {
+      enable = true;
+      device = "$disk";
+    };
+EOF
+        fi
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
+  };
+
   i18n.defaultLocale = "$lang";
   console.keyMap = "$keyboard";
-  services.xserver.xkb.layout = "$keyboard";
   
-  # Time
   time.timeZone = "$timezone";
   services.ntp.enable = true;
   
-  # Network
   networking.hostName = "$hostname";
   networking.networkmanager.enable = true;
-  networking.wireless.${wireless_backend}.enable = true;
-  
-  # X11 (necessário para compatibilidade, mas Wayland é o padrão)
-  services.xserver.enable = true;
-  
-  # Wayland é o padrão para todos os desktops
 EOF
 
-    # Desktop Environment
-    case $desktop in
-        cosmic)
-            cat >> "$config_file" << EOF
+    if [ "$wireless_backend" = "iwd" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  networking.wireless.iwd.enable = true;
+EOF
+    else
+        sudo tee -a "$config_file" > /dev/null << EOF
+  networking.wireless.enable = true;
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
+
+  services.xserver.enable = true;
+  services.xserver.xkb.layout = "$keyboard";
+EOF
+
+    if [ "$desktop" != "none" ]; then
+        case $desktop in
+            cosmic)
+                sudo tee -a "$config_file" > /dev/null << EOF
   services.desktopManager.cosmic.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
-  environment.cosmic.excludePackages = with pkgs; [ cosmic-edit ];
+  environment.cosmic.excludePackages = with pkgs; [
+    cosmic-edit
+  ];
 EOF
-            ;;
-        gnome)
-            cat >> "$config_file" << EOF
+                ;;
+            gnome)
+                sudo tee -a "$config_file" > /dev/null << EOF
   services.desktopManager.gnome.enable = true;
   services.displayManager.gdm.enable = true;
   environment.gnome.excludePackages = with pkgs; [
@@ -581,9 +632,9 @@ EOF
     gnome-terminal
   ];
 EOF
-            ;;
-        plasma)
-            cat >> "$config_file" << EOF
+                ;;
+            plasma)
+                sudo tee -a "$config_file" > /dev/null << EOF
   services.desktopManager.plasma6.enable = true;
   services.displayManager.sddm.enable = true;
   environment.plasma6.excludePackages = with pkgs.kdePackages; [
@@ -592,13 +643,12 @@ EOF
     elisa
   ];
 EOF
-            ;;
-    esac
+                ;;
+        esac
+    fi
 
-    # Áudio com PipeWire (sempre habilitado)
-    cat >> "$config_file" << EOF
-  
-  # Áudio com PipeWire
+    sudo tee -a "$config_file" > /dev/null << EOF
+
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -606,67 +656,72 @@ EOF
     alsa.support32Bit = true;
     pulse.enable = true;
   };
-  
-  # Bluetooth
-  $([ "$bluetooth" = "yes" ] && echo 'hardware.bluetooth.enable = true; services.blueman.enable = true;')
-  
-  # CUPS (impressão)
-  $([ "$cups" = "yes" ] && echo 'services.printing.enable = true;')
-  
-  # TRIM para SSD
-  $([ "$trim" = "yes" ] && echo 'services.fstrim.enable = true;')
-  
-  # Gráficos
+EOF
+
+    if [ "$bluetooth" = "yes" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  hardware.bluetooth.enable = true;
+  services.blueman.enable = true;
+EOF
+    fi
+
+    if [ "$cups" = "yes" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.printing.enable = true;
+EOF
+    fi
+
+    if [ "$trim" = "yes" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.fstrim.enable = true;
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
+
   hardware.graphics.enable = true;
 EOF
 
-    # GPU Drivers
     if [ "$gpu_driver" = "nvidia" ]; then
-        cat >> "$config_file" << EOF
+        sudo tee -a "$config_file" > /dev/null << EOF
   services.xserver.videoDrivers = [ "nvidia" ];
   hardware.nvidia = {
     modesetting.enable = true;
     powerManagement.enable = $([ "$device_type" = "laptop" ] && echo "true" || echo "false");
-    open = true;  # Usando módulos open para GPUs Turing+
+    open = true;
     nvidiaSettings = true;
   };
 EOF
     else
-        cat >> "$config_file" << EOF
+        sudo tee -a "$config_file" > /dev/null << EOF
   services.xserver.videoDrivers = [ "modesetting" ];
-  # Drivers Intel/AMD carregados automaticamente pelo kernel
 EOF
     fi
 
-    # Otimizações por dispositivo
     if [ "$device_type" = "laptop" ]; then
-        cat >> "$config_file" << EOF
-  
-  # Otimizações para laptop
+        sudo tee -a "$config_file" > /dev/null << EOF
+
   powerManagement.enable = true;
   services.thermald.enable = true;
   services.tlp.enable = true;
 EOF
     else
-        cat >> "$config_file" << EOF
-  
-  # Otimizações para desktop
+        sudo tee -a "$config_file" > /dev/null << EOF
+
   powerManagement.cpuFreqGovernor = "performance";
 EOF
     fi
 
-    # Usuário
-    cat >> "$config_file" << EOF
-  
-  # Usuário
+    sudo tee -a "$config_file" > /dev/null << EOF
+
   users.users.$username = {
     isNormalUser = true;
     description = "$username";
     extraGroups = [ "wheel" "networkmanager" "audio" "video" "lp" ];
     hashedPassword = "$pass_hash";
+    shell = pkgs.bash;
   };
   
-  # Sudo sem senha para wheel
   security.sudo.extraRules = [
     {
       groups = [ "wheel" ];
@@ -680,20 +735,16 @@ EOF
   ];
 EOF
 
-    # Swap file
     if [ "$swap_size" != "0" ]; then
-        cat >> "$config_file" << EOF
-  
-  # Swap file
+        sudo tee -a "$config_file" > /dev/null << EOF
+
   swapDevices = [ { device = "/.swapfile"; } ];
 EOF
     fi
 
-    # LUKS
     if [ "$encryption" = "yes" ] && [ -n "$luks_uuid" ]; then
-        cat >> "$config_file" << EOF
-  
-  # LUKS Encryption
+        sudo tee -a "$config_file" > /dev/null << EOF
+
   boot.initrd.luks.devices."cryptroot" = {
     device = "/dev/disk/by-uuid/$luks_uuid";
     preLVM = true;
@@ -701,21 +752,18 @@ EOF
 EOF
     fi
 
-    # btrfs
     if [ "$fs" = "btrfs" ]; then
-        cat >> "$config_file" << EOF
-  
-  # btrfs
+        sudo tee -a "$config_file" > /dev/null << EOF
+
   boot.supportedFilesystems = [ "btrfs" ];
 EOF
     fi
 
-    # Pacotes
-    cat >> "$config_file" << EOF
-  
-  # Pacotes básicos
+    sudo tee -a "$config_file" > /dev/null << EOF
+
   environment.systemPackages = with pkgs; [
     vim
+    nano
     git
     wget
     curl
@@ -725,26 +773,27 @@ EOF
     usbutils
     unzip
     zip
+    openssl
+    file
 EOF
 
-    # Pacotes específicos por desktop
     case $desktop in
         gnome)
-            cat >> "$config_file" << EOF
+            sudo tee -a "$config_file" > /dev/null << EOF
     gnome-tweaks
     gnome-disk-utility
     gnome-software
 EOF
             ;;
         plasma)
-            cat >> "$config_file" << EOF
+            sudo tee -a "$config_file" > /dev/null << EOF
     kdePackages.dolphin
     kdePackages.ark
     kdePackages.kate
 EOF
             ;;
         cosmic)
-            cat >> "$config_file" << EOF
+            sudo tee -a "$config_file" > /dev/null << EOF
     cosmic-term
     cosmic-files
     cosmic-store
@@ -752,7 +801,7 @@ EOF
             ;;
     esac
 
-    cat >> "$config_file" << EOF
+    sudo tee -a "$config_file" > /dev/null << EOF
   ];
   
   system.stateVersion = "25.11";
@@ -774,23 +823,21 @@ generate_flake() {
 {
   description = "Configuração NixOS";
 
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-  };
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 
   outputs = { self, nixpkgs }: {
     nixosConfigurations.$hostname = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
-      modules = [
-        ./configuration.nix
-      ];
+      modules = [ ./configuration.nix ];
     };
   };
 }
 EOF
     
     echo "Arquivo flake.nix criado em /mnt/etc/nixos/"
-    echo "Para usar flakes: adicione 'nix.settings.experimental-features = [ \"nix-command\" \"flakes\" ];'"
+    echo "Para usar flakes:"
+    echo "1. Adicione 'nix.settings.experimental-features = [ \"nix-command\" \"flakes\" ];' à configuration.nix"
+    echo "2. Use 'nixos-rebuild switch --flake /mnt/etc/nixos#$hostname'"
 }
 
 install_system() {
@@ -804,8 +851,8 @@ install_system() {
     
     echo
     echo "=== INSTALAÇÃO CONCLUÍDA ==="
-    echo "Usuário: $(cat "$STATE_DIR/username")"
-    echo "Reinicie com: reboot"
+    echo "Após reiniciar, faça login com usuário: $(cat "$STATE_DIR/username")"
+    echo "Digite 'reboot' para reiniciar."
 }
 
 check_dependencies() {
@@ -818,7 +865,8 @@ check_dependencies() {
     done
     
     if [ ${#missing_deps[@]} -ne 0 ]; then
-        echo "Aviso: Comandos ausentes: ${missing_deps[*]}"
+        echo "Aviso: Alguns comandos podem não estar disponíveis: ${missing_deps[*]}"
+        echo "O script tentará continuar, mas pode falhar se algum comando for necessário."
         sleep 3
     fi
 }
@@ -830,7 +878,6 @@ main() {
     
     check_dependencies
     
-    # Coletar informações
     select_language
     select_keyboard
     select_timezone
@@ -842,7 +889,7 @@ main() {
     select_encryption
     select_gpu_drivers
     select_desktop
-    select_wireless_backend
+    select_network_backend
     select_bluetooth
     select_cups
     select_ssd_trim
@@ -852,14 +899,13 @@ main() {
     
     show_summary
     
-    # Executar instalação
     partition_disk
     mount_partitions
     create_swap
     generate_config
     generate_flake
     
-    if confirm "Iniciar instalação?"; then
+    if confirm "Iniciar instalação do NixOS?"; then
         install_system
     else
         echo "Instalação cancelada."
@@ -867,6 +913,8 @@ main() {
     fi
 }
 
+set +e
 trap 'echo "Erro detectado. Pressione Enter para continuar..."; read' ERR
+set -e
 
 main
