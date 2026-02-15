@@ -595,7 +595,6 @@ partition_disk_btrfs() {
         sudo cryptsetup open ${disk}2 cryptroot
         sudo mkfs.btrfs -f /dev/mapper/cryptroot
         local root_dev="/dev/mapper/cryptroot"
-        # Label não funciona diretamente no mapper, usaremos o caminho
     else
         echo "Formatando partição root como btrfs..."
         sudo mkfs.btrfs -f ${disk}2 -L NIXROOT
@@ -620,6 +619,7 @@ partition_disk_btrfs() {
 partition_disk() {
     local disk=$(cat "$STATE_DIR/disk")
     local fs=$(cat "$STATE_DIR/filesystem")
+    local encrypt=$(cat "$STATE_DIR/encrypt")
     
     echo "Verificando se o disco $disk está pronto para particionamento..."
     
@@ -643,7 +643,6 @@ partition_disk() {
     echo ""
     
     if [ "$encrypt" = "yes" ] && [ "$fs" = "btrfs" ]; then
-        # Para btrfs com criptografia, não esperamos label NIXROOT
         if [ -e /dev/mapper/cryptroot ]; then
             echo "Partição criptografada encontrada: /dev/mapper/cryptroot"
         else
@@ -680,7 +679,6 @@ mount_partitions() {
     if [ "$encrypt" = "yes" ]; then
         if [ ! -e /dev/mapper/cryptroot ]; then
             echo "Abrindo partição criptografada..."
-            # Encontrar a partição criptografada
             local crypt_part=$(sudo blkid | grep LUKS | cut -d: -f1)
             if [ -n "$crypt_part" ]; then
                 sudo cryptsetup open $crypt_part cryptroot
@@ -756,12 +754,16 @@ create_swap() {
             sudo rm -f /mnt/.swapfile
         fi
         
+        # Criar arquivo swap com dd
         sudo dd if=/dev/zero of=/mnt/.swapfile bs=1G count=$swap_size status=progress
-        sudo chmod 600 /mnt/.swapfile
-        sudo mkswap /mnt/.swapfile
-        sudo swapon /mnt/.swapfile
         
-        echo "Swap criado e ativado"
+        # Ajustar permissões
+        sudo chmod 600 /mnt/.swapfile
+        
+        # Configurar como swap (mas não ativar agora)
+        sudo mkswap /mnt/.swapfile
+        
+        echo "Arquivo swap criado, será ativado pelo sistema após a instalação"
     else
         echo "Nenhum swap será criado"
     fi
@@ -804,7 +806,6 @@ generate_configs() {
     sudo nixos-generate-config --root /mnt
     
     if [ "$encrypt" = "yes" ]; then
-        # Para criptografia, precisamos do UUID da partição física
         local crypt_part=$(sudo blkid | grep LUKS | cut -d: -f1)
         local crypt_uuid=$(sudo blkid -s UUID -o value $crypt_part)
         sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/mapper/cryptroot|g" /mnt/etc/nixos/hardware-configuration.nix
