@@ -145,9 +145,9 @@ select_encryption() {
     clear
     echo "=== CRIPTOGRAFIA / ENCRYPTION ==="
     if confirm "Criptografar disco com LUKS?"; then
-        echo "yes" > "$STATE_DIR/encrypt"
+        echo "true" > "$STATE_DIR/encrypt"
     else
-        echo "no" > "$STATE_DIR/encrypt"
+        echo "false" > "$STATE_DIR/encrypt"
     fi
 }
 
@@ -156,12 +156,12 @@ select_compression() {
         clear
         echo "=== COMPRESSÃO BTRFS ==="
         if confirm "Habilitar compressão btrfs (zstd)?"; then
-            echo "yes" > "$STATE_DIR/compress"
+            echo "true" > "$STATE_DIR/compress"
         else
-            echo "no" > "$STATE_DIR/compress"
+            echo "false" > "$STATE_DIR/compress"
         fi
     else
-        echo "no" > "$STATE_DIR/compress"
+        echo "false" > "$STATE_DIR/compress"
     fi
 }
 
@@ -183,21 +183,21 @@ select_gpu_drivers() {
             echo "nvidia" > "$STATE_DIR/gpu_driver"
             clear
             if confirm "Usar módulos open-source da NVIDIA (Turing+)?"; then
-                echo "yes" > "$STATE_DIR/nvidia_open"
+                echo "true" > "$STATE_DIR/nvidia_open"
             else
-                echo "no" > "$STATE_DIR/nvidia_open"
+                echo "false" > "$STATE_DIR/nvidia_open"
             fi
             clear
             if confirm "Habilitar modesetting (recomendado para Wayland)?"; then
-                echo "yes" > "$STATE_DIR/nvidia_modeset"
+                echo "true" > "$STATE_DIR/nvidia_modeset"
             else
-                echo "no" > "$STATE_DIR/nvidia_modeset"
+                echo "false" > "$STATE_DIR/nvidia_modeset"
             fi
             ;;
         2) 
             echo "intel-amd" > "$STATE_DIR/gpu_driver"
-            echo "no" > "$STATE_DIR/nvidia_open"
-            echo "no" > "$STATE_DIR/nvidia_modeset"
+            echo "false" > "$STATE_DIR/nvidia_open"
+            echo "false" > "$STATE_DIR/nvidia_modeset"
             ;;
     esac
 }
@@ -248,9 +248,9 @@ select_flakes() {
     clear
     echo "=== FLAKES ==="
     if confirm "Criar arquivo flake.nix (recomendado, não será executado agora)?"; then
-        echo "yes" > "$STATE_DIR/flakes"
+        echo "true" > "$STATE_DIR/flakes"
     else
-        echo "no" > "$STATE_DIR/flakes"
+        echo "false" > "$STATE_DIR/flakes"
     fi
 }
 
@@ -258,9 +258,9 @@ select_bluetooth() {
     clear
     echo "=== BLUETOOTH ==="
     if confirm "Habilitar Bluetooth?"; then
-        echo "yes" > "$STATE_DIR/bluetooth"
+        echo "true" > "$STATE_DIR/bluetooth"
     else
-        echo "no" > "$STATE_DIR/bluetooth"
+        echo "false" > "$STATE_DIR/bluetooth"
     fi
 }
 
@@ -268,9 +268,9 @@ select_cups() {
     clear
     echo "=== IMPRESSÃO (CUPS) / PRINTING (CUPS) ==="
     if confirm "Habilitar suporte a impressão?"; then
-        echo "yes" > "$STATE_DIR/cups"
+        echo "true" > "$STATE_DIR/cups"
     else
-        echo "no" > "$STATE_DIR/cups"
+        echo "false" > "$STATE_DIR/cups"
     fi
 }
 
@@ -278,9 +278,9 @@ select_pipewire() {
     clear
     echo "=== ÁUDIO (PIPEWIRE) ==="
     if confirm "Habilitar PipeWire (recomendado)?"; then
-        echo "yes" > "$STATE_DIR/pipewire"
+        echo "true" > "$STATE_DIR/pipewire"
     else
-        echo "no" > "$STATE_DIR/pipewire"
+        echo "false" > "$STATE_DIR/pipewire"
     fi
 }
 
@@ -288,9 +288,9 @@ select_ssd_trim() {
     clear
     echo "=== TRIM PARA SSD ==="
     if confirm "Habilitar TRIM para SSD?"; then
-        echo "yes" > "$STATE_DIR/trim"
+        echo "true" > "$STATE_DIR/trim"
     else
-        echo "no" > "$STATE_DIR/trim"
+        echo "false" > "$STATE_DIR/trim"
     fi
 }
 
@@ -390,61 +390,42 @@ handle_busy_disk() {
     echo "=================================================="
     echo ""
     
+    echo "O cfdisk será aberto para você remover as partições manualmente."
+    echo "cfdisk will be opened for you to manually remove the partitions."
+    echo ""
+    echo "INSTRUÇÕES / INSTRUCTIONS:"
+    echo "1) Use as setas para selecionar uma partição / Use arrows to select a partition"
+    echo "2) Pressione 'Delete' para remover / Press 'Delete' to remove"
+    echo "3) Repita para todas as partições / Repeat for all partitions"
+    echo "4) Pressione 'Write' para salvar / Press 'Write' to save"
+    echo "5) Pressione 'Quit' para sair / Press 'Quit' to exit"
+    echo ""
+    read -p "Pressione Enter para abrir o cfdisk... / Press Enter to open cfdisk..."
+    
+    sudo cfdisk $disk
+    
+    echo "Aguardando o kernel reconhecer as mudanças..."
+    sudo partprobe $disk 2>/dev/null || true
+    sleep 3
+    sudo udevadm settle
+    sleep 2
+    
     if check_disk_mounted; then
-        echo "Partições montadas detectadas / Mounted partitions detected:"
-        mount | grep "$disk"
-        echo ""
-        if confirm "Tentar desmontar automaticamente? / Try to unmount automatically?"; then
-            for part in $(mount | grep "$disk" | awk '{print $1}'); do
-                echo "Desmontando $part..."
-                sudo umount -l $part 2>/dev/null || true
-            done
-            sleep 2
-        fi
+        echo "ERRO: Ainda existem partições montadas. Por favor, desmonte-as manualmente e tente novamente."
+        echo "ERROR: There are still mounted partitions. Please unmount them manually and try again."
+        exit 1
     fi
     
     if check_disk_swap; then
-        echo "Swap ativo detectado / Active swap detected"
-        if confirm "Desativar swap automaticamente? / Disable swap automatically?"; then
-            for part in $(swapon --show | grep "$disk" | awk '{print $1}'); do
-                echo "Desativando swap em $part..."
-                sudo swapoff $part 2>/dev/null || true
-            done
-            sleep 2
-        fi
+        echo "ERRO: Ainda existe swap ativo. Por favor, desative-o manualmente e tente novamente."
+        echo "ERROR: There is still active swap. Please disable it manually and try again."
+        exit 1
     fi
     
     if check_disk_has_partitions; then
-        echo ""
-        echo "O cfdisk será aberto para você remover as partições manualmente."
-        echo "cfdisk will be opened for you to manually remove the partitions."
-        echo ""
-        echo "INSTRUÇÕES / INSTRUCTIONS:"
-        echo "1) Use as setas para selecionar uma partição / Use arrows to select a partition"
-        echo "2) Pressione 'Delete' para remover / Press 'Delete' to remove"
-        echo "3) Repita para todas as partições / Repeat for all partitions"
-        echo "4) Pressione 'Write' para salvar / Press 'Write' to save"
-        echo "5) Pressione 'Quit' para sair / Press 'Quit' to exit"
-        echo ""
-        read -p "Pressione Enter para abrir o cfdisk... / Press Enter to open cfdisk..."
-        
-        sudo cfdisk $disk
-        
-        echo "Aguardando o kernel reconhecer as mudanças..."
-        sudo partprobe $disk 2>/dev/null || true
-        sleep 3
-        sudo udevadm settle
-        sleep 2
-        
-        if check_disk_has_partitions; then
-            echo ""
-            echo "AVISO: Ainda existem partições no disco."
-            echo "WARNING: There are still partitions on the disk."
-            if ! confirm "Continuar mesmo assim? (pode causar erros) / Continue anyway? (may cause errors)"; then
-                echo "Instalação cancelada / Installation canceled"
-                exit 1
-            fi
-        fi
+        echo "ERRO: Ainda existem partições no disco. Por favor, remova-as manualmente e tente novamente."
+        echo "ERROR: There are still partitions on the disk. Please remove them manually and try again."
+        exit 1
     fi
 }
 
@@ -534,13 +515,12 @@ partition_disk_ext4() {
         sudo mkfs.ext4 -F ${disk}1 -L NIXBOOT
     fi
     
-    if [ "$(cat "$STATE_DIR/encrypt")" = "yes" ]; then
+    if [ "$(cat "$STATE_DIR/encrypt")" = "true" ]; then
         echo ""
         echo "=== CRIPTOGRAFIA DA PARTIÇÃO ROOT ==="
         setup_luks_encryption ${disk}2
         sudo cryptsetup open ${disk}2 cryptroot
         sudo mkfs.ext4 -F /dev/mapper/cryptroot
-        # Label no mapper
         sudo e2label /dev/mapper/cryptroot NIXROOT
     else
         echo "Formatando partição root..."
@@ -588,7 +568,7 @@ partition_disk_btrfs() {
         sudo mkfs.ext4 -F ${disk}1 -L NIXBOOT
     fi
     
-    if [ "$(cat "$STATE_DIR/encrypt")" = "yes" ]; then
+    if [ "$(cat "$STATE_DIR/encrypt")" = "true" ]; then
         echo ""
         echo "=== CRIPTOGRAFIA DA PARTIÇÃO ROOT ==="
         setup_luks_encryption ${disk}2
@@ -634,15 +614,11 @@ partition_disk() {
         btrfs) partition_disk_btrfs ;;
     esac
     
-    # Listar dispositivos disponíveis para debug
     echo "Dispositivos disponíveis:"
     lsblk $disk
     echo ""
-    echo "Labels disponíveis:"
-    ls -la /dev/disk/by-label/ 2>/dev/null || echo "Nenhum label encontrado"
-    echo ""
     
-    if [ "$encrypt" = "yes" ] && [ "$fs" = "btrfs" ]; then
+    if [ "$encrypt" = "true" ] && [ "$fs" = "btrfs" ]; then
         if [ -e /dev/mapper/cryptroot ]; then
             echo "Partição criptografada encontrada: /dev/mapper/cryptroot"
         else
@@ -676,7 +652,7 @@ mount_partitions() {
     local root_dev=""
     local boot_dev="/dev/disk/by-label/NIXBOOT"
     
-    if [ "$encrypt" = "yes" ]; then
+    if [ "$encrypt" = "true" ]; then
         if [ ! -e /dev/mapper/cryptroot ]; then
             echo "Abrindo partição criptografada..."
             local crypt_part=$(sudo blkid | grep LUKS | cut -d: -f1)
@@ -693,7 +669,7 @@ mount_partitions() {
     fi
     
     for i in {1..5}; do
-        if [ -e $boot_dev ] && { [ "$encrypt" = "yes" ] || [ -e $root_dev ]; }; then
+        if [ -e $boot_dev ] && { [ "$encrypt" = "true" ] || [ -e $root_dev ]; }; then
             break
         fi
         echo "Aguardando partições... (tentativa $i/5)"
@@ -708,7 +684,7 @@ mount_partitions() {
         exit 1
     fi
     
-    if [ "$encrypt" != "yes" ] && [ ! -e $root_dev ]; then
+    if [ "$encrypt" != "true" ] && [ ! -e $root_dev ]; then
         echo "ERRO: Partição root não encontrada: $root_dev"
         ls -la /dev/disk/by-label/
         exit 1
@@ -716,22 +692,22 @@ mount_partitions() {
     
     if [ "$fs" = "btrfs" ]; then
         local mount_opts="subvol=@"
-        [ "$compress" = "yes" ] && mount_opts="$mount_opts,compress=zstd"
+        [ "$compress" = "true" ] && mount_opts="$mount_opts,compress=zstd"
         
         sudo mount -o $mount_opts $root_dev /mnt
         
         sudo mkdir -p /mnt/{home,nix,var/log,boot}
         
         local home_opts="subvol=@home"
-        [ "$compress" = "yes" ] && home_opts="$home_opts,compress=zstd"
+        [ "$compress" = "true" ] && home_opts="$home_opts,compress=zstd"
         sudo mount -o $home_opts $root_dev /mnt/home
         
         local nix_opts="subvol=@nix,noatime"
-        [ "$compress" = "yes" ] && nix_opts="$nix_opts,compress=zstd"
+        [ "$compress" = "true" ] && nix_opts="$nix_opts,compress=zstd"
         sudo mount -o $nix_opts $root_dev /mnt/nix
         
         local log_opts="subvol=@log"
-        [ "$compress" = "yes" ] && log_opts="$log_opts,compress=zstd"
+        [ "$compress" = "true" ] && log_opts="$log_opts,compress=zstd"
         sudo mount -o $log_opts $root_dev /mnt/var/log
     else
         sudo mount $root_dev /mnt
@@ -754,13 +730,8 @@ create_swap() {
             sudo rm -f /mnt/.swapfile
         fi
         
-        # Criar arquivo swap com dd
         sudo dd if=/dev/zero of=/mnt/.swapfile bs=1G count=$swap_size status=progress
-        
-        # Ajustar permissões
         sudo chmod 600 /mnt/.swapfile
-        
-        # Configurar como swap (mas não ativar agora)
         sudo mkswap /mnt/.swapfile
         
         echo "Arquivo swap criado, será ativado pelo sistema após a instalação"
@@ -805,7 +776,7 @@ generate_configs() {
     
     sudo nixos-generate-config --root /mnt
     
-    if [ "$encrypt" = "yes" ]; then
+    if [ "$encrypt" = "true" ]; then
         local crypt_part=$(sudo blkid | grep LUKS | cut -d: -f1)
         local crypt_uuid=$(sudo blkid -s UUID -o value $crypt_part)
         sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/mapper/cryptroot|g" /mnt/etc/nixos/hardware-configuration.nix
@@ -818,7 +789,7 @@ EOF
     fi
     sudo sed -i "s|/dev/disk/by-uuid/[0-9a-f-]*|/dev/disk/by-label/NIXBOOT|g" /mnt/etc/nixos/hardware-configuration.nix
     
-    if [ "$fs" = "btrfs" ] && [ "$compress" = "yes" ]; then
+    if [ "$fs" = "btrfs" ] && [ "$compress" = "true" ]; then
         sudo sed -i '/fsType = "btrfs";/a \ \ \ \ options = [ "subvol=@" "compress=zstd" ];' /mnt/etc/nixos/hardware-configuration.nix
     elif [ "$fs" = "btrfs" ]; then
         sudo sed -i '/fsType = "btrfs";/a \ \ \ \ options = [ "subvol=@" ];' /mnt/etc/nixos/hardware-configuration.nix
@@ -832,7 +803,7 @@ EOF
 
   nixpkgs.config.allowUnfree = true;
   
-  $([ "$flakes" = "yes" ] && echo 'nix.settings.experimental-features = [ "nix-command" "flakes" ];')
+  $([ "$flakes" = "true" ] && echo 'nix.settings.experimental-features = [ "nix-command" "flakes" ];')
   
   $([ "$device_type" = "laptop" ] && echo '
   powerManagement.cpuFreqGovernor = "powersave";
@@ -864,7 +835,7 @@ EOF
   $([ "$boot_mode" = "bios" ] && echo 'boot.loader.grub = { enable = true; device = "'$disk'"; };')
 
   $([ "$fs" = "btrfs" ] && echo 'boot.supportedFilesystems = [ "btrfs" ];')
-  $([ "$trim" = "yes" ] && echo 'services.fstrim.enable = true;')
+  $([ "$trim" = "true" ] && echo 'services.fstrim.enable = true;')
 
   i18n.defaultLocale = "$lang";
   i18n.extraLocaleSettings = {
@@ -890,7 +861,7 @@ EOF
   
   $([ "$swap_size" != "0" ] && echo 'swapDevices = [{ device = "/.swapfile"; }];')
   
-  $([ "$pipewire" = "yes" ] && echo '
+  $([ "$pipewire" = "true" ] && echo '
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -899,8 +870,8 @@ EOF
     pulse.enable = true;
   };')
   
-  $([ "$bluetooth" = "yes" ] && echo 'hardware.bluetooth.enable = true; services.blueman.enable = true;')
-  $([ "$cups" = "yes" ] && echo 'services.printing.enable = true;')
+  $([ "$bluetooth" = "true" ] && echo 'hardware.bluetooth.enable = true; services.blueman.enable = true;')
+  $([ "$cups" = "true" ] && echo 'services.printing.enable = true;')
   
   hardware.graphics = {
     enable = true;
@@ -988,7 +959,7 @@ EOF
 }
 EOF
 
-    if [ "$flakes" = "yes" ]; then
+    if [ "$flakes" = "true" ]; then
         sudo tee /mnt/etc/nixos/flake.nix > /dev/null << EOF
 {
   description = "$hostname NixOS configuration";
@@ -1069,7 +1040,7 @@ show_final_instructions() {
     echo "   - Editar configurações em /etc/nixos/configuration.nix"
     echo ""
     
-    if [ "$flakes" = "yes" ]; then
+    if [ "$flakes" = "true" ]; then
         echo "4) Para usar flakes (recomendado):"
         echo "   sudo nixos-rebuild switch --flake /etc/nixos#$hostname"
         echo ""
