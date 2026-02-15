@@ -68,14 +68,12 @@ select_filesystem() {
 select_bootloader() {
     echo "Selecione o bootloader / Select bootloader:"
     echo "1) systemd-boot (recomendado para UEFI)"
-    echo "2) GRUB"
-    echo "3) Detectar automaticamente"
+    echo "2) GRUB (para BIOS/Legacy ou UEFI)"
     read -p "Opção: " bl_opt
     case $bl_opt in
         1) echo "systemd-boot" > "$STATE_DIR/bootloader" ;;
         2) echo "grub" > "$STATE_DIR/bootloader" ;;
-        3) echo "auto" > "$STATE_DIR/bootloader" ;;
-        *) echo "auto" > "$STATE_DIR/bootloader" ;;
+        *) echo "systemd-boot" > "$STATE_DIR/bootloader" ;;
     esac
 }
 
@@ -96,38 +94,62 @@ select_swap_size() {
 }
 
 select_encryption() {
-    echo "Criptografar disco? / Encrypt disk?"
-    echo "1) Sim (LUKS)"
-    echo "2) Não"
-    read -p "Opção: " enc_opt
-    case $enc_opt in
-        1) echo "yes" > "$STATE_DIR/encrypt" ;;
-        2) echo "no" > "$STATE_DIR/encrypt" ;;
-        *) echo "no" > "$STATE_DIR/encrypt" ;;
-    esac
+    if confirm "Criptografar disco com LUKS? / Encrypt disk with LUKS?"; then
+        echo "yes" > "$STATE_DIR/encrypt"
+    else
+        echo "no" > "$STATE_DIR/encrypt"
+    fi
 }
 
 select_compression() {
     if [ "$(cat "$STATE_DIR/filesystem")" = "btrfs" ]; then
-        echo "Habilitar compressão btrfs? / Enable btrfs compression?"
-        echo "1) Sim (zstd)"
-        echo "2) Não"
-        read -p "Opção: " comp_opt
-        case $comp_opt in
-            1) echo "yes" > "$STATE_DIR/compress" ;;
-            2) echo "no" > "$STATE_DIR/compress" ;;
-            *) echo "no" > "$STATE_DIR/compress" ;;
-        esac
+        if confirm "Habilitar compressão btrfs (zstd)? / Enable btrfs compression (zstd)?"; then
+            echo "yes" > "$STATE_DIR/compress"
+        else
+            echo "no" > "$STATE_DIR/compress"
+        fi
     else
         echo "no" > "$STATE_DIR/compress"
     fi
 }
 
+select_gpu_drivers() {
+    echo "Selecione os drivers de GPU / Select GPU drivers:"
+    echo "1) NVIDIA (proprietário, melhor performance)"
+    echo "2) Intel/AMD (open source, padrão)"
+    read -p "Opção: " gpu_opt
+    case $gpu_opt in
+        1) 
+            echo "nvidia" > "$STATE_DIR/gpu_driver"
+            if confirm "Usar módulos open-source da NVIDIA (Turing+)? / Use NVIDIA open-source modules (Turing+)?"; then
+                echo "yes" > "$STATE_DIR/nvidia_open"
+            else
+                echo "no" > "$STATE_DIR/nvidia_open"
+            fi
+            if confirm "Habilitar modesetting (recomendado para Wayland)? / Enable modesetting (recommended for Wayland)?"; then
+                echo "yes" > "$STATE_DIR/nvidia_modeset"
+            else
+                echo "no" > "$STATE_DIR/nvidia_modeset"
+            fi
+            ;;
+        2) 
+            echo "intel-amd" > "$STATE_DIR/gpu_driver"
+            echo "no" > "$STATE_DIR/nvidia_open"
+            echo "no" > "$STATE_DIR/nvidia_modeset"
+            ;;
+        *) 
+            echo "intel-amd" > "$STATE_DIR/gpu_driver"
+            echo "no" > "$STATE_DIR/nvidia_open"
+            echo "no" > "$STATE_DIR/nvidia_modeset"
+            ;;
+    esac
+}
+
 select_desktop() {
     echo "Selecione o ambiente desktop / Select desktop environment:"
-    echo "1) Cosmic (minimal)"
-    echo "2) GNOME (minimal)"
-    echo "3) KDE Plasma (minimal)"
+    echo "1) Cosmic (minimal, Wayland nativo)"
+    echo "2) GNOME (minimal, Wayland por padrão)"
+    echo "3) KDE Plasma (minimal, Wayland por padrão)"
     echo "4) Nenhum (apenas terminal)"
     read -p "Opção: " de_opt
     case $de_opt in
@@ -141,28 +163,22 @@ select_desktop() {
 
 select_network_backend() {
     echo "Selecione o backend de rede Wi-Fi / Select Wi-Fi backend:"
-    echo "1) iwd (recomendado)"
-    echo "2) wpa_supplicant"
-    echo "3) Ambos"
+    echo "1) iwd (recomendado, moderno)"
+    echo "2) wpa_supplicant (tradicional)"
     read -p "Opção: " net_opt
     case $net_opt in
         1) echo "iwd" > "$STATE_DIR/wifi_backend" ;;
         2) echo "wpa_supplicant" > "$STATE_DIR/wifi_backend" ;;
-        3) echo "both" > "$STATE_DIR/wifi_backend" ;;
         *) echo "iwd" > "$STATE_DIR/wifi_backend" ;;
     esac
 }
 
 select_flakes() {
-    echo "Habilitar flakes? / Enable flakes?"
-    echo "1) Sim (recomendado)"
-    echo "2) Não (configuração tradicional)"
-    read -p "Opção: " flake_opt
-    case $flake_opt in
-        1) echo "yes" > "$STATE_DIR/flakes" ;;
-        2) echo "no" > "$STATE_DIR/flakes" ;;
-        *) echo "yes" > "$STATE_DIR/flakes" ;;
-    esac
+    if confirm "Habilitar flakes (recomendado)? / Enable flakes (recommended)?"; then
+        echo "yes" > "$STATE_DIR/flakes"
+    else
+        echo "no" > "$STATE_DIR/flakes"
+    fi
 }
 
 select_bluetooth() {
@@ -182,7 +198,7 @@ select_cups() {
 }
 
 select_pipewire() {
-    if confirm "Habilitar PipeWire (áudio)? / Enable PipeWire (audio)?"; then
+    if confirm "Habilitar PipeWire (áudio, recomendado)? / Enable PipeWire (audio, recommended)?"; then
         echo "yes" > "$STATE_DIR/pipewire"
     else
         echo "no" > "$STATE_DIR/pipewire"
@@ -220,9 +236,9 @@ select_username() {
 }
 
 select_hostname() {
-    read -p "Digite o nome do computador / Enter hostname [renan-desktop]: " hostname
+    read -p "Digite o nome do computador / Enter hostname [nixos]: " hostname
     if [ -z "$hostname" ]; then
-        echo "renan-desktop" > "$STATE_DIR/hostname"
+        echo "nixos" > "$STATE_DIR/hostname"
     else
         echo "$hostname" > "$STATE_DIR/hostname"
     fi
@@ -232,17 +248,10 @@ select_timezone() {
     echo "Selecione o fuso horário / Select timezone:"
     echo "1) America/Sao_Paulo"
     echo "2) America/New_York"
-    echo "3) Europe/Lisbon"
-    echo "4) Outro / Other"
     read -p "Opção: " tz_opt
     case $tz_opt in
         1) echo "America/Sao_Paulo" > "$STATE_DIR/timezone" ;;
         2) echo "America/New_York" > "$STATE_DIR/timezone" ;;
-        3) echo "Europe/Lisbon" > "$STATE_DIR/timezone" ;;
-        4) 
-            read -p "Digite o fuso horário (ex: America/Sao_Paulo): " custom_tz
-            echo "$custom_tz" > "$STATE_DIR/timezone"
-            ;;
         *) echo "America/Sao_Paulo" > "$STATE_DIR/timezone" ;;
     esac
 }
@@ -257,6 +266,7 @@ show_summary() {
     echo "Bootloader: $(cat $STATE_DIR/bootloader 2>/dev/null)"
     echo "Criptografia / Encryption: $(cat $STATE_DIR/encrypt 2>/dev/null)"
     echo "Compressão btrfs: $(cat $STATE_DIR/compress 2>/dev/null)"
+    echo "Drivers GPU: $(case $(cat $STATE_DIR/gpu_driver 2>/dev/null) in nvidia) echo "NVIDIA";; intel-amd) echo "Intel/AMD";; esac)"
     echo "Desktop: $(case $(cat $STATE_DIR/desktop 2>/dev/null) in cosmic) echo "Cosmic (minimal)";; gnome) echo "GNOME (minimal)";; plasma) echo "KDE Plasma (minimal)";; none) echo "Nenhum / None";; esac)"
     echo "Swap: $(cat $STATE_DIR/swap 2>/dev/null | sed 's/0/Sem swap\/No swap/g') GB"
     echo "Wi-Fi backend: $(cat $STATE_DIR/wifi_backend 2>/dev/null)"
@@ -564,6 +574,9 @@ generate_configs() {
     local flakes=$(cat "$STATE_DIR/flakes")
     local hostname=$(cat "$STATE_DIR/hostname")
     local timezone=$(cat "$STATE_DIR/timezone")
+    local gpu_driver=$(cat "$STATE_DIR/gpu_driver")
+    local nvidia_open=$(cat "$STATE_DIR/nvidia_open")
+    local nvidia_modeset=$(cat "$STATE_DIR/nvidia_modeset")
     
     local pass_hash=$(mkpasswd -m sha-512 "$userpass")
     
@@ -600,8 +613,6 @@ EOF
   $([ "$boot_mode" = "uefi" ] && [ "$bootloader" = "grub" ] && echo 'boot.loader.grub = { enable = true; efiSupport = true; device = "nodev"; };')
   $([ "$boot_mode" = "bios" ] && echo 'boot.loader.grub = { enable = true; device = "'$disk'"; };')
 
-  $([ "$boot_mode" = "uefi" ] && [ "$bootloader" = "auto" ] && echo 'boot.loader.systemd-boot.enable = true;')
-
   # Filesystem options
   $([ "$fs" = "btrfs" ] && echo 'boot.supportedFilesystems = [ "btrfs" ];')
   $([ "$trim" = "yes" ] && echo 'services.fstrim.enable = true;')
@@ -616,7 +627,7 @@ EOF
   };
   console.keyMap = "$keyboard";
   
-  # X11 keyboard
+  # X11 keyboard (para compatibilidade)
   services.xserver = {
     enable = true;
     xkb.layout = "$xkb_layout";
@@ -629,8 +640,8 @@ EOF
   # Network
   networking.networkmanager.enable = true;
   networking.hostName = "$hostname";
-  $([ "$wifi_backend" = "iwd" ] || [ "$wifi_backend" = "both" ] && echo 'networking.wireless.iwd.enable = true;')
-  $([ "$wifi_backend" = "wpa_supplicant" ] || [ "$wifi_backend" = "both" ] && echo 'networking.wireless.enable = true;')
+  $([ "$wifi_backend" = "iwd" ] && echo 'networking.wireless.iwd.enable = true;')
+  $([ "$wifi_backend" = "wpa_supplicant" ] && echo 'networking.wireless.enable = true;')
   
   # Swap
   $([ "$swap_size" != "0" ] && echo 'swapDevices = [{ device = "/.swapfile"; }];')
@@ -651,11 +662,34 @@ EOF
   # Printing
   $([ "$cups" = "yes" ] && echo 'services.printing.enable = true;')
   
+  # Graphics
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+    $([ "$gpu_driver" = "nvidia" ] && echo 'extraPackages = with pkgs; [ vaapiVdpau libvdpau-va-gl ];')
+  };
+  
+  # GPU Drivers
+  $([ "$gpu_driver" = "nvidia" ] && echo '
+  services.xserver.videoDrivers = [ "nvidia" ];
+  hardware.nvidia = {
+    modesetting.enable = '${nvidia_modeset}';
+    powerManagement.enable = false;
+    powerManagement.finegrained = false;
+    open = '${nvidia_open}';
+    nvidiaSettings = true;
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
+  };')
+  
+  $([ "$gpu_driver" = "intel-amd" ] && echo '
+  services.xserver.videoDrivers = [ "modesetting" ];
+  # Intel/AMD drivers já incluídos no Mesa')
+  
   # User
   users.users.$username = {
     isNormalUser = true;
     description = "$username";
-    extraGroups = [ "wheel" "networkmanager" "audio" "video" ];
+    extraGroups = [ "wheel" "networkmanager" "audio" "video" "render" ];
     hashedPassword = "$pass_hash";
     shell = pkgs.bash;
   };
@@ -668,7 +702,7 @@ EOF
     }];
   }];
   
-  # Desktop Environments (minimal)
+  # Wayland por padrão para os desktops
   $([ "$desktop" = "cosmic" ] && echo '
   services.desktopManager.cosmic.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
@@ -732,6 +766,11 @@ EOF
     spectacle
   ];')
   
+  # Ozone Wayland para Electron/Chromium
+  environment.sessionVariables = {
+    NIXOS_OZONE_WL = "1";
+  };
+  
   # Basic packages
   environment.systemPackages = with pkgs; [
     firefox
@@ -741,7 +780,10 @@ EOF
     curl
     wget
     htop
+    pciutils
+    usbutils
     $([ "$fs" = "btrfs" ] && echo "btrfs-progs")
+    $([ "$gpu_driver" = "nvidia" ] && echo "nvidia-settings")
   ];
   
   system.stateVersion = "25.11";
@@ -781,6 +823,7 @@ EOF
 
 install_system() {
     cd /mnt
+    local hostname=$(cat "$STATE_DIR/hostname")
     
     if [ "$(cat "$STATE_DIR/flakes")" = "yes" ] && [ -f /mnt/etc/nixos/flake.nix ]; then
         echo "Instalando com flakes / Installing with flakes..."
@@ -803,6 +846,7 @@ main() {
     select_swap_size
     select_encryption
     select_compression
+    select_gpu_drivers
     select_desktop
     select_network_backend
     select_flakes
@@ -829,6 +873,9 @@ main() {
         echo ""
         echo "Após reiniciar, faça login com o usuário $username"
         echo "After reboot, login with user $username"
+        echo ""
+        echo "O sistema usará Wayland por padrão (session type: wayland)"
+        echo "The system will use Wayland by default (session type: wayland)"
     else
         echo "Instalação cancelada / Installation canceled."
         exit 1
