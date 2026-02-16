@@ -8,7 +8,6 @@ total_ram=$(grep MemTotal /proc/meminfo | awk '{print $2}')
 total_ram_gb=$((total_ram / 1024 / 1024))
 if [ $total_ram_gb -le 4 ]; then
     low_memory=1
-    echo "Memória baixa detectada (${total_ram_gb}GB). Otimizando instalação..."
 else
     low_memory=0
 fi
@@ -271,6 +270,18 @@ select_flakes() {
     fi
 }
 
+select_optimizations() {
+    clear
+    echo "=== OTIMIZAÇÕES RECOMENDADAS / RECOMMENDED OPTIMIZATIONS ==="
+    echo "Aplicar configurações recomendadas de desempenho e estabilidade?"
+    echo "Inclui: kernel parameters, sysctl tuning, ananicy, earlyoom, zram, udev rules"
+    if confirm "Aplicar otimizações recomendadas?"; then
+        echo "yes" > "$STATE_DIR/optimizations"
+    else
+        echo "no" > "$STATE_DIR/optimizations"
+    fi
+}
+
 detect_disk() {
     while true; do
         clear
@@ -457,6 +468,7 @@ show_summary() {
     echo "TRIM SSD: $(cat "$STATE_DIR/trim")"
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
+    echo "Otimizações: $(cat "$STATE_DIR/optimizations")"
     echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
     echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
@@ -491,6 +503,7 @@ generate_config() {
     local disk=$(cat "$STATE_DIR/disk")
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
+    local optimizations=$(cat "$STATE_DIR/optimizations")
     local config_file="/mnt/etc/nixos/configuration.nix"
     sudo tee "$config_file" > /dev/null << EOF
 { config, pkgs, lib, ... }:
@@ -533,6 +546,26 @@ EOF
     fi
     sudo tee -a "$config_file" > /dev/null << EOF
   };
+EOF
+    if [ "$optimizations" = "yes" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  boot.kernelModules = [ "tcp_bbr" ];
+  boot.kernelParams = [
+    "quiet"
+    "splash"
+    "transparent_hugepage=always"
+    "preempt=full"
+  ];
+  boot.kernel.sysctl = {
+    "kernel.split_lock_mitigate" = 0;
+    "kernel.nmi_watchdog" = 0;
+    "net.core.netdev_max_backlog" = 4096;
+    "fs.file-max" = 2097152;
+    "net.ipv4.tcp_congestion_control" = "bbr";
+  };
+EOF
+    fi
+    sudo tee -a "$config_file" > /dev/null << EOF
 
   i18n.defaultLocale = "$lang";
   console.keyMap = "$keyboard";
@@ -614,6 +647,40 @@ EOF
     pulse.enable = true;
   };
 EOF
+    if [ "$optimizations" = "yes" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.ananicy = {
+    enable = true;
+    package = pkgs.ananicy-cpp;
+    rulesProvider = pkgs.ananicy-rules-cachyos;
+  };
+  services.earlyoom = {
+    enable = true;
+    freeSwapThreshold = 2;
+    freeMemThreshold = 2;
+    extraArgs = [ "-g" "--avoid" "'^(X|plasma.*|konsole|kwin|wayland|gnome.*)$'" ];
+  };
+  services.udev.extraRules = ''
+    ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
+    ACTION=="add|change", KERNEL=="sd[a-z]*|mmcblk[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
+    ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="none"
+  '';
+  systemd.services.set-min-free-mem = {
+    description = "Set vm.min_free_kbytes dynamically";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "local-fs.target" ];
+    serviceConfig.User = "root";
+    serviceConfig.RemainAfterExit = true;
+    script = ''
+      TOTAL_MEM=''$(awk '/MemTotal/ {printf "%.0f", $2 * 0.01}' /proc/meminfo)
+      if [ -n "''$TOTAL_MEM" ] && [ "''$TOTAL_MEM" -gt 0 ]; then
+        sysctl -w vm.min_free_kbytes=''$TOTAL_MEM
+      fi
+    '';
+  };
+  zramSwap.enable = true;
+EOF
+    fi
     if [ "$bluetooth" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   hardware.bluetooth.enable = true;
@@ -789,7 +856,6 @@ install_system() {
     if [ $low_memory -eq 1 ]; then
         export NIX_BUILD_CORES=1
         export NIX_REMOTE=""
-        export NIX_BUILD_SYSTEM=""
         export NIX_CONF_DIR=/tmp/nix-conf
         mkdir -p $NIX_CONF_DIR
         echo "build-users-group =" > $NIX_CONF_DIR/nix.conf
@@ -809,11 +875,6 @@ main() {
     clear
     echo "=== INSTALADOR AUTOMÁTICO NIXOS ==="
     echo
-    if [ $low_memory -eq 1 ]; then
-        echo "Modo de baixa memória ativado (${total_ram_gb}GB RAM)"
-        echo "A instalação será mais lenta mas consumirá menos recursos"
-        echo
-    fi
     select_language
     select_keyboard
     select_timezone
@@ -830,6 +891,7 @@ main() {
     select_cups
     select_ssd_trim
     select_flakes
+    select_optimizations
     detect_disk
     select_username
     show_summary
