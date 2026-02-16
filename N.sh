@@ -4,6 +4,21 @@ set -e
 STATE_DIR="/tmp/nixos_install_state"
 mkdir -p "$STATE_DIR"
 
+TOTAL_RAM=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+TOTAL_RAM_GB=$((TOTAL_RAM / 1024 / 1024))
+
+if [ $TOTAL_RAM_GB -lt 4 ]; then
+    export NIX_BUILD_CORES=1
+    export NIX_REMOTE=""
+    mkdir -p /etc/nix
+    cat > /etc/nix/nix.conf << EOF
+cores = 1
+max-jobs = 1
+min-free = 128
+max-free = 512
+EOF
+fi
+
 confirm() {
     local prompt="$1"
     read -p "$prompt (s/n): " -n 1 resposta
@@ -18,15 +33,9 @@ select_language() {
         echo "1) Português Brasileiro (pt_BR.UTF-8)"
         echo "2) English US (en_US.UTF-8)"
         read -p "Opção: " lang_opt
-        case $lang_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
+        case $lang_opt in 1|2) break ;; *) echo "Opção inválida"; sleep 2 ;; esac
     done
-    case $lang_opt in
-        1) echo "pt_BR.UTF-8" > "$STATE_DIR/lang" ;;
-        2) echo "en_US.UTF-8" > "$STATE_DIR/lang" ;;
-    esac
+    case $lang_opt in 1) echo "pt_BR.UTF-8" > "$STATE_DIR/lang" ;; 2) echo "en_US.UTF-8" > "$STATE_DIR/lang" ;; esac
 }
 
 select_keyboard() {
@@ -36,15 +45,9 @@ select_keyboard() {
         echo "1) Português Brasileiro (br)"
         echo "2) English US (us)"
         read -p "Opção: " kb_opt
-        case $kb_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
+        case $kb_opt in 1|2) break ;; *) echo "Opção inválida"; sleep 2 ;; esac
     done
-    case $kb_opt in
-        1) echo "br" > "$STATE_DIR/keyboard" ;;
-        2) echo "us" > "$STATE_DIR/keyboard" ;;
-    esac
+    case $kb_opt in 1) echo "br" > "$STATE_DIR/keyboard" ;; 2) echo "us" > "$STATE_DIR/keyboard" ;; esac
 }
 
 select_timezone() {
@@ -54,25 +57,15 @@ select_timezone() {
         echo "1) America/Sao_Paulo"
         echo "2) America/New_York"
         read -p "Opção: " tz_opt
-        case $tz_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
+        case $tz_opt in 1|2) break ;; *) echo "Opção inválida"; sleep 2 ;; esac
     done
-    case $tz_opt in
-        1) echo "America/Sao_Paulo" > "$STATE_DIR/timezone" ;;
-        2) echo "America/New_York" > "$STATE_DIR/timezone" ;;
-    esac
+    case $tz_opt in 1) echo "America/Sao_Paulo" > "$STATE_DIR/timezone" ;; 2) echo "America/New_York" > "$STATE_DIR/timezone" ;; esac
 }
 
 select_hostname() {
     clear
     read -p "Digite o nome do computador [nixos]: " hostname
-    if [ -z "$hostname" ]; then
-        echo "nixos" > "$STATE_DIR/hostname"
-    else
-        echo "$hostname" > "$STATE_DIR/hostname"
-    fi
+    if [ -z "$hostname" ]; then echo "nixos" > "$STATE_DIR/hostname"; else echo "$hostname" > "$STATE_DIR/hostname"; fi
 }
 
 select_device_type() {
@@ -82,33 +75,21 @@ select_device_type() {
         echo "1) Laptop (economia de energia)"
         echo "2) Desktop (desempenho máximo)"
         read -p "Opção: " device_opt
-        case $device_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
+        case $device_opt in 1|2) break ;; *) echo "Opção inválida"; sleep 2 ;; esac
     done
-    case $device_opt in
-        1) echo "laptop" > "$STATE_DIR/device_type" ;;
-        2) echo "desktop" > "$STATE_DIR/device_type" ;;
-    esac
+    case $device_opt in 1) echo "laptop" > "$STATE_DIR/device_type" ;; 2) echo "desktop" > "$STATE_DIR/device_type" ;; esac
 }
 
 select_filesystem() {
     while true; do
         clear
         echo "=== SISTEMA DE ARQUIVOS / FILESYSTEM ==="
-        echo "1) ext4 (estável, simples - recomendo para 3GB RAM)"
+        echo "1) ext4 (estável, simples)"
         echo "2) btrfs (com snapshots e compressão zstd automática)"
         read -p "Opção: " fs_opt
-        case $fs_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
+        case $fs_opt in 1|2) break ;; *) echo "Opção inválida"; sleep 2 ;; esac
     done
-    case $fs_opt in
-        1) echo "ext4" > "$STATE_DIR/filesystem" ;;
-        2) echo "btrfs" > "$STATE_DIR/filesystem" ;;
-    esac
+    case $fs_opt in 1) echo "ext4" > "$STATE_DIR/filesystem" ;; 2) echo "btrfs" > "$STATE_DIR/filesystem" ;; esac
 }
 
 select_bootloader() {
@@ -118,47 +99,29 @@ select_bootloader() {
         echo "1) systemd-boot (recomendado para UEFI)"
         echo "2) GRUB (compatível com BIOS e UEFI)"
         read -p "Opção: " bl_opt
-        case $bl_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
+        case $bl_opt in 1|2) break ;; *) echo "Opção inválida"; sleep 2 ;; esac
     done
-    case $bl_opt in
-        1) echo "systemd-boot" > "$STATE_DIR/bootloader" ;;
-        2) echo "grub" > "$STATE_DIR/bootloader" ;;
-    esac
+    case $bl_opt in 1) echo "systemd-boot" > "$STATE_DIR/bootloader" ;; 2) echo "grub" > "$STATE_DIR/bootloader" ;; esac
 }
 
 select_swap_size() {
     while true; do
         clear
         echo "=== TAMANHO DO SWAP / SWAP SIZE ==="
-        echo "1) 2GB (recomendado para 3GB RAM)"
+        echo "1) 2GB"
         echo "2) 4GB"
         echo "3) 8GB"
         echo "4) Sem swap"
         read -p "Opção: " swap_opt
-        case $swap_opt in
-            1|2|3|4) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
+        case $swap_opt in 1|2|3|4) break ;; *) echo "Opção inválida"; sleep 2 ;; esac
     done
-    case $swap_opt in
-        1) echo "2" > "$STATE_DIR/swap" ;;
-        2) echo "4" > "$STATE_DIR/swap" ;;
-        3) echo "8" > "$STATE_DIR/swap" ;;
-        4) echo "0" > "$STATE_DIR/swap" ;;
-    esac
+    case $swap_opt in 1) echo "2" > "$STATE_DIR/swap" ;; 2) echo "4" > "$STATE_DIR/swap" ;; 3) echo "8" > "$STATE_DIR/swap" ;; 4) echo "0" > "$STATE_DIR/swap" ;; esac
 }
 
 select_encryption() {
     clear
     echo "=== CRIPTOGRAFIA / ENCRYPTION ==="
-    if confirm "Criptografar disco com LUKS?"; then
-        echo "yes" > "$STATE_DIR/encryption"
-    else
-        echo "no" > "$STATE_DIR/encryption"
-    fi
+    if confirm "Criptografar disco com LUKS?"; then echo "yes" > "$STATE_DIR/encryption"; else echo "no" > "$STATE_DIR/encryption"; fi
 }
 
 select_gpu_drivers() {
@@ -168,20 +131,11 @@ select_gpu_drivers() {
         echo "1) NVIDIA (proprietário - módulos open para Turing+)"
         echo "2) Intel/AMD (open source)"
         read -p "Opção: " gpu_opt
-        case $gpu_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
+        case $gpu_opt in 1|2) break ;; *) echo "Opção inválida"; sleep 2 ;; esac
     done
     case $gpu_opt in
-        1) 
-            echo "nvidia" > "$STATE_DIR/gpu_driver"
-            echo "yes" > "$STATE_DIR/unfree"
-            ;;
-        2) 
-            echo "intel-amd" > "$STATE_DIR/gpu_driver"
-            echo "no" > "$STATE_DIR/unfree"
-            ;;
+        1) echo "nvidia" > "$STATE_DIR/gpu_driver"; echo "yes" > "$STATE_DIR/unfree" ;;
+        2) echo "intel-amd" > "$STATE_DIR/gpu_driver"; echo "no" > "$STATE_DIR/unfree" ;;
     esac
 }
 
@@ -189,77 +143,47 @@ select_desktop() {
     while true; do
         clear
         echo "=== AMBIENTE DESKTOP / DESKTOP ENVIRONMENT ==="
-        echo "1) Nenhum (apenas terminal - recomendo para 3GB RAM)"
-        echo "2) COSMIC (minimal, Wayland nativo)"
-        echo "3) GNOME (minimal, Wayland)"
-        echo "4) KDE Plasma (minimal, Wayland)"
+        echo "1) COSMIC (minimal, Wayland nativo)"
+        echo "2) GNOME (minimal, Wayland)"
+        echo "3) KDE Plasma (minimal, Wayland)"
+        echo "4) Nenhum (apenas terminal)"
         read -p "Opção: " de_opt
-        case $de_opt in
-            1|2|3|4) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
+        case $de_opt in 1|2|3|4) break ;; *) echo "Opção inválida"; sleep 2 ;; esac
     done
-    case $de_opt in
-        1) echo "none" > "$STATE_DIR/desktop" ;;
-        2) echo "cosmic" > "$STATE_DIR/desktop" ;;
-        3) echo "gnome" > "$STATE_DIR/desktop" ;;
-        4) echo "plasma" > "$STATE_DIR/desktop" ;;
-    esac
+    case $de_opt in 1) echo "cosmic" > "$STATE_DIR/desktop" ;; 2) echo "gnome" > "$STATE_DIR/desktop" ;; 3) echo "plasma" > "$STATE_DIR/desktop" ;; 4) echo "none" > "$STATE_DIR/desktop" ;; esac
 }
 
 select_wireless_backend() {
     while true; do
         clear
         echo "=== BACKEND DE REDE SEM FIO / WIRELESS BACKEND ==="
-        echo "1) iwd (mais leve, melhor performance - recomendo)"
+        echo "1) iwd (mais leve, melhor performance)"
         echo "2) wpa_supplicant (padrão, maior compatibilidade)"
         read -p "Opção: " net_opt
-        case $net_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
+        case $net_opt in 1|2) break ;; *) echo "Opção inválida"; sleep 2 ;; esac
     done
-    case $net_opt in
-        1) echo "iwd" > "$STATE_DIR/wireless_backend" ;;
-        2) echo "wpa_supplicant" > "$STATE_DIR/wireless_backend" ;;
-    esac
+    case $net_opt in 1) echo "iwd" > "$STATE_DIR/wireless_backend" ;; 2) echo "wpa_supplicant" > "$STATE_DIR/wireless_backend" ;; esac
 }
 
 select_bluetooth() {
     clear
-    if confirm "Habilitar Bluetooth?"; then
-        echo "yes" > "$STATE_DIR/bluetooth"
-    else
-        echo "no" > "$STATE_DIR/bluetooth"
-    fi
+    if confirm "Habilitar Bluetooth?"; then echo "yes" > "$STATE_DIR/bluetooth"; else echo "no" > "$STATE_DIR/bluetooth"; fi
 }
 
 select_cups() {
     clear
-    if confirm "Habilitar suporte a impressão (CUPS)?"; then
-        echo "yes" > "$STATE_DIR/cups"
-    else
-        echo "no" > "$STATE_DIR/cups"
-    fi
+    if confirm "Habilitar suporte a impressão (CUPS)?"; then echo "yes" > "$STATE_DIR/cups"; else echo "no" > "$STATE_DIR/cups"; fi
 }
 
 select_ssd_trim() {
     clear
-    if confirm "Habilitar TRIM para SSD?"; then
-        echo "yes" > "$STATE_DIR/trim"
-    else
-        echo "no" > "$STATE_DIR/trim"
-    fi
+    if confirm "Habilitar TRIM para SSD?"; then echo "yes" > "$STATE_DIR/trim"; else echo "no" > "$STATE_DIR/trim"; fi
 }
 
 select_flakes() {
     clear
     echo "=== FLAKES (EXPERIMENTAL) ==="
-    if confirm "Criar arquivo flake.nix de exemplo?"; then
-        echo "yes" > "$STATE_DIR/flakes"
-    else
-        echo "no" > "$STATE_DIR/flakes"
-    fi
+    if confirm "Criar arquivo flake.nix de exemplo?"; then echo "yes" > "$STATE_DIR/flakes"; else echo "no" > "$STATE_DIR/flakes"; fi
 }
 
 detect_disk() {
@@ -335,11 +259,7 @@ partition_disk() {
         sudo parted $disk -- set 1 esp on
         sudo parted $disk -- mkpart primary 512MB 100%
         sudo mkfs.fat -F 32 -n NIXBOOT ${disk}1
-        if [ "$fs" = "btrfs" ]; then
-            sudo mkfs.btrfs -f -L NIXROOT ${disk}2
-        else
-            sudo mkfs.ext4 -F -L NIXROOT ${disk}2
-        fi
+        if [ "$fs" = "btrfs" ]; then sudo mkfs.btrfs -f -L NIXROOT ${disk}2; else sudo mkfs.ext4 -F -L NIXROOT ${disk}2; fi
     else
         echo "BIOS/Legacy detectado"
         echo "bios" > "$STATE_DIR/boot_mode"
@@ -348,11 +268,7 @@ partition_disk() {
         sudo parted $disk -- set 1 boot on
         sudo parted $disk -- mkpart primary 512MB 100%
         sudo mkfs.ext4 -F -L NIXBOOT ${disk}1
-        if [ "$fs" = "btrfs" ]; then
-            sudo mkfs.btrfs -f -L NIXROOT ${disk}2
-        else
-            sudo mkfs.ext4 -F -L NIXROOT ${disk}2
-        fi
+        if [ "$fs" = "btrfs" ]; then sudo mkfs.btrfs -f -L NIXROOT ${disk}2; else sudo mkfs.ext4 -F -L NIXROOT ${disk}2; fi
     fi
 }
 
@@ -364,20 +280,12 @@ setup_encryption() {
     local uuid=$(sudo blkid -s UUID -o value ${disk}2)
     echo "$uuid" > "$STATE_DIR/luks_uuid"
     local fs=$(cat "$STATE_DIR/filesystem")
-    if [ "$fs" = "btrfs" ]; then
-        sudo mkfs.btrfs /dev/mapper/cryptroot
-    else
-        sudo mkfs.ext4 /dev/mapper/cryptroot
-    fi
+    if [ "$fs" = "btrfs" ]; then sudo mkfs.btrfs /dev/mapper/cryptroot; else sudo mkfs.ext4 /dev/mapper/cryptroot; fi
 }
 
 setup_btrfs_subvolumes() {
     local root_dev
-    if [ "$(cat "$STATE_DIR/encryption")" = "yes" ]; then
-        root_dev="/dev/mapper/cryptroot"
-    else
-        root_dev="/dev/disk/by-label/NIXROOT"
-    fi
+    if [ "$(cat "$STATE_DIR/encryption")" = "yes" ]; then root_dev="/dev/mapper/cryptroot"; else root_dev="/dev/disk/by-label/NIXROOT"; fi
     echo "Criando subvolumes btrfs com compressão zstd..."
     sudo mount $root_dev /mnt
     sudo btrfs subvolume create /mnt/@
@@ -394,20 +302,10 @@ mount_partitions() {
     local encryption=$(cat "$STATE_DIR/encryption")
     local fs=$(cat "$STATE_DIR/filesystem")
     if [ "$encryption" = "yes" ]; then
-        if [ ! -e /dev/mapper/cryptroot ]; then
-            setup_encryption
-        fi
-        if [ "$fs" = "btrfs" ]; then
-            setup_btrfs_subvolumes
-        else
-            sudo mount /dev/mapper/cryptroot /mnt
-        fi
+        if [ ! -e /dev/mapper/cryptroot ]; then setup_encryption; fi
+        if [ "$fs" = "btrfs" ]; then setup_btrfs_subvolumes; else sudo mount /dev/mapper/cryptroot /mnt; fi
     else
-        if [ "$fs" = "btrfs" ]; then
-            setup_btrfs_subvolumes
-        else
-            sudo mount /dev/disk/by-label/NIXROOT /mnt
-        fi
+        if [ "$fs" = "btrfs" ]; then setup_btrfs_subvolumes; else sudo mount /dev/disk/by-label/NIXROOT /mnt; fi
     fi
     sudo mkdir -p /mnt/boot
     sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot
@@ -415,14 +313,11 @@ mount_partitions() {
 
 create_swap() {
     local swap_size=$(cat "$STATE_DIR/swap")
-    if [ "$swap_size" = "0" ]; then
-        return
-    fi
+    if [ "$swap_size" = "0" ]; then return; fi
     echo "Criando arquivo swap de ${swap_size}G..."
     sudo dd if=/dev/zero of=/mnt/.swapfile bs=1M count=$((swap_size * 1024)) status=progress
     sudo chmod 600 /mnt/.swapfile
     sudo mkswap /mnt/.swapfile
-    sudo swapon /mnt/.swapfile
 }
 
 show_summary() {
@@ -434,11 +329,7 @@ show_summary() {
     echo "Hostname: $(cat "$STATE_DIR/hostname")"
     echo "Tipo/Type: $(cat "$STATE_DIR/device_type")"
     local swap=$(cat "$STATE_DIR/swap")
-    if [ "$swap" = "0" ]; then
-        echo "Swap: Sem swap"
-    else
-        echo "Swap: ${swap}GB"
-    fi
+    if [ "$swap" = "0" ]; then echo "Swap: Sem swap"; else echo "Swap: ${swap}GB"; fi
     echo "Filesystem: $(cat "$STATE_DIR/filesystem")"
     echo "Bootloader: $(cat "$STATE_DIR/bootloader")"
     echo "Desktop: $(cat "$STATE_DIR/desktop")"
@@ -453,10 +344,7 @@ show_summary() {
     echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
     echo
-    if ! confirm "Continuar com a instalação?"; then
-        echo "Instalação cancelada."
-        exit 0
-    fi
+    if ! confirm "Continuar com a instalação?"; then echo "Instalação cancelada."; exit 0; fi
 }
 
 generate_config() {
@@ -659,8 +547,9 @@ EOF
   users.users.$username = {
     isNormalUser = true;
     description = "$username";
-    extraGroups = [ "wheel" "networkmanager" ];
+    extraGroups = [ "wheel" "networkmanager" "audio" "video" "lp" ];
     hashedPassword = "$pass_hash";
+    shell = pkgs.bash;
   };
   
   security.sudo.extraRules = [
@@ -713,25 +602,29 @@ EOF
     openssl
     file
 EOF
-    if [ "$desktop" = "gnome" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
+    case $desktop in
+        gnome)
+            sudo tee -a "$config_file" > /dev/null << EOF
     gnome-tweaks
     gnome-disk-utility
     gnome-software
 EOF
-    elif [ "$desktop" = "plasma" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
+            ;;
+        plasma)
+            sudo tee -a "$config_file" > /dev/null << EOF
     kdePackages.dolphin
     kdePackages.ark
     kdePackages.kate
 EOF
-    elif [ "$desktop" = "cosmic" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
+            ;;
+        cosmic)
+            sudo tee -a "$config_file" > /dev/null << EOF
     cosmic-term
     cosmic-files
     cosmic-store
 EOF
-    fi
+            ;;
+    esac
     sudo tee -a "$config_file" > /dev/null << EOF
   ];
   
@@ -742,9 +635,7 @@ EOF
 }
 
 generate_flake() {
-    if [ "$(cat "$STATE_DIR/flakes")" != "yes" ]; then
-        return
-    fi
+    if [ "$(cat "$STATE_DIR/flakes")" != "yes" ]; then return; fi
     local hostname=$(cat "$STATE_DIR/hostname")
     local flake_file="/mnt/etc/nixos/flake.nix"
     sudo tee "$flake_file" > /dev/null << EOF
@@ -772,14 +663,12 @@ install_system() {
     echo "=== INSTALANDO SISTEMA ==="
     echo "A instalação pode levar alguns minutos..."
     echo
-    cd /mnt
-    
-    echo "Configurando otimizações para baixa memória RAM..."
-    export NIX_BUILD_CORES=1
-    export NIX_REMOTE=
-    export NIX_BUILD_HOOK=
-    
-    sudo -E nixos-install --no-root-passwd --max-jobs 1 --cores 1 --option build-cores 1
+    if [ $TOTAL_RAM_GB -lt 4 ]; then
+        echo "Memória RAM baixa detectada (${TOTAL_RAM_GB}GB). Usando configurações otimizadas..."
+        sudo nixos-install --no-root-passwd --max-jobs 1 --cores 1
+    else
+        sudo nixos-install --no-root-passwd
+    fi
     echo
     echo "=== INSTALAÇÃO CONCLUÍDA ==="
     echo "Após reiniciar, faça login com usuário: $(cat "$STATE_DIR/username")"
@@ -789,7 +678,7 @@ install_system() {
 main() {
     clear
     echo "=== INSTALADOR AUTOMÁTICO NIXOS ==="
-    echo "=== OTIMIZADO PARA SISTEMAS COM BAIXA MEMÓRIA (3GB) ==="
+    echo "Memória RAM detectada: ${TOTAL_RAM_GB}GB"
     echo
     select_language
     select_keyboard
