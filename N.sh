@@ -97,7 +97,7 @@ select_filesystem() {
     while true; do
         clear
         echo "=== SISTEMA DE ARQUIVOS / FILESYSTEM ==="
-        echo "1) ext4 (estável, simples)"
+        echo "1) ext4 (estável, simples - recomendo para 3GB RAM)"
         echo "2) btrfs (com snapshots e compressão zstd automática)"
         read -p "Opção: " fs_opt
         case $fs_opt in
@@ -133,7 +133,7 @@ select_swap_size() {
     while true; do
         clear
         echo "=== TAMANHO DO SWAP / SWAP SIZE ==="
-        echo "1) 2GB"
+        echo "1) 2GB (recomendado para 3GB RAM)"
         echo "2) 4GB"
         echo "3) 8GB"
         echo "4) Sem swap"
@@ -189,10 +189,10 @@ select_desktop() {
     while true; do
         clear
         echo "=== AMBIENTE DESKTOP / DESKTOP ENVIRONMENT ==="
-        echo "1) COSMIC (minimal, Wayland nativo)"
-        echo "2) GNOME (minimal, Wayland)"
-        echo "3) KDE Plasma (minimal, Wayland)"
-        echo "4) Nenhum (apenas terminal)"
+        echo "1) Nenhum (apenas terminal - recomendo para 3GB RAM)"
+        echo "2) COSMIC (minimal, Wayland nativo)"
+        echo "3) GNOME (minimal, Wayland)"
+        echo "4) KDE Plasma (minimal, Wayland)"
         read -p "Opção: " de_opt
         case $de_opt in
             1|2|3|4) break ;;
@@ -200,10 +200,10 @@ select_desktop() {
         esac
     done
     case $de_opt in
-        1) echo "cosmic" > "$STATE_DIR/desktop" ;;
-        2) echo "gnome" > "$STATE_DIR/desktop" ;;
-        3) echo "plasma" > "$STATE_DIR/desktop" ;;
-        4) echo "none" > "$STATE_DIR/desktop" ;;
+        1) echo "none" > "$STATE_DIR/desktop" ;;
+        2) echo "cosmic" > "$STATE_DIR/desktop" ;;
+        3) echo "gnome" > "$STATE_DIR/desktop" ;;
+        4) echo "plasma" > "$STATE_DIR/desktop" ;;
     esac
 }
 
@@ -211,7 +211,7 @@ select_wireless_backend() {
     while true; do
         clear
         echo "=== BACKEND DE REDE SEM FIO / WIRELESS BACKEND ==="
-        echo "1) iwd (mais leve, melhor performance)"
+        echo "1) iwd (mais leve, melhor performance - recomendo)"
         echo "2) wpa_supplicant (padrão, maior compatibilidade)"
         read -p "Opção: " net_opt
         case $net_opt in
@@ -422,6 +422,7 @@ create_swap() {
     sudo dd if=/dev/zero of=/mnt/.swapfile bs=1M count=$((swap_size * 1024)) status=progress
     sudo chmod 600 /mnt/.swapfile
     sudo mkswap /mnt/.swapfile
+    sudo swapon /mnt/.swapfile
 }
 
 show_summary() {
@@ -658,9 +659,8 @@ EOF
   users.users.$username = {
     isNormalUser = true;
     description = "$username";
-    extraGroups = [ "wheel" "networkmanager" "audio" "video" "lp" ];
+    extraGroups = [ "wheel" "networkmanager" ];
     hashedPassword = "$pass_hash";
-    shell = pkgs.bash;
   };
   
   security.sudo.extraRules = [
@@ -713,29 +713,25 @@ EOF
     openssl
     file
 EOF
-    case $desktop in
-        gnome)
-            sudo tee -a "$config_file" > /dev/null << EOF
+    if [ "$desktop" = "gnome" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
     gnome-tweaks
     gnome-disk-utility
     gnome-software
 EOF
-            ;;
-        plasma)
-            sudo tee -a "$config_file" > /dev/null << EOF
+    elif [ "$desktop" = "plasma" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
     kdePackages.dolphin
     kdePackages.ark
     kdePackages.kate
 EOF
-            ;;
-        cosmic)
-            sudo tee -a "$config_file" > /dev/null << EOF
+    elif [ "$desktop" = "cosmic" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
     cosmic-term
     cosmic-files
     cosmic-store
 EOF
-            ;;
-    esac
+    fi
     sudo tee -a "$config_file" > /dev/null << EOF
   ];
   
@@ -777,7 +773,13 @@ install_system() {
     echo "A instalação pode levar alguns minutos..."
     echo
     cd /mnt
-    sudo nixos-install --no-root-passwd
+    
+    echo "Configurando otimizações para baixa memória RAM..."
+    export NIX_BUILD_CORES=1
+    export NIX_REMOTE=
+    export NIX_BUILD_HOOK=
+    
+    sudo -E nixos-install --no-root-passwd --max-jobs 1 --cores 1 --option build-cores 1
     echo
     echo "=== INSTALAÇÃO CONCLUÍDA ==="
     echo "Após reiniciar, faça login com usuário: $(cat "$STATE_DIR/username")"
@@ -787,6 +789,7 @@ install_system() {
 main() {
     clear
     echo "=== INSTALADOR AUTOMÁTICO NIXOS ==="
+    echo "=== OTIMIZADO PARA SISTEMAS COM BAIXA MEMÓRIA (3GB) ==="
     echo
     select_language
     select_keyboard
