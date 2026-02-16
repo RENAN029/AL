@@ -270,22 +270,15 @@ select_flakes() {
     fi
 }
 
-select_recommended_settings() {
+select_optimizations() {
     clear
-    echo "=== CONFIGURAÇÕES RECOMENDADAS / RECOMMENDED SETTINGS ==="
-    echo "Aplicar configurações otimizadas de desempenho e sistema?"
-    echo "- Kernel parameters otimizados (transparent_hugepage, preempt, tcp_bbr)"
-    echo "- Sysctl tweaks (file-max, network backlog, split lock mitigation)"
-    echo "- earlyOOM configurado para evitar travamentos"
-    echo "- ananicy-cpp para priorização automática de processos"
-    echo "- zramSwap ativado"
-    echo "- Serviço para ajuste automático de vm.min_free_kbytes"
-    echo "- Regras udev otimizadas para SSDs/HDDs e áudio"
-    echo
-    if confirm "Aplicar estas configurações?"; then
-        echo "yes" > "$STATE_DIR/recommended"
+    echo "=== OTIMIZAÇÕES RECOMENDADAS / RECOMMENDED OPTIMIZATIONS ==="
+    echo "Aplicar configurações recomendadas de desempenho e estabilidade?"
+    echo "Inclui: kernel parameters, sysctl tuning, ananicy, earlyoom, zram, udev rules"
+    if confirm "Aplicar otimizações recomendadas?"; then
+        echo "yes" > "$STATE_DIR/optimizations"
     else
-        echo "no" > "$STATE_DIR/recommended"
+        echo "no" > "$STATE_DIR/optimizations"
     fi
 }
 
@@ -475,7 +468,7 @@ show_summary() {
     echo "TRIM SSD: $(cat "$STATE_DIR/trim")"
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
-    echo "Configurações Recomendadas: $(cat "$STATE_DIR/recommended")"
+    echo "Otimizações: $(cat "$STATE_DIR/optimizations")"
     echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
     echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
@@ -510,7 +503,7 @@ generate_config() {
     local disk=$(cat "$STATE_DIR/disk")
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
-    local recommended=$(cat "$STATE_DIR/recommended")
+    local optimizations=$(cat "$STATE_DIR/optimizations")
     local config_file="/mnt/etc/nixos/configuration.nix"
     sudo tee "$config_file" > /dev/null << EOF
 { config, pkgs, lib, ... }:
@@ -554,9 +547,8 @@ EOF
     sudo tee -a "$config_file" > /dev/null << EOF
   };
 EOF
-    if [ "$recommended" = "yes" ]; then
+    if [ "$optimizations" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  boot.loader.timeout = 2;
   boot.kernelModules = [ "tcp_bbr" ];
   boot.kernelParams = [
     "quiet"
@@ -576,23 +568,6 @@ EOF
     sudo tee -a "$config_file" > /dev/null << EOF
 
   i18n.defaultLocale = "$lang";
-EOF
-    if [ "$lang" = "pt_BR.UTF-8" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "pt_BR.UTF-8";
-    LC_IDENTIFICATION = "pt_BR.UTF-8";
-    LC_MEASUREMENT = "pt_BR.UTF-8";
-    LC_MONETARY = "pt_BR.UTF-8";
-    LC_NAME = "pt_BR.UTF-8";
-    LC_NUMERIC = "pt_BR.UTF-8";
-    LC_PAPER = "pt_BR.UTF-8";
-    LC_TELEPHONE = "pt_BR.UTF-8";
-    LC_TIME = "pt_BR.UTF-8";
-  };
-EOF
-    fi
-    sudo tee -a "$config_file" > /dev/null << EOF
   console.keyMap = "$keyboard";
   
   time.timeZone = "$timezone";
@@ -613,10 +588,7 @@ EOF
     sudo tee -a "$config_file" > /dev/null << EOF
 
   services.xserver.enable = true;
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "intl";
-  };
+  services.xserver.xkb.layout = "$keyboard";
 EOF
     if [ "$desktop" != "none" ]; then
         case $desktop in
@@ -675,6 +647,40 @@ EOF
     pulse.enable = true;
   };
 EOF
+    if [ "$optimizations" = "yes" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.ananicy = {
+    enable = true;
+    package = pkgs.ananicy-cpp;
+    rulesProvider = pkgs.ananicy-rules-cachyos;
+  };
+  services.earlyoom = {
+    enable = true;
+    freeSwapThreshold = 2;
+    freeMemThreshold = 2;
+    extraArgs = [ "-g" "--avoid" "'^(X|plasma.*|konsole|kwin|wayland|gnome.*)$'" ];
+  };
+  services.udev.extraRules = ''
+    ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
+    ACTION=="add|change", KERNEL=="sd[a-z]*|mmcblk[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
+    ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="none"
+  '';
+  systemd.services.set-min-free-mem = {
+    description = "Set vm.min_free_kbytes dynamically";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "local-fs.target" ];
+    serviceConfig.User = "root";
+    serviceConfig.RemainAfterExit = true;
+    script = ''
+      TOTAL_MEM=''$(awk '/MemTotal/ {printf "%.0f", $2 * 0.01}' /proc/meminfo)
+      if [ -n "''$TOTAL_MEM" ] && [ "''$TOTAL_MEM" -gt 0 ]; then
+        sysctl -w vm.min_free_kbytes=''$TOTAL_MEM
+      fi
+    '';
+  };
+  zramSwap.enable = true;
+EOF
+    fi
     if [ "$bluetooth" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   hardware.bluetooth.enable = true;
@@ -689,78 +695,6 @@ EOF
     if [ "$trim" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.fstrim.enable = true;
-EOF
-    fi
-    if [ "$recommended" = "yes" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  services.ananicy = {
-    enable = true;
-    package = pkgs.ananicy-cpp;
-    rulesProvider = pkgs.ananicy-rules-cachyos;
-  };
-  services.earlyoom = {
-    enable = true;
-    freeSwapThreshold = 2;
-    freeMemThreshold = 2;
-    extraArgs = [ "-g" "--avoid" "'^(X|plasma.*|konsole|kwin|wayland|gnome.*)$'" ];
-  };
-  services.preload-ng = {
-    enable = true;
-    settings = {
-      cycle = 15;
-      memTotal = -5;
-      memFree = 70;
-      memCached = 10;
-      memBuffers = 50;
-      minSize = 1000000;
-      processes = 60;
-      sortStrategy = 0;
-      autoSave = 1800;
-      mapPrefix = "/nix/store/;/run/current-system/;!/";
-      exePrefix = "/nix/store/;/run/current-system/;!/";
-    };
-  };
-  services.udev.extraRules = ''
-    ACTION=="add", SUBSYSTEM=="sound", KERNEL=="card*", DRIVERS=="snd_hda_intel", TEST!="/run/udev/snd-hda-intel-powersave", \
-      RUN+="${pkgs.bash}/bin/bash -c 'touch /run/udev/snd-hda-intel-powersave; \
-        [[ $$(cat /sys/class/power_supply/BAT0/status 2>/dev/null) != \"Discharging\" ]] && \
-        echo $$(cat /sys/module/snd_hda_intel/parameters/power_save) > /run/udev/snd-hda-intel-powersave && \
-        echo 0 > /sys/module/snd_hda_intel/parameters/power_save'"
-    SUBSYSTEM=="power_supply", ENV{POWER_SUPPLY_ONLINE}=="0", TEST=="/sys/module/snd_hda_intel", \
-      RUN+="${pkgs.bash}/bin/bash -c 'echo $$(cat /run/udev/snd-hda-intel-powersave 2>/dev/null || \
-        echo 10) > /sys/module/snd_hda_intel/parameters/power_save'"
-    SUBSYSTEM=="power_supply", ENV{POWER_SUPPLY_ONLINE}=="1", TEST=="/sys/module/snd_hda_intel", \
-      RUN+="${pkgs.bash}/bin/bash -c '[[ $$(cat /sys/module/snd_hda_intel/parameters/power_save) != 0 ]] && \
-        echo $$(cat /sys/module/snd_hda_intel/parameters/power_save) > /run/udev/snd-hda-intel-powersave; \
-        echo 0 > /sys/module/snd_hda_intel/parameters/power_save'"
-    KERNEL=="rtc0", GROUP="audio"
-    KERNEL=="hpet", GROUP="audio"
-    DEVPATH=="/devices/virtual/misc/cpu_dma_latency", OWNER="root", GROUP="audio", MODE="0660"
-    ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="1", \
-      ATTR{queue/scheduler}="bfq"
-    ACTION=="add|change", KERNEL=="sd[a-z]*|mmcblk[0-9]*", ATTR{queue/rotational}=="0", \
-      ATTR{queue/scheduler}="mq-deadline"
-    ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/rotational}=="0", \
-      ATTR{queue/scheduler}="none"
-  '';
-  systemd.services.set-min-free-mem = {
-    description = "Set vm.min_free_kbytes dynamically";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "local-fs.target" ];
-    serviceConfig = {
-      User = "root";
-      RemainAfterExit = true;
-    };
-    script = ''
-      TOTAL_MEM=$(${pkgs.gawk}/bin/awk '/MemTotal/ {printf "%.0f", $2 * 0.01}' /proc/meminfo)
-      if [ -z "$TOTAL_MEM" ] || [ "$TOTAL_MEM" -eq 0 ]; then
-        echo "Failed to calculate memory size" >&2
-        exit 1
-      fi
-      ${pkgs.sysctl}/bin/sysctl -w vm.min_free_kbytes=$TOTAL_MEM
-    '';
-  };
-  zramSwap.enable = true;
 EOF
     fi
     sudo tee -a "$config_file" > /dev/null << EOF
@@ -780,11 +714,6 @@ EOF
     else
         sudo tee -a "$config_file" > /dev/null << EOF
   services.xserver.videoDrivers = [ "modesetting" ];
-  hardware.graphics.extraPackages = with pkgs; [
-    intel-compute-runtime
-    intel-media-driver
-    vpl-gpu-rt
-  ];
 EOF
     fi
     if [ "$device_type" = "laptop" ]; then
@@ -927,7 +856,6 @@ install_system() {
     if [ $low_memory -eq 1 ]; then
         export NIX_BUILD_CORES=1
         export NIX_REMOTE=""
-        export NIX_BUILD_SYSTEM=""
         export NIX_CONF_DIR=/tmp/nix-conf
         mkdir -p $NIX_CONF_DIR
         echo "build-users-group =" > $NIX_CONF_DIR/nix.conf
@@ -963,7 +891,7 @@ main() {
     select_cups
     select_ssd_trim
     select_flakes
-    select_recommended_settings
+    select_optimizations
     detect_disk
     select_username
     show_summary
