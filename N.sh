@@ -270,15 +270,15 @@ select_flakes() {
     fi
 }
 
-select_optimizations() {
+select_recommended_settings() {
     clear
-    echo "=== OTIMIZAÇÕES RECOMENDADAS / RECOMMENDED OPTIMIZATIONS ==="
-    echo "Aplicar configurações recomendadas de desempenho e estabilidade?"
-    echo "Inclui: kernel parameters, sysctl tuning, ananicy, earlyoom, zram, udev rules"
-    if confirm "Aplicar otimizações recomendadas?"; then
-        echo "yes" > "$STATE_DIR/optimizations"
+    echo "=== CONFIGURAÇÕES RECOMENDADAS / RECOMMENDED SETTINGS ==="
+    echo "Aplicar otimizações de desempenho e estabilidade?"
+    echo "(kernel modules, sysctl, ananicy, earlyoom, zram, etc.)"
+    if confirm "Aplicar configurações recomendadas?"; then
+        echo "yes" > "$STATE_DIR/recommended"
     else
-        echo "no" > "$STATE_DIR/optimizations"
+        echo "no" > "$STATE_DIR/recommended"
     fi
 }
 
@@ -468,7 +468,7 @@ show_summary() {
     echo "TRIM SSD: $(cat "$STATE_DIR/trim")"
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
-    echo "Otimizações: $(cat "$STATE_DIR/optimizations")"
+    echo "Configurações Recomendadas: $(cat "$STATE_DIR/recommended")"
     echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
     echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
@@ -503,7 +503,7 @@ generate_config() {
     local disk=$(cat "$STATE_DIR/disk")
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
-    local optimizations=$(cat "$STATE_DIR/optimizations")
+    local recommended=$(cat "$STATE_DIR/recommended")
     local config_file="/mnt/etc/nixos/configuration.nix"
     sudo tee "$config_file" > /dev/null << EOF
 { config, pkgs, lib, ... }:
@@ -546,26 +546,6 @@ EOF
     fi
     sudo tee -a "$config_file" > /dev/null << EOF
   };
-EOF
-    if [ "$optimizations" = "yes" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  boot.kernelModules = [ "tcp_bbr" ];
-  boot.kernelParams = [
-    "quiet"
-    "splash"
-    "transparent_hugepage=always"
-    "preempt=full"
-  ];
-  boot.kernel.sysctl = {
-    "kernel.split_lock_mitigate" = 0;
-    "kernel.nmi_watchdog" = 0;
-    "net.core.netdev_max_backlog" = 4096;
-    "fs.file-max" = 2097152;
-    "net.ipv4.tcp_congestion_control" = "bbr";
-  };
-EOF
-    fi
-    sudo tee -a "$config_file" > /dev/null << EOF
 
   i18n.defaultLocale = "$lang";
   console.keyMap = "$keyboard";
@@ -647,40 +627,6 @@ EOF
     pulse.enable = true;
   };
 EOF
-    if [ "$optimizations" = "yes" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  services.ananicy = {
-    enable = true;
-    package = pkgs.ananicy-cpp;
-    rulesProvider = pkgs.ananicy-rules-cachyos;
-  };
-  services.earlyoom = {
-    enable = true;
-    freeSwapThreshold = 2;
-    freeMemThreshold = 2;
-    extraArgs = [ "-g" "--avoid" "'^(X|plasma.*|konsole|kwin|wayland|gnome.*)$'" ];
-  };
-  services.udev.extraRules = ''
-    ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
-    ACTION=="add|change", KERNEL=="sd[a-z]*|mmcblk[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
-    ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="none"
-  '';
-  systemd.services.set-min-free-mem = {
-    description = "Set vm.min_free_kbytes dynamically";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "local-fs.target" ];
-    serviceConfig.User = "root";
-    serviceConfig.RemainAfterExit = true;
-    script = ''
-      TOTAL_MEM=''$(awk '/MemTotal/ {printf "%.0f", $2 * 0.01}' /proc/meminfo)
-      if [ -n "''$TOTAL_MEM" ] && [ "''$TOTAL_MEM" -gt 0 ]; then
-        sysctl -w vm.min_free_kbytes=''$TOTAL_MEM
-      fi
-    '';
-  };
-  zramSwap.enable = true;
-EOF
-    fi
     if [ "$bluetooth" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   hardware.bluetooth.enable = true;
@@ -729,6 +675,74 @@ EOF
   powerManagement.cpuFreqGovernor = "performance";
 EOF
     fi
+
+    if [ "$recommended" = "yes" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+
+  boot.kernelModules = [ "tcp_bbr" ];
+  boot.kernelParams = [
+    "quiet"
+    "splash"
+    "transparent_hugepage=always"
+    "preempt=full"
+  ];
+  boot.kernel.sysctl = {
+    "kernel.split_lock_mitigate" = 0;
+    "kernel.nmi_watchdog" = 0;
+    "net.core.netdev_max_backlog" = 4096;
+    "fs.file-max" = 2097152;
+    "net.ipv4.tcp_congestion_control" = "bbr";
+  };
+
+  services.ananicy = {
+    enable = true;
+    package = pkgs.ananicy-cpp;
+    rulesProvider = pkgs.ananicy-rules-cachyos;
+  };
+
+  services.earlyoom = {
+    enable = true;
+    freeSwapThreshold = 2;
+    freeMemThreshold = 2;
+    extraArgs = [
+      "-g" "--avoid" "'^(X|plasma.*|konsole|kwin|wayland|gnome.*)$'"
+    ];
+  };
+
+  zramSwap.enable = true;
+
+  systemd.services.set-min-free-mem = {
+    description = "Set vm.min_free_kbytes dynamically";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "local-fs.target" ];
+    serviceConfig = {
+      User = "root";
+      RemainAfterExit = true;
+    };
+    script = ''
+      TOTAL_MEM=$(${pkgs.gawk}/bin/awk '/MemTotal/ {printf "%.0f", $2 * 0.01}' /proc/meminfo)
+      if [ -z "$TOTAL_MEM" ] || [ "$TOTAL_MEM" -eq 0 ]; then
+        echo "Failed to calculate memory size" >&2
+        exit 1
+      fi
+      ${pkgs.sysctl}/bin/sysctl -w vm.min_free_kbytes=$TOTAL_MEM
+    '';
+  };
+
+  nix.settings.auto-optimise-store = true;
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 5d";
+  };
+  system.autoUpgrade = {
+    enable = true;
+    dates = "daily";
+    allowReboot = false;
+  };
+EOF
+    fi
+
     sudo tee -a "$config_file" > /dev/null << EOF
 
   users.users.$username = {
@@ -856,6 +870,7 @@ install_system() {
     if [ $low_memory -eq 1 ]; then
         export NIX_BUILD_CORES=1
         export NIX_REMOTE=""
+        export NIX_BUILD_SYSTEM=""
         export NIX_CONF_DIR=/tmp/nix-conf
         mkdir -p $NIX_CONF_DIR
         echo "build-users-group =" > $NIX_CONF_DIR/nix.conf
@@ -891,7 +906,7 @@ main() {
     select_cups
     select_ssd_trim
     select_flakes
-    select_optimizations
+    select_recommended_settings
     detect_disk
     select_username
     show_summary
