@@ -51,6 +51,21 @@ check_reboot() {
     fi
 }
 
+acer_manager_installer() {
+    local state_file="$STATE_DIR/acer_manager"
+
+    if [ -f "$state_file" ]; then
+        if confirm "Acer Manager detectado. Desinstalar?"; then
+            cleanup_files "$state_file"
+        fi
+    else
+        if confirm "Instalar Acer Manager?"; then
+            curl -fsSL https://raw.githubusercontent.com/PXDiv/Div-Acer-Manager-Max/refs/heads/main/scripts/remoteSetup.sh -o /tmp/setup.sh && sudo bash /tmp/setup.sh
+            touch "$state_file"
+        fi
+    fi
+}
+
 affinity_installer() {
     local state_file="$STATE_DIR/affinity"
     local appimage_path="$APPIMAGE_DIR/Affinity.AppImage"
@@ -73,6 +88,27 @@ affinity_installer() {
             
             touch "$state_file"
             echo "Affinity Photo instalado."
+        fi
+    fi
+}
+
+alpaca_installer() {
+    local state_file="$STATE_DIR/alpaca_studio"
+    local pkg_alpaca="com.jeffser.Alpaca"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.jeffser.Alpaca 2>/dev/null; then
+        if confirm "Alpaca detectado. Desinstalar?"; then
+            echo "Desinstalando Alpaca..."
+            flatpak uninstall --user -y $pkg_alpaca 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Alpaca desinstalado."
+        fi
+    else
+        if confirm "Instalar Alpaca?"; then
+            echo "Instalando Alpaca..."
+            flatpak install --user --or-update --noninteractive flathub $pkg_alpaca
+            touch "$state_file"
+            echo "Alpaca instalado."
         fi
     fi
 }
@@ -285,6 +321,27 @@ cachyconfs_installer() {
             sudo sysctl --system
             touch "$state_file"
             echo "CachyOS Configs instalado em /etc/sysctl.d/"
+        fi
+    fi
+}
+
+cargo_installer() {
+    local state_file="$STATE_DIR/cargo"
+    local pkg_cargo="rustup"
+
+    if [ -f "$state_file" ] || rpm -q rustup &>/dev/null; then
+        if confirm "Rustup detectado. Desinstalar?"; then
+            echo "Desinstalando Rustup..."
+            sudo rpm-ostree uninstall rustup 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Rustup desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Rustup?"; then
+            echo "Instalando Rustup..."
+            sudo rpm-ostree install rustup
+            touch "$state_file"
+            echo "Rustup instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -724,6 +781,33 @@ dlpsgame_installer() {
     fi
 }
 
+docker_installer() {
+    local state_file="$STATE_DIR/docker"
+    local pkg_docker="docker docker-compose"
+
+    if [ -f "$state_file" ] || rpm -q docker &>/dev/null; then
+        if confirm "Docker detectado. Desinstalar?"; then
+            echo "Desinstalando Docker..."
+            sudo systemctl stop docker docker.socket 2>/dev/null || true
+            sudo systemctl disable docker docker.socket 2>/dev/null || true
+            sudo rpm-ostree uninstall docker docker-compose 2>/dev/null || true
+            sudo rm -rf /var/lib/docker 2>/dev/null || true
+            sudo groupdel docker 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Docker desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Docker?"; then
+            echo "Instalando Docker..."
+            sudo rpm-ostree install docker docker-compose
+            sudo systemctl enable --now docker docker.socket
+            sudo usermod -aG docker "$USER"
+            touch "$state_file"
+            echo "Docker instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 earlyoom_installer() {
     local state_file="$STATE_DIR/earlyoom"
 
@@ -814,6 +898,27 @@ endlesskey_installer() {
     fi
 }
 
+extension_manager_installer() {
+    local state_file="$STATE_DIR/extension_manager"
+    local pkg_extension_manager="com.mattjakeman.ExtensionManager"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.mattjakeman.ExtensionManager 2>/dev/null; then
+        if confirm "Extension Manager detectado. Desinstalar?"; then
+            echo "Desinstalando Extension Manager..."
+            flatpak uninstall --user -y $pkg_extension_manager 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Extension Manager desinstalado."
+        fi
+    else
+        if confirm "Instalar Extension Manager?"; then
+            echo "Instalando Extension Manager..."
+            flatpak install --or-update --user --noninteractive flathub $pkg_extension_manager
+            touch "$state_file"
+            echo "Extension Manager instalado."
+        fi
+    fi
+}
+
 extra_flatpaks_installer() {
     while true; do
         clear
@@ -856,7 +961,7 @@ extra_flatpaks_installer() {
         echo "36) Warehouse"
         echo "37) Zen Browser"
         echo "38) Extra Flatpaks 2"
-        echo "39) Extra Flatpaks 3"
+        echo "39) Flatpak 3 e Utilitários"
         echo "40) Voltar"
         echo
         read -p "Selecione uma opção: " flatpak_opcao
@@ -900,7 +1005,7 @@ extra_flatpaks_installer() {
             36) clear; warehouse_installer ;;
             37) clear; zen_browser_installer ;;
             38) clear; extra_flatpaks_2_installer ;;
-            39) clear; extra_flatpaks_3_installer ;;
+            39) clear; flatpak3_utilitarios_installer ;;
             40) return ;;
             *) echo "Opção inválida." ;;
         esac
@@ -1002,112 +1107,6 @@ extra_flatpaks_2_installer() {
     done
 }
 
-extra_flatpaks_3_installer() {
-    while true; do
-        clear
-        echo "=== Extra Flatpaks 3 ==="
-        echo "1) Android Studio"
-        echo "2) Cockpit Client"
-        echo "3) DaVinci Resolve (Menu)"
-        echo "4) Gnome Boxes"
-        echo "5) LACT"
-        echo "6) LibreWolf"
-        echo "7) Linux Toys"
-        echo "8) LocalSend"
-        echo "9) LogSEQ"
-        echo "10) Mullvad Browser"
-        echo "11) OpenRGB"
-        echo "12) Oversteer"
-        echo "13) Piper"
-        echo "14) SiriKali"
-        echo "15) Solaar"
-        echo "16) Stirling PDF (Podman)"
-        echo "17) StreamController"
-        echo "18) Sublime Text"
-        echo "19) Termius"
-        echo "20) Ungoogled Chromium"
-        echo "21) VSCode"
-        echo "22) VSCodium"
-        echo "23) WiVRn"
-        echo "24) Zed"
-        echo "25) Voltar"
-        echo
-        read -p "Selecione uma opção: " flatpak_opcao
-
-        case $flatpak_opcao in
-            1) clear; android_studio_installer ;;
-            2) clear; cockpit_client_installer ;;
-            3) clear; davinci_resolve_menu ;;
-            4) clear; gnome_boxes_installer ;;
-            5) clear; lact_installer ;;
-            6) clear; librewolf_installer ;;
-            7) clear; linux_toys_installer ;;
-            8) clear; localsend_installer ;;
-            9) clear; logseq_installer ;;
-            10) clear; mullvad_browser_installer ;;
-            11) clear; openrgb_installer ;;
-            12) clear; oversteer_installer ;;
-            13) clear; piper_installer ;;
-            14) clear; sirikali_installer ;;
-            15) clear; solaar_installer ;;
-            16) clear; stirling_pdf_installer ;;
-            17) clear; streamcontroller_installer ;;
-            18) clear; sublime_text_installer ;;
-            19) clear; termius_installer ;;
-            20) clear; ungoogled_chromium_installer ;;
-            21) clear; vscode_installer ;;
-            22) clear; vscodium_installer ;;
-            23) clear; wivrn_installer ;;
-            24) clear; zed_installer ;;
-            25) return ;;
-            *) echo "Opção inválida." ;;
-        esac
-        read -p "Pressione Enter para continuar..."
-    done
-}
-
-alpaca_installer() {
-    local state_file="$STATE_DIR/alpaca_studio"
-    local pkg_alpaca="com.jeffser.Alpaca"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q com.jeffser.Alpaca 2>/dev/null; then
-        if confirm "Alpaca detectado. Desinstalar?"; then
-            echo "Desinstalando Alpaca..."
-            flatpak uninstall --user -y $pkg_alpaca 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Alpaca desinstalado."
-        fi
-    else
-        if confirm "Instalar Alpaca?"; then
-            echo "Instalando Alpaca..."
-            flatpak install --user --or-update --noninteractive flathub $pkg_alpaca
-            touch "$state_file"
-            echo "Alpaca instalado."
-        fi
-    fi
-}
-
-extension_manager_installer() {
-    local state_file="$STATE_DIR/extension_manager"
-    local pkg_extension_manager="com.mattjakeman.ExtensionManager"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q com.mattjakeman.ExtensionManager 2>/dev/null; then
-        if confirm "Extension Manager detectado. Desinstalar?"; then
-            echo "Desinstalando Extension Manager..."
-            flatpak uninstall --user -y $pkg_extension_manager 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Extension Manager desinstalado."
-        fi
-    else
-        if confirm "Instalar Extension Manager?"; then
-            echo "Instalando Extension Manager..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_extension_manager
-            touch "$state_file"
-            echo "Extension Manager instalado."
-        fi
-    fi
-}
-
 faugus_launcher_installer() {
     local state_file="$STATE_DIR/faugus_launcher"
     local pkg_faugus="io.github.Faugus.faugus-launcher"
@@ -1130,6 +1129,188 @@ faugus_launcher_installer() {
             echo "Faugus Launcher instalado."
         fi
     fi
+}
+
+fish_fisher_installer() {
+    local fish_state="$STATE_DIR/fish"
+    local fisher_state="$STATE_DIR/fisher"
+    local pkg_fish="fish"
+
+    if [ -f "$fish_state" ] || command -v fish &>/dev/null; then
+        if confirm "Fish Shell detectado. Desinstalar?"; then
+            echo "Desinstalando Fish Shell..."
+            if [ -f "$fisher_state" ]; then
+                echo "Removendo Fisher..."
+                fish -c "fisher remove jorgebucaran/fisher" 2>/dev/null || true
+                cleanup_files "$fisher_state"
+            fi
+            sudo rpm-ostree uninstall fish 2>/dev/null || true
+            sudo lchsh "$USER" <<< "/usr/bin/bash" 2>/dev/null || sudo chsh -s /usr/bin/bash "$USER" 2>/dev/null || true
+            cleanup_files "$fish_state"
+            rm -rf "$HOME/.config/fish" 2>/dev/null || true
+            echo "Fish Shell desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Fish Shell?"; then
+            echo "Instalando Fish Shell..."
+            sudo rpm-ostree install fish
+            sleep 2
+            touch "$fish_state"
+            echo "Fish Shell instalado."
+            
+            if confirm "Deseja tornar o Fish o shell padrão do sistema?"; then
+                echo "Configurando Fish como shell padrão..."
+                
+                local fish_path=$(command -v fish 2>/dev/null || which fish 2>/dev/null || echo "/usr/bin/fish")
+                
+                if [ -f "$fish_path" ]; then
+                    if ! grep -q "$fish_path" /etc/shells 2>/dev/null; then
+                        echo "$fish_path" | sudo tee -a /etc/shells > /dev/null
+                    fi
+                    
+                    if command -v lchsh &>/dev/null; then
+                        echo "$fish_path" | sudo lchsh "$USER" || echo "Não foi possível alterar o shell com lchsh. Tentando chsh..."
+                    fi
+                    
+                    sudo chsh -s "$fish_path" "$USER" 2>/dev/null || echo "Não foi possível alterar o shell automaticamente. Execute manualmente: chsh -s $fish_path"
+                    
+                    mkdir -p ~/.config/fish
+                    echo "set fish_greeting" > ~/.config/fish/config.fish
+                    echo "Fish configurado como shell padrão. Será ativado após o próximo login."
+                else
+                    echo "Fish instalado mas caminho não encontrado. Configure manualmente com: chsh -s /usr/bin/fish"
+                fi
+            else
+                echo "Fish instalado mas o shell padrão permanece Bash."
+                mkdir -p ~/.config/fish
+                echo "set fish_greeting" > ~/.config/fish/config.fish
+            fi
+        fi
+    fi
+
+    if [ -f "$fish_state" ] || command -v fish &>/dev/null; then
+        if [ -f "$fisher_state" ]; then
+            if confirm "Fisher detectado. Desinstalar?"; then
+                echo "Desinstalando Fisher..."
+                fish -c "fisher remove jorgebucaran/fisher" 2>/dev/null || true
+                cleanup_files "$fisher_state"
+                echo "Fisher desinstalado."
+            fi
+        elif confirm "Instalar Fisher (plugin manager)?"; then
+            echo "Instalando Fisher..."
+            fish -c "curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher" 2>/dev/null || true
+            touch "$fisher_state"
+            echo "Fisher instalado."
+        fi
+    fi
+}
+
+flathub_installer() {
+    local flathub_state="$STATE_DIR/flathub"
+
+    if [ -f "$flathub_state" ] || flatpak remote-list --user 2>/dev/null | grep -q flathub; then
+        if confirm "Flathub detectado. Remover?"; then
+            echo "Removendo Flathub..."
+            flatpak remote-delete --user flathub 2>/dev/null || true
+            cleanup_files "$flathub_state"
+            echo "Flathub removido."
+        fi
+    elif confirm "Adicionar repositório Flathub?"; then
+        echo "Adicionando Flathub..."
+        flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        touch "$flathub_state"
+        echo "Flathub adicionado."
+    fi
+}
+
+flatpak3_utilitarios_installer() {
+    while true; do
+        clear
+        echo "=== Flatpak 3 e Utilitários ==="
+        echo "1) Android Studio"
+        echo "2) Acer Manager"
+        echo "3) Cargo (Rustup)"
+        echo "4) Cockpit Client"
+        echo "5) DaVinci Resolve (Menu)"
+        echo "6) Docker"
+        echo "7) Gnome Boxes"
+        echo "8) Java OpenJDK"
+        echo "9) LACT"
+        echo "10) LibreWolf"
+        echo "11) Linux Toys"
+        echo "12) LocalSend"
+        echo "13) LogSEQ"
+        echo "14) Maven"
+        echo "15) Mullvad Browser"
+        echo "16) NVM (Node Version Manager)"
+        echo "17) OpenRGB"
+        echo "18) Oversteer"
+        echo "19) Pip (Python)"
+        echo "20) Piper"
+        echo "21) PNPM"
+        echo "22) Portainer"
+        echo "23) Powersave"
+        echo "24) PyEnv"
+        echo "25) Sdkman"
+        echo "26) SiriKali"
+        echo "27) Solaar"
+        echo "28) Stirling PDF (Podman)"
+        echo "29) StreamController"
+        echo "30) Sublime Text"
+        echo "31) Termius"
+        echo "32) Thumbnailer"
+        echo "33) Ungoogled Chromium"
+        echo "34) VSCode"
+        echo "35) VSCodium"
+        echo "36) WiVRn"
+        echo "37) Zed"
+        echo "38) Voltar"
+        echo
+        read -p "Selecione uma opção: " flatpak_opcao
+
+        case $flatpak_opcao in
+            1) clear; android_studio_installer ;;
+            2) clear; acer_manager_installer ;;
+            3) clear; cargo_installer ;;
+            4) clear; cockpit_client_installer ;;
+            5) clear; davinci_resolve_menu ;;
+            6) clear; docker_installer ;;
+            7) clear; gnome_boxes_installer ;;
+            8) clear; java_openjdk_installer ;;
+            9) clear; lact_installer ;;
+            10) clear; librewolf_installer ;;
+            11) clear; linux_toys_installer ;;
+            12) clear; localsend_installer ;;
+            13) clear; logseq_installer ;;
+            14) clear; maven_installer ;;
+            15) clear; mullvad_browser_installer ;;
+            16) clear; nvm_installer ;;
+            17) clear; openrgb_installer ;;
+            18) clear; oversteer_installer ;;
+            19) clear; pip_installer ;;
+            20) clear; piper_installer ;;
+            21) clear; pnpm_installer ;;
+            22) clear; portainer_installer ;;
+            23) clear; psaver_installer ;;
+            24) clear; pyenv_installer ;;
+            25) clear; sdkman_installer ;;
+            26) clear; sirikali_installer ;;
+            27) clear; solaar_installer ;;
+            28) clear; stirling_pdf_installer ;;
+            29) clear; streamcontroller_installer ;;
+            30) clear; sublime_text_installer ;;
+            31) clear; termius_installer ;;
+            32) clear; thumbnailer_installer ;;
+            33) clear; ungoogled_chromium_installer ;;
+            34) clear; vscode_installer ;;
+            35) clear; vscodium_installer ;;
+            36) clear; wivrn_installer ;;
+            37) clear; zed_installer ;;
+            38) return ;;
+            *) echo "Opção inválida." ;;
+        esac
+        read -p "Pressione Enter para continuar..."
+    done
 }
 
 flatseal_installer() {
@@ -1710,6 +1891,59 @@ wifi.backend=iwd" | sudo tee /etc/NetworkManager/conf.d/iwd.conf > /dev/null
     fi
 }
 
+java_openjdk_installer() {
+    local state_file="$STATE_DIR/java_openjdk"
+
+    if [ -f "$state_file" ] || [ -d "/usr/lib/jvm" ]; then
+        if confirm "Java OpenJDK detectado. Desinstalar?"; then
+            echo "Desinstalando Java OpenJDK..."
+            sudo rpm-ostree uninstall java-*-openjdk java-*-openjdk-devel 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Java OpenJDK desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Java OpenJDK?"; then
+            echo "Instalando Java OpenJDK..."
+            
+            local javas=()
+            local packages=()
+            
+            echo "Selecione as versões do Java para instalar:"
+            echo "1) Java 8 LTS"
+            echo "2) Java 11 LTS"
+            echo "3) Java 17 LTS"
+            echo "4) Java 21 LTS"
+            echo "5) Java 24 Latest"
+            echo "6) Todas as versões"
+            read -p "Escolha (pode ser múltiplo, ex: 1 3 5): " java_choice
+            
+            for choice in $java_choice; do
+                case $choice in
+                    1) javas+=(8) ;;
+                    2) javas+=(11) ;;
+                    3) javas+=(17) ;;
+                    4) javas+=(21) ;;
+                    5) javas+=(24) ;;
+                    6) javas=(8 11 17 21 24) ;;
+                esac
+            done
+            
+            for jav in "${javas[@]}"; do
+                if [ $jav == "8" ]; then
+                    packages+=(java-1.8.0-openjdk java-1.8.0-openjdk-devel)
+                else
+                    packages+=(java-${jav}-openjdk java-${jav}-openjdk-devel)
+                fi
+            done
+            
+            sudo rpm-ostree install "${packages[@]}"
+            
+            touch "$state_file"
+            echo "Java OpenJDK instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 kalzium_installer() {
     local state_file="$STATE_DIR/kalzium"
     local pkg_kalzium="org.kde.kalzium"
@@ -2005,6 +2239,27 @@ mangojuice_installer() {
     fi
 }
 
+maven_installer() {
+    local state_file="$STATE_DIR/maven"
+    local pkg_maven="maven"
+
+    if [ -f "$state_file" ] || rpm -q maven &>/dev/null; then
+        if confirm "Maven detectado. Desinstalar?"; then
+            echo "Desinstalando Maven..."
+            sudo rpm-ostree uninstall maven 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Maven desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Maven?"; then
+            echo "Instalando Maven..."
+            sudo rpm-ostree install maven
+            touch "$state_file"
+            echo "Maven instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 microsoft_teams_installer() {
     local state_file="$STATE_DIR/microsoft_teams"
     local pkg_teams="com.github.IsmaelMartinez.teams_for_linux"
@@ -2209,43 +2464,50 @@ nvidia_proprietary_installer() {
             if ! rpm -q rpmfusion-free-release &>/dev/null; then
                 echo "AVISO: RPM Fusion não está instalado."
                 echo "O RPM Fusion é necessário para instalar os drivers Nvidia."
-                echo "Instale o RPM Fusion primeiro (opção 1 no menu principal) e depois tente novamente."
+                echo "Instale o RPM Fusion primeiro (opção no menu principal) e depois tente novamente."
                 return 1
             fi
             
-            sudo rpm-ostree install akmod-nvidia xorg-x11-drv-nvidia-cuda
-            
-            if command -v mokutil &>/dev/null; then
-                if sudo mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
-                    echo
-                    echo "SecureBoot detectado. Para que os drivers funcionem, você precisa configurar a assinatura dos módulos."
-                    if confirm "Deseja configurar assinatura dos módulos agora?"; then
+            if command -v mokutil &>/dev/null && sudo mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
+                echo
+                echo "SecureBoot detectado. Para que os drivers funcionem, você precisa configurar a assinatura dos módulos."
+                if confirm "Deseja configurar assinatura dos módulos agora?"; then
+                    echo "Configurando assinatura dos módulos..."
+                    
+                    if ! rpm -q akmods &>/dev/null; then
                         sudo rpm-ostree install akmods rpmdevtools
-                        sudo kmodgenca
-                        echo
-                        echo "ATENÇÃO: Uma tela azul aparecerá na próxima reinicialização para importar a chave."
-                        echo "Durante a reinicialização, escolha 'Enroll MOK' e depois 'Continue'."
-                        echo
-                        sudo mokutil --import /etc/pki/akmods/certs/public_key.der
-                        
-                        cd $HOME
-                        if [ ! -d "silverblue-akmods-keys" ]; then
-                            git clone https://github.com/CheariX/silverblue-akmods-keys
-                        fi
-                        cd silverblue-akmods-keys
-                        sudo bash setup.sh
-                        sudo rpm-ostree install akmods-keys-*.noarch.rpm
-                        cd ..
-                        echo "Configuração de assinatura concluída."
-                    else
-                        echo "Continuando sem configurar assinatura. O módulo pode não carregar com SecureBoot ativo."
                     fi
+                    
+                    sudo kmodgenca
+                    
+                    echo
+                    echo "ATENÇÃO: Uma tela azul aparecerá na próxima reinicialização para importar a chave."
+                    echo "Durante a reinicialização, escolha 'Enroll MOK' e depois 'Continue'."
+                    echo
+                    
+                    if sudo mokutil --list-new 2>/dev/null | grep -q "MOK"; then
+                        echo "Chave MOK já existe. Pulando importação."
+                    else
+                        sudo mokutil --import /etc/pki/akmods/certs/public_key.der
+                    fi
+                    
+                    cd $HOME
+                    if [ ! -d "silverblue-akmods-keys" ]; then
+                        git clone https://github.com/CheariX/silverblue-akmods-keys
+                    fi
+                    cd silverblue-akmods-keys
+                    sudo bash setup.sh
+                    sudo rpm-ostree install akmods-keys-*.noarch.rpm
+                    cd ..
+                    echo "Configuração de assinatura concluída."
                 else
-                    echo "SecureBoot não está ativo. Continuando instalação..."
+                    echo "Continuando sem configurar assinatura. O módulo pode não carregar com SecureBoot ativo."
                 fi
             else
-                echo "mokutil não encontrado. Continuando instalação..."
+                echo "SecureBoot não está ativo. Continuando instalação..."
             fi
+            
+            sudo rpm-ostree install akmod-nvidia xorg-x11-drv-nvidia-cuda
             
             sudo tee /etc/modprobe.d/blacklist-nouveau-nova.conf <<EOF
 blacklist nouveau
@@ -2262,6 +2524,46 @@ EOF
             echo
             echo "Nvidia Proprietário instalado. Reinicie o sistema para aplicar as alterações."
             echo "Após reiniciar, verifique com: nvidia-smi"
+        fi
+    fi
+}
+
+nvm_installer() {
+    local state_file="$STATE_DIR/nvm"
+
+    if [ -f "$state_file" ] || [ -d "$HOME/.nvm" ]; then
+        if confirm "NVM detectado. Desinstalar?"; then
+            echo "Desinstalando NVM..."
+            rm -rf "$HOME/.nvm"
+            sed -i '/NVM_DIR/d' ~/.bashrc ~/.zshrc ~/.profile 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "NVM desinstalado."
+        fi
+    else
+        if confirm "Instalar NVM (Node Version Manager)?"; then
+            echo "Instalando NVM..."
+            
+            sudo rpm-ostree install nodejs npm
+            
+            export NVM_DIR="$HOME/.nvm"
+            git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+            cd "$NVM_DIR"
+            git checkout $(git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1))
+            cd
+            
+            echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.bashrc
+            echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.bashrc
+            echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> ~/.bashrc
+            
+            if [ -f ~/.zshrc ]; then
+                echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshrc
+                echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.zshrc
+            fi
+            
+            npm i --global yarn
+            
+            touch "$state_file"
+            echo "NVM instalado."
         fi
     fi
 }
@@ -2429,6 +2731,7 @@ ostree_autoupd_installer() {
 
     if [ -f "$state_file" ] || systemctl is-enabled rpm-ostreed-automatic.timer &>/dev/null; then
         if confirm "Auto-updates detectados. Desativar?"; then
+            echo "Desativando auto-updates..."
             sudo systemctl disable rpm-ostreed-automatic.timer --now
             if [ -f /etc/rpm-ostreed.conf.bak ]; then
                 sudo mv /etc/rpm-ostreed.conf.bak /etc/rpm-ostreed.conf
@@ -2441,6 +2744,7 @@ ostree_autoupd_installer() {
         fi
     else
         if confirm "Ativar auto-updates?"; then
+            echo "Ativando auto-updates..."
             sudo cp /etc/rpm-ostreed.conf /etc/rpm-ostreed.conf.bak
             if grep -q "^AutomaticUpdatePolicy=" /etc/rpm-ostreed.conf; then
                 sudo sed -i "s/^AutomaticUpdatePolicy=.*/AutomaticUpdatePolicy=${AUTOPOLICY}/" /etc/rpm-ostreed.conf
@@ -2572,6 +2876,27 @@ pinta_installer() {
     fi
 }
 
+pip_installer() {
+    local state_file="$STATE_DIR/pip"
+    local pkg_pip="python-pip"
+
+    if [ -f "$state_file" ] || rpm -q python-pip &>/dev/null; then
+        if confirm "Pip detectado. Desinstalar?"; then
+            echo "Desinstalando Pip..."
+            sudo rpm-ostree uninstall python-pip 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Pip desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Pip?"; then
+            echo "Instalando Pip..."
+            sudo rpm-ostree install python-pip
+            touch "$state_file"
+            echo "Pip instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 piper_installer() {
     local state_file="$STATE_DIR/piper"
     local pkg_piper="org.freedesktop.Piper"
@@ -2607,6 +2932,63 @@ piracy_installer() {
             xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
             touch "$state_file"
             echo "r/Piracy aberto."
+        fi
+    fi
+}
+
+pnpm_installer() {
+    local state_file="$STATE_DIR/pnpm"
+    local pkg_pnpm="pnpm"
+
+    if [ -f "$state_file" ] || rpm -q pnpm &>/dev/null; then
+        if confirm "PNPM detectado. Desinstalar?"; then
+            echo "Desinstalando PNPM..."
+            sudo rpm-ostree uninstall pnpm 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "PNPM desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar PNPM?"; then
+            echo "Instalando PNPM..."
+            sudo rpm-ostree install pnpm
+            touch "$state_file"
+            echo "PNPM instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+portainer_installer() {
+    local state_file="$STATE_DIR/portainer"
+
+    if [ -f "$state_file" ] || sudo podman ps -a --format "{{.Names}}" | grep -q "portainer" 2>/dev/null; then
+        if confirm "Portainer detectado. Desinstalar?"; then
+            echo "Desinstalando Portainer..."
+            sudo podman stop portainer 2>/dev/null || true
+            sudo podman rm portainer 2>/dev/null || true
+            sudo podman volume rm portainer_data 2>/dev/null || true
+            sudo rm -f /etc/systemd/system/portainer.service 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Portainer desinstalado."
+        fi
+    else
+        if confirm "Instalar Portainer?"; then
+            echo "Instalando Portainer..."
+            
+            if ! command -v docker &>/dev/null && ! command -v podman &>/dev/null; then
+                echo "Docker ou Podman não encontrado. Instale o Docker primeiro."
+                return 1
+            fi
+            
+            if command -v docker &>/dev/null; then
+                docker volume create portainer_data
+                docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:lts
+            else
+                podman volume create portainer_data
+                podman run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data docker.io/portainer/portainer-ce:lts
+            fi
+            
+            touch "$state_file"
+            echo "Portainer instalado. Acesse em https://localhost:9443"
         fi
     fi
 }
@@ -2754,6 +3136,74 @@ protonup_installer() {
     fi
 }
 
+psaver_installer() {
+    local state_file="$STATE_DIR/psaver"
+
+    if [ -f "$state_file" ] || [ -f "/etc/systemd/system/powersave" ]; then
+        if confirm "Powersave detectado. Desinstalar?"; then
+            echo "Desinstalando Powersave..."
+            sudo systemctl stop powersave 2>/dev/null || true
+            sudo systemctl disable powersave 2>/dev/null || true
+            sudo rm -f /etc/systemd/system/powersave /usr/local/bin/powersave.sh 2>/dev/null || true
+            sudo sed -i '/powersave/d' /etc/default/grub 2>/dev/null || true
+            sudo rm -f /etc/default/grub.d/powersave.cfg 2>/dev/null || true
+            sudo mkdir -p /boot/grub 2>/dev/null || true
+            sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Powersave desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Powersave?"; then
+            echo "Instalando Powersave..."
+            echo '#!/bin/bash
+set -e
+
+CPU_GOV="powersave"
+SCHEDULER="none"
+ENERGY_PERF="power"
+CPU_MAX="100"
+CPU_MIN="0"
+
+apply_settings() {
+    echo "$CPU_GOV" | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1 || true
+    echo "$ENERGY_PERF" | tee /sys/devices/system/cpu/cpu*/power/energy_performance_preference >/dev/null 2>&1 || true
+
+    if [ -f /sys/devices/system/cpu/intel_pstate/max_perf_pct ]; then
+        echo "$CPU_MAX" | tee /sys/devices/system/cpu/intel_pstate/max_perf_pct >/dev/null
+        echo "$CPU_MIN" | tee /sys/devices/system/cpu/intel_pstate/min_perf_pct >/dev/null
+    fi
+
+    if [ -f /sys/block/sda/queue/scheduler ]; then
+        echo "$SCHEDULER" | tee /sys/block/sd*/queue/scheduler >/dev/null 2>&1 || true
+    fi
+}
+
+apply_settings
+exit 0' | sudo tee /usr/local/bin/powersave.sh >/dev/null
+            sudo chmod +x /usr/local/bin/powersave.sh
+            echo '[Unit]
+Description=Power Save Settings
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/powersave.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target' | sudo tee /etc/systemd/system/powersave >/dev/null
+            sudo systemctl enable powersave
+            sudo systemctl start powersave
+            sudo mkdir -p /etc/default/grub.d
+            echo 'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} intel_pstate=passive"' | sudo tee /etc/default/grub.d/powersave.cfg >/dev/null
+            sudo mkdir -p /boot/grub 2>/dev/null || true
+            sudo grub-mkconfig -o /boot/grub/grub.cfg
+            touch "$state_file"
+            echo "Powersave instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 pwgraph_installer() {
     local state_file="$STATE_DIR/pwgraph"
     local pkg_pwgraph="org.rncbc.qpwgraph"
@@ -2771,6 +3221,51 @@ pwgraph_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_pwgraph
             touch "$state_file"
             echo "QPWGraph instalado."
+        fi
+    fi
+}
+
+pyenv_installer() {
+    local state_file="$STATE_DIR/pyenv"
+
+    if [ -f "$state_file" ] || [ -d "$HOME/.pyenv" ]; then
+        if confirm "PyEnv detectado. Desinstalar?"; then
+            echo "Desinstalando PyEnv..."
+            rm -rf "$HOME/.pyenv"
+            sed -i '/PYENV_ROOT/d' ~/.bashrc ~/.zshrc ~/.profile 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "PyEnv desinstalado."
+        fi
+    else
+        if confirm "Instalar PyEnv?"; then
+            echo "Instalando PyEnv..."
+            
+            local packages=()
+            if [[ "$ID_LIKE" =~ (rhel|fedora) ]] || [[ "$ID" =~ (fedora) ]]; then
+                packages=(make gcc patch zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel tk-devel libffi-devel xz-devel libuuid-devel gdbm-libs libnsl2)
+            fi
+            
+            if [ ${#packages[@]} -gt 0 ]; then
+                sudo rpm-ostree install "${packages[@]}"
+            fi
+            
+            curl -fsSL https://pyenv.run | bash
+            
+            echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+            echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+            echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc
+            
+            if [ -f ~/.zshrc ]; then
+                echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
+                echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
+                echo 'eval "$(pyenv init - zsh)"' >> ~/.zshrc
+            fi
+            
+            git clone https://github.com/pyenv/pyenv-virtualenv.git $(pyenv root)/plugins/pyenv-virtualenv
+            echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
+            
+            touch "$state_file"
+            echo "PyEnv instalado."
         fi
     fi
 }
@@ -3065,6 +3560,30 @@ s3drive_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_s3drive
             touch "$state_file"
             echo "S3Drive instalado."
+        fi
+    fi
+}
+
+sdkman_installer() {
+    local state_file="$STATE_DIR/sdkman"
+    local pkg_unzip="unzip zip"
+
+    if [ -f "$state_file" ] || [ -d "$HOME/.sdkman" ]; then
+        if confirm "Sdkman detectado. Desinstalar?"; then
+            rm -rf "$HOME/.sdkman"
+            sed -i '/SDKMAN/d' ~/.bashrc
+            [ -f ~/.zshrc ] && sed -i '/SDKMAN/d' ~/.zshrc
+            [ -f ~/.config/fish/config.fish ] && sed -i '/SDKMAN/d' ~/.config/fish/config.fish
+            if confirm "Desinstalar também unzip e zip?"; then
+                sudo rpm-ostree uninstall unzip zip 2>/dev/null || true
+            fi
+            cleanup_files "$state_file"
+        fi
+    else
+        if confirm "Instalar Sdkman?"; then
+            sudo rpm-ostree install unzip zip
+            curl -s "https://get.sdkman.io" | bash
+            touch "$state_file"
         fi
     fi
 }
@@ -3542,6 +4061,27 @@ terra_installer() {
     fi
 }
 
+thumbnailer_installer() {
+    local state_file="$STATE_DIR/thumbnailer"
+    local pkg_thumbnailer="ffmpegthumbnailer"
+
+    if [ -f "$state_file" ] || rpm -q ffmpegthumbnailer &>/dev/null; then
+        if confirm "Thumbnailer detectado. Desinstalar?"; then
+            echo "Desinstalando Thumbnailer..."
+            sudo rpm-ostree uninstall ffmpegthumbnailer 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Thumbnailer desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar Thumbnailer?"; then
+            echo "Instalando Thumbnailer..."
+            sudo rpm-ostree install ffmpegthumbnailer
+            touch "$state_file"
+            echo "Thumbnailer instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 ufw_installer() {
     local state_file="$STATE_DIR/ufw"
 
@@ -3870,80 +4410,6 @@ zen_browser_installer() {
     fi
 }
 
-fish_fisher_installer() {
-    local fish_state="$STATE_DIR/fish"
-    local fisher_state="$STATE_DIR/fisher"
-    local pkg_fish="fish"
-
-    if [ -f "$fish_state" ] || command -v fish &>/dev/null; then
-        if confirm "Fish Shell detectado. Desinstalar?"; then
-            echo "Desinstalando Fish Shell..."
-            if [ -f "$fisher_state" ]; then
-                echo "Removendo Fisher..."
-                fish -c "fisher remove jorgebucaran/fisher" 2>/dev/null || true
-                cleanup_files "$fisher_state"
-            fi
-            sudo rpm-ostree uninstall fish 2>/dev/null || true
-            sudo lchsh "$USER" <<< "/usr/bin/bash" 2>/dev/null || sudo chsh -s /usr/bin/bash "$USER" 2>/dev/null || true
-            cleanup_files "$fish_state"
-            rm -rf "$HOME/.config/fish" 2>/dev/null || true
-            echo "Fish Shell desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar Fish Shell?"; then
-            echo "Instalando Fish Shell..."
-            sudo rpm-ostree install fish
-            sleep 2
-            touch "$fish_state"
-            echo "Fish Shell instalado."
-            
-            if confirm "Deseja tornar o Fish o shell padrão do sistema?"; then
-                echo "Configurando Fish como shell padrão..."
-                
-                local fish_path=$(command -v fish 2>/dev/null || which fish 2>/dev/null || echo "/usr/bin/fish")
-                
-                if [ -f "$fish_path" ]; then
-                    if ! grep -q "$fish_path" /etc/shells 2>/dev/null; then
-                        echo "$fish_path" | sudo tee -a /etc/shells > /dev/null
-                    fi
-                    
-                    if command -v lchsh &>/dev/null; then
-                        echo "$fish_path" | sudo lchsh "$USER" || echo "Não foi possível alterar o shell com lchsh. Tentando chsh..."
-                    fi
-                    
-                    sudo chsh -s "$fish_path" "$USER" 2>/dev/null || echo "Não foi possível alterar o shell automaticamente. Execute manualmente: chsh -s $fish_path"
-                    
-                    mkdir -p ~/.config/fish
-                    echo "set fish_greeting" > ~/.config/fish/config.fish
-                    echo "Fish configurado como shell padrão. Será ativado após o próximo login."
-                else
-                    echo "Fish instalado mas caminho não encontrado. Configure manualmente com: chsh -s /usr/bin/fish"
-                fi
-            else
-                echo "Fish instalado mas o shell padrão permanece Bash."
-                mkdir -p ~/.config/fish
-                echo "set fish_greeting" > ~/.config/fish/config.fish
-            fi
-        fi
-    fi
-
-    if [ -f "$fish_state" ] || command -v fish &>/dev/null; then
-        if [ -f "$fisher_state" ]; then
-            if confirm "Fisher detectado. Desinstalar?"; then
-                echo "Desinstalando Fisher..."
-                fish -c "fisher remove jorgebucaran/fisher" 2>/dev/null || true
-                cleanup_files "$fisher_state"
-                echo "Fisher desinstalado."
-            fi
-        elif confirm "Instalar Fisher (plugin manager)?"; then
-            echo "Instalando Fisher..."
-            fish -c "curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher" 2>/dev/null || true
-            touch "$fisher_state"
-            echo "Fisher instalado."
-        fi
-    fi
-}
-
 zsh_ohmyzsh_installer() {
     local zsh_state="$STATE_DIR/zsh"
     local ohmyzsh_state="$STATE_DIR/ohmyzsh"
@@ -4016,24 +4482,6 @@ zsh_ohmyzsh_installer() {
             touch "$ohmyzsh_state"
             echo "Oh My Zsh instalado."
         fi
-    fi
-}
-
-flathub_installer() {
-    local flathub_state="$STATE_DIR/flathub"
-
-    if [ -f "$flathub_state" ] || flatpak remote-list --user 2>/dev/null | grep -q flathub; then
-        if confirm "Flathub detectado. Remover?"; then
-            echo "Removendo Flathub..."
-            flatpak remote-delete --user flathub 2>/dev/null || true
-            cleanup_files "$flathub_state"
-            echo "Flathub removido."
-        fi
-    elif confirm "Adicionar repositório Flathub?"; then
-        echo "Adicionando Flathub..."
-        flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-        touch "$flathub_state"
-        echo "Flathub adicionado."
     fi
 }
 
