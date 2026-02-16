@@ -1107,6 +1107,26 @@ extra_flatpaks_2_installer() {
     done
 }
 
+fastfetch_installer() {
+    local state_file="$STATE_DIR/fastfetch"
+
+    if [ -f "$state_file" ] || rpm -q fastfetch &>/dev/null; then
+        if confirm "fastfetch detectado. Desinstalar?"; then
+            echo "Desinstalando fastfetch..."
+            sudo rpm-ostree uninstall fastfetch 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "fastfetch desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar fastfetch?"; then
+            echo "Instalando fastfetch..."
+            sudo rpm-ostree install fastfetch
+            touch "$state_file"
+            echo "fastfetch instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
 faugus_launcher_installer() {
     local state_file="$STATE_DIR/faugus_launcher"
     local pkg_faugus="io.github.Faugus.faugus-launcher"
@@ -1233,38 +1253,40 @@ flatpak3_utilitarios_installer() {
         echo "4) Cockpit Client"
         echo "5) DaVinci Resolve (Menu)"
         echo "6) Docker"
-        echo "7) Gnome Boxes"
-        echo "8) Java OpenJDK"
-        echo "9) LACT"
-        echo "10) LibreWolf"
-        echo "11) Linux Toys"
-        echo "12) LocalSend"
-        echo "13) LogSEQ"
-        echo "14) Maven"
-        echo "15) Mullvad Browser"
-        echo "16) NVM (Node Version Manager)"
-        echo "17) OpenRGB"
-        echo "18) Oversteer"
-        echo "19) Pip (Python)"
-        echo "20) Piper"
-        echo "21) PNPM"
-        echo "22) Portainer"
-        echo "23) Powersave"
-        echo "24) PyEnv"
-        echo "25) Sdkman"
-        echo "26) SiriKali"
-        echo "27) Solaar"
-        echo "28) Stirling PDF (Podman)"
-        echo "29) StreamController"
-        echo "30) Sublime Text"
-        echo "31) Termius"
-        echo "32) Thumbnailer"
-        echo "33) Ungoogled Chromium"
-        echo "34) VSCode"
-        echo "35) VSCodium"
-        echo "36) WiVRn"
-        echo "37) Zed"
-        echo "38) Voltar"
+        echo "7) fastfetch"
+        echo "8) Gnome Boxes"
+        echo "9) Java OpenJDK"
+        echo "10) LACT"
+        echo "11) LibreWolf"
+        echo "12) Linux Toys"
+        echo "13) LocalSend"
+        echo "14) LogSEQ"
+        echo "15) Maven"
+        echo "16) Mullvad Browser"
+        echo "17) NVM (Node Version Manager)"
+        echo "18) Ollama"
+        echo "19) OpenRGB"
+        echo "20) Oversteer"
+        echo "21) Pip (Python)"
+        echo "22) Piper"
+        echo "23) PNPM"
+        echo "24) Portainer"
+        echo "25) Powersave"
+        echo "26) PyEnv"
+        echo "27) Sdkman"
+        echo "28) SiriKali"
+        echo "29) Solaar"
+        echo "30) Stirling PDF (Podman)"
+        echo "31) StreamController"
+        echo "32) Sublime Text"
+        echo "33) Termius"
+        echo "34) Thumbnailer"
+        echo "35) Ungoogled Chromium"
+        echo "36) VSCode"
+        echo "37) VSCodium"
+        echo "38) WiVRn"
+        echo "39) Zed"
+        echo "40) Voltar"
         echo
         read -p "Selecione uma opção: " flatpak_opcao
 
@@ -1275,38 +1297,40 @@ flatpak3_utilitarios_installer() {
             4) clear; cockpit_client_installer ;;
             5) clear; davinci_resolve_menu ;;
             6) clear; docker_installer ;;
-            7) clear; gnome_boxes_installer ;;
-            8) clear; java_openjdk_installer ;;
-            9) clear; lact_installer ;;
-            10) clear; librewolf_installer ;;
-            11) clear; linux_toys_installer ;;
-            12) clear; localsend_installer ;;
-            13) clear; logseq_installer ;;
-            14) clear; maven_installer ;;
-            15) clear; mullvad_browser_installer ;;
-            16) clear; nvm_installer ;;
-            17) clear; openrgb_installer ;;
-            18) clear; oversteer_installer ;;
-            19) clear; pip_installer ;;
-            20) clear; piper_installer ;;
-            21) clear; pnpm_installer ;;
-            22) clear; portainer_installer ;;
-            23) clear; psaver_installer ;;
-            24) clear; pyenv_installer ;;
-            25) clear; sdkman_installer ;;
-            26) clear; sirikali_installer ;;
-            27) clear; solaar_installer ;;
-            28) clear; stirling_pdf_installer ;;
-            29) clear; streamcontroller_installer ;;
-            30) clear; sublime_text_installer ;;
-            31) clear; termius_installer ;;
-            32) clear; thumbnailer_installer ;;
-            33) clear; ungoogled_chromium_installer ;;
-            34) clear; vscode_installer ;;
-            35) clear; vscodium_installer ;;
-            36) clear; wivrn_installer ;;
-            37) clear; zed_installer ;;
-            38) return ;;
+            7) clear; fastfetch_installer ;;
+            8) clear; gnome_boxes_installer ;;
+            9) clear; java_openjdk_installer ;;
+            10) clear; lact_installer ;;
+            11) clear; librewolf_installer ;;
+            12) clear; linux_toys_installer ;;
+            13) clear; localsend_installer ;;
+            14) clear; logseq_installer ;;
+            15) clear; maven_installer ;;
+            16) clear; mullvad_browser_installer ;;
+            17) clear; nvm_installer ;;
+            18) clear; ollama_installer ;;
+            19) clear; openrgb_installer ;;
+            20) clear; oversteer_installer ;;
+            21) clear; pip_installer ;;
+            22) clear; piper_installer ;;
+            23) clear; pnpm_installer ;;
+            24) clear; portainer_installer ;;
+            25) clear; psaver_installer ;;
+            26) clear; pyenv_installer ;;
+            27) clear; sdkman_installer ;;
+            28) clear; sirikali_installer ;;
+            29) clear; solaar_installer ;;
+            30) clear; stirling_pdf_installer ;;
+            31) clear; streamcontroller_installer ;;
+            32) clear; sublime_text_installer ;;
+            33) clear; termius_installer ;;
+            34) clear; thumbnailer_installer ;;
+            35) clear; ungoogled_chromium_installer ;;
+            36) clear; vscode_installer ;;
+            37) clear; vscodium_installer ;;
+            38) clear; wivrn_installer ;;
+            39) clear; zed_installer ;;
+            40) return ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -2658,6 +2682,29 @@ oh_my_bash_installer() {
             bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh)" --unattended
             touch "$state_file"
             echo "Oh My Bash instalado."
+        fi
+    fi
+}
+
+ollama_installer() {
+    local state_file="$STATE_DIR/ollama"
+
+    if [ -f "$state_file" ] || command -v ollama &>/dev/null; then
+        if confirm "Ollama detectado. Desinstalar?"; then
+            echo "Desinstalando Ollama..."
+            sudo systemctl stop ollama 2>/dev/null || true
+            sudo systemctl disable ollama 2>/dev/null || true
+            sudo rm -f /usr/local/bin/ollama
+            sudo rm -f /etc/systemd/system/ollama.service
+            cleanup_files "$state_file"
+            echo "Ollama desinstalado."
+        fi
+    else
+        if confirm "Instalar Ollama?"; then
+            echo "Instalando Ollama..."
+            curl -fsSL https://ollama.com/install.sh | sh
+            touch "$state_file"
+            echo "Ollama instalado."
         fi
     fi
 }
