@@ -3922,23 +3922,27 @@ stellarium_installer() {
 stirling_pdf_installer() {
     local state_file="$STATE_DIR/stirling_pdf"
 
-    if [ -f "$state_file" ] || sudo podman ps -a --format "{{.Names}}" | grep -q "stirling-pdf"; then
+    if [ -f "$state_file" ] || docker ps -a --format "{{.Names}}" 2>/dev/null | grep -q "stirling-pdf"; then
         if confirm "Stirling PDF detectado. Desinstalar?"; then
             echo "Desinstalando Stirling PDF..."
-            sudo podman stop stirling-pdf 2>/dev/null || true
-            sudo podman rm stirling-pdf 2>/dev/null || true
-            sudo podman rmi stirlingtools/stirling-pdf:latest 2>/dev/null || true
-            sudo podman rmi stirlingtools/stirling-pdf:latest-fat 2>/dev/null || true
-            sudo podman rmi stirlingtools/stirling-pdf:latest-ultra-lite 2>/dev/null || true
-            sudo rm -f /etc/systemd/system/stirling-pdf.service 2>/dev/null || true
+            docker stop stirling-pdf 2>/dev/null || true
+            docker rm stirling-pdf 2>/dev/null || true
+            docker rmi stirlingtools/stirling-pdf:latest 2>/dev/null || true
+            docker rmi stirlingtools/stirling-pdf:latest-fat 2>/dev/null || true
+            docker rmi stirlingtools/stirling-pdf:latest-ultra-lite 2>/dev/null || true
             rm -rf ~/stirling-pdf-data 2>/dev/null || true
             cleanup_files "$state_file"
             echo "Stirling PDF desinstalado."
         fi
     else
-        if confirm "Instalar Stirling PDF (via Podman)?"; then
+        if confirm "Instalar Stirling PDF (via Docker)?"; then
+            if ! command -v docker &>/dev/null; then
+                echo "Docker não encontrado. Instale o Docker primeiro (opção Docker no menu Flatpak 3 e Utilitários)."
+                return 1
+            fi
+            
             echo "Selecione a versão:"
-            echo "1) Standard (latest) - All PDF features, balanced features & size"
+            echo "1) Standard (latest) - All PDF features, balanced features & size (Recomendado)"
             echo "2) Fat (latest-fat) - Everything + extra tools, maximum features"
             echo "3) Ultra-Lite (latest-ultra-lite) - Core features only, minimal size"
             read -p "Escolha (1-3): " version_choice
@@ -3952,32 +3956,39 @@ stirling_pdf_installer() {
             
             echo "Instalando Stirling PDF com tag: $TAG"
             
-            if ! command -v podman &>/dev/null; then
-                echo "Podman não encontrado. Instale a instalação base primeiro."
-                return 1
-            fi
-            
             mkdir -p ~/stirling-pdf-data
             
-            sudo podman pull stirlingtools/stirling-pdf:$TAG
+            echo "Baixando imagem Docker..."
+            docker pull stirlingtools/stirling-pdf:$TAG
             
-            sudo podman run -d \
+            echo "Iniciando container..."
+            docker run -d \
                 --name stirling-pdf \
                 --restart unless-stopped \
                 -p 8080:8080 \
                 -v ~/stirling-pdf-data:/configs \
                 -e MODE=BOTH \
                 stirlingtools/stirling-pdf:$TAG
-
-            sudo podman generate systemd --name stirling-pdf --restart-policy=always > /tmp/stirling-pdf.service
-            sudo mv /tmp/stirling-pdf.service /etc/systemd/system/stirling-pdf.service
-            sudo systemctl daemon-reload
-            sudo systemctl enable stirling-pdf.service
-            sudo systemctl start stirling-pdf.service
             
-            touch "$state_file"
-            echo "Stirling PDF instalado. Acesse em http://localhost:8080"
-            echo "Dados persistentes salvos em: ~/stirling-pdf-data"
+            echo "Aguardando inicialização..."
+            sleep 3
+            
+            if docker ps | grep -q stirling-pdf; then
+                touch "$state_file"
+                echo
+                echo "✓ Stirling PDF instalado com sucesso!"
+                echo "✓ Acesse em: http://localhost:8080"
+                echo "✓ Dados persistentes salvos em: ~/stirling-pdf-data"
+                echo
+                echo "Comandos úteis:"
+                echo "  - Ver logs: docker logs stirling-pdf"
+                echo "  - Parar: docker stop stirling-pdf"
+                echo "  - Iniciar: docker start stirling-pdf"
+                echo "  - Remover: docker rm -f stirling-pdf"
+            else
+                echo "Erro: Falha ao iniciar o container Stirling PDF."
+                return 1
+            fi
         fi
     fi
 }
