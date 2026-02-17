@@ -26,12 +26,32 @@ select_language() {
     case $lang_opt in
         1) 
             echo "pt_BR.UTF-8" > "$STATE_DIR/lang"
-            echo "us-acentos" > "$STATE_DIR/console_keymap"
-            echo "us" > "$STATE_DIR/xkb_layout"
-            echo "intl" > "$STATE_DIR/xkb_variant"
             ;;
         2) 
             echo "en_US.UTF-8" > "$STATE_DIR/lang"
+            ;;
+    esac
+}
+
+select_keyboard() {
+    while true; do
+        clear
+        echo "=== LAYOUT DO TECLADO / KEYBOARD LAYOUT ==="
+        echo "1) Português Brasileiro (br)"
+        echo "2) English US (us)"
+        read -p "Opção: " kb_opt
+        case $kb_opt in
+            1|2) break ;;
+            *) echo "Opção inválida"; sleep 2 ;;
+        esac
+    done
+    case $kb_opt in
+        1)
+            echo "br" > "$STATE_DIR/console_keymap"
+            echo "br" > "$STATE_DIR/xkb_layout"
+            echo "" > "$STATE_DIR/xkb_variant"
+            ;;
+        2)
             echo "us" > "$STATE_DIR/console_keymap"
             echo "us" > "$STATE_DIR/xkb_layout"
             echo "" > "$STATE_DIR/xkb_variant"
@@ -991,6 +1011,7 @@ main() {
     echo
     check_dependencies
     select_language
+    select_keyboard
     select_timezone
     select_hostname
     select_device_type
