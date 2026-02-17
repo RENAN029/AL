@@ -669,12 +669,15 @@ EOF
     description = "Set vm.min_free_kbytes dynamically";
     wantedBy = [ "multi-user.target" ];
     after = [ "local-fs.target" ];
-    serviceConfig.User = "root";
-    serviceConfig.RemainAfterExit = true;
+    serviceConfig = {
+      User = "root";
+      RemainAfterExit = true;
+      Type = "oneshot";
+    };
     script = ''
-      TOTAL_MEM=''$(awk '/MemTotal/ {printf "%.0f", $2 * 0.01}' /proc/meminfo)
-      if [ -n "''$TOTAL_MEM" ] && [ "''$TOTAL_MEM" -gt 0 ]; then
-        sysctl -w vm.min_free_kbytes=''$TOTAL_MEM
+      TOTAL_MEM=$(awk '/MemTotal/ {printf "%.0f", $2 * 0.01}' /proc/meminfo)
+      if [ -n "$TOTAL_MEM" ] && [ "$TOTAL_MEM" -gt 0 ]; then
+        ${pkgs.sysctl}/bin/sysctl -w vm.min_free_kbytes=$TOTAL_MEM
       fi
     '';
   };
