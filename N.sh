@@ -658,7 +658,7 @@ EOF
     enable = true;
     freeSwapThreshold = 2;
     freeMemThreshold = 2;
-    extraArgs = [ "-g" "--avoid" "'^(X|plasma.*|konsole|kwin|wayland|gnome.*)$'" ];
+    extraArgs = [ "-g" "--avoid" "^(X|plasma.*|konsole|kwin|wayland|gnome.*)$" ];
   };
   services.udev.extraRules = ''
     ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
