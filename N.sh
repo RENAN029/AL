@@ -79,8 +79,8 @@ select_device_type() {
     while true; do
         clear
         echo "=== TIPO DE DISPOSITIVO / DEVICE TYPE ==="
-        echo "1) Laptop (foco em economia de energia)"
-        echo "2) Desktop (foco em desempenho)"
+        echo "1) Laptop (economia de energia)"
+        echo "2) Desktop (desempenho máximo)"
         read -p "Opção: " device_opt
         case $device_opt in
             1|2) break ;;
@@ -116,7 +116,7 @@ select_bootloader() {
         clear
         echo "=== BOOTLOADER ==="
         echo "1) systemd-boot (recomendado para UEFI)"
-        echo "2) GRUB (compatível com BIOS/UEFI)"
+        echo "2) GRUB (compatível com BIOS e UEFI)"
         read -p "Opção: " bl_opt
         case $bl_opt in
             1|2) break ;;
@@ -151,20 +151,10 @@ select_swap_size() {
     esac
 }
 
-select_encryption() {
-    clear
-    echo "=== CRIPTOGRAFIA LUKS ==="
-    if confirm "Criptografar disco?"; then
-        echo "yes" > "$STATE_DIR/encryption"
-    else
-        echo "no" > "$STATE_DIR/encryption"
-    fi
-}
-
 select_gpu_drivers() {
     while true; do
         clear
-        echo "=== DRIVERS DE GPU ==="
+        echo "=== DRIVERS DE GPU / GPU DRIVERS ==="
         echo "1) NVIDIA (proprietário - módulos open para Turing+)"
         echo "2) Intel/AMD (open source - padrão)"
         read -p "Opção: " gpu_opt
@@ -174,21 +164,15 @@ select_gpu_drivers() {
         esac
     done
     case $gpu_opt in
-        1) 
-            echo "nvidia" > "$STATE_DIR/gpu_driver"
-            echo "yes" > "$STATE_DIR/unfree"
-            ;;
-        2) 
-            echo "intel-amd" > "$STATE_DIR/gpu_driver"
-            echo "no" > "$STATE_DIR/unfree"
-            ;;
+        1) echo "nvidia" > "$STATE_DIR/gpu_driver" ;;
+        2) echo "intel-amd" > "$STATE_DIR/gpu_driver" ;;
     esac
 }
 
 select_desktop() {
     while true; do
         clear
-        echo "=== AMBIENTE DESKTOP ==="
+        echo "=== AMBIENTE DESKTOP / DESKTOP ENVIRONMENT ==="
         echo "1) COSMIC (minimal, Wayland nativo)"
         echo "2) GNOME (minimal, Wayland)"
         echo "3) KDE Plasma (minimal, Wayland)"
@@ -207,12 +191,12 @@ select_desktop() {
     esac
 }
 
-select_wireless() {
+select_wireless_backend() {
     while true; do
         clear
-        echo "=== BACKEND DE REDE SEM FIO ==="
-        echo "1) iwd (mais leve)"
-        echo "2) wpa_supplicant (padrão)"
+        echo "=== BACKEND DE REDE SEM FIO / WIRELESS BACKEND ==="
+        echo "1) iwd (mais leve, melhor performance)"
+        echo "2) wpa_supplicant (padrão, maior compatibilidade)"
         read -p "Opção: " net_opt
         case $net_opt in
             1|2) break ;;
@@ -228,7 +212,7 @@ select_wireless() {
 select_bluetooth() {
     clear
     echo "=== BLUETOOTH ==="
-    if confirm "Habilitar?"; then
+    if confirm "Habilitar Bluetooth?"; then
         echo "yes" > "$STATE_DIR/bluetooth"
     else
         echo "no" > "$STATE_DIR/bluetooth"
@@ -237,8 +221,8 @@ select_bluetooth() {
 
 select_cups() {
     clear
-    echo "=== IMPRESSÃO (CUPS) ==="
-    if confirm "Habilitar?"; then
+    echo "=== IMPRESSÃO (CUPS) / PRINTING (CUPS) ==="
+    if confirm "Habilitar suporte a impressão?"; then
         echo "yes" > "$STATE_DIR/cups"
     else
         echo "no" > "$STATE_DIR/cups"
@@ -248,10 +232,20 @@ select_cups() {
 select_ssd_trim() {
     clear
     echo "=== TRIM PARA SSD ==="
-    if confirm "Habilitar?"; then
+    if confirm "Habilitar TRIM para SSD?"; then
         echo "yes" > "$STATE_DIR/trim"
     else
         echo "no" > "$STATE_DIR/trim"
+    fi
+}
+
+select_encryption() {
+    clear
+    echo "=== CRIPTOGRAFIA / ENCRYPTION ==="
+    if confirm "Criptografar disco com LUKS?"; then
+        echo "yes" > "$STATE_DIR/encryption"
+    else
+        echo "no" > "$STATE_DIR/encryption"
     fi
 }
 
@@ -268,7 +262,7 @@ select_flakes() {
 detect_disk() {
     while true; do
         clear
-        echo "=== DISCOS DISPONÍVEIS ==="
+        echo "=== DISCOS DISPONÍVEIS / AVAILABLE DISKS ==="
         lsblk -d -o NAME,SIZE,MODEL,TYPE | grep -v loop
         echo
         read -p "Digite o disco para instalação (ex: sda, nvme0n1): " disk_name
@@ -297,11 +291,7 @@ select_username() {
         read -s -p "Confirme a senha: " userpass2
         echo
         if [ "$userpass" = "$userpass2" ] && [ -n "$userpass" ]; then
-            if command -v mkpasswd >/dev/null 2>&1; then
-                echo "$(mkpasswd -m sha-512 "$userpass")" > "$STATE_DIR/pass_hash"
-            else
-                echo "$(openssl passwd -6 "$userpass")" > "$STATE_DIR/pass_hash"
-            fi
+            echo "$(mkpasswd -m sha-512 "$userpass")" > "$STATE_DIR/pass_hash"
             break
         else
             echo "Senhas não conferem ou vazias. Pressione Enter para tentar novamente."
@@ -331,6 +321,7 @@ check_existing_partitions() {
 partition_disk() {
     local disk=$(cat "$STATE_DIR/disk")
     local fs=$(cat "$STATE_DIR/filesystem")
+    local encryption=$(cat "$STATE_DIR/encryption")
     clear
     echo "=== PARTICIONANDO $disk ==="
     check_existing_partitions
@@ -342,11 +333,6 @@ partition_disk() {
         sudo parted $disk -- set 1 esp on
         sudo parted $disk -- mkpart primary 512MB 100%
         sudo mkfs.fat -F 32 -n NIXBOOT ${disk}1
-        if [ "$fs" = "btrfs" ]; then
-            sudo mkfs.btrfs -f -L NIXROOT ${disk}2
-        else
-            sudo mkfs.ext4 -F -L NIXROOT ${disk}2
-        fi
     else
         echo "BIOS/Legacy detectado"
         echo "bios" > "$STATE_DIR/boot_mode"
@@ -355,6 +341,18 @@ partition_disk() {
         sudo parted $disk -- set 1 boot on
         sudo parted $disk -- mkpart primary 512MB 100%
         sudo mkfs.ext4 -F -L NIXBOOT ${disk}1
+    fi
+    if [ "$encryption" = "yes" ]; then
+        sudo cryptsetup luksFormat ${disk}2
+        sudo cryptsetup open ${disk}2 cryptroot
+        local uuid=$(sudo blkid -s UUID -o value ${disk}2)
+        echo "$uuid" > "$STATE_DIR/luks_uuid"
+        if [ "$fs" = "btrfs" ]; then
+            sudo mkfs.btrfs /dev/mapper/cryptroot
+        else
+            sudo mkfs.ext4 /dev/mapper/cryptroot
+        fi
+    else
         if [ "$fs" = "btrfs" ]; then
             sudo mkfs.btrfs -f -L NIXROOT ${disk}2
         else
@@ -363,24 +361,10 @@ partition_disk() {
     fi
 }
 
-setup_encryption() {
-    local disk=$(cat "$STATE_DIR/disk")
-    echo "Configurando criptografia LUKS..."
-    sudo cryptsetup luksFormat ${disk}2
-    sudo cryptsetup open ${disk}2 cryptroot
-    local uuid=$(sudo blkid -s UUID -o value ${disk}2)
-    echo "$uuid" > "$STATE_DIR/luks_uuid"
-    local fs=$(cat "$STATE_DIR/filesystem")
-    if [ "$fs" = "btrfs" ]; then
-        sudo mkfs.btrfs /dev/mapper/cryptroot
-    else
-        sudo mkfs.ext4 /dev/mapper/cryptroot
-    fi
-}
-
 setup_btrfs_subvolumes() {
     local root_dev
-    if [ "$(cat "$STATE_DIR/encryption")" = "yes" ]; then
+    local encryption=$(cat "$STATE_DIR/encryption")
+    if [ "$encryption" = "yes" ]; then
         root_dev="/dev/mapper/cryptroot"
     else
         root_dev="/dev/disk/by-label/NIXROOT"
@@ -401,9 +385,6 @@ mount_partitions() {
     local encryption=$(cat "$STATE_DIR/encryption")
     local fs=$(cat "$STATE_DIR/filesystem")
     if [ "$encryption" = "yes" ]; then
-        if [ ! -e /dev/mapper/cryptroot ]; then
-            setup_encryption
-        fi
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
@@ -433,26 +414,30 @@ create_swap() {
 
 show_summary() {
     clear
-    echo "=== RESUMO DA INSTALAÇÃO ==="
-    echo "Idioma: $(cat "$STATE_DIR/lang")"
-    echo "Teclado: $(cat "$STATE_DIR/keyboard")"
-    echo "Fuso: $(cat "$STATE_DIR/timezone")"
+    echo "=== RESUMO DA INSTALAÇÃO / INSTALLATION SUMMARY ==="
+    echo "Idioma/Language: $(cat "$STATE_DIR/lang")"
+    echo "Teclado/Keyboard: $(cat "$STATE_DIR/keyboard")"
+    echo "Fuso/Timezone: $(cat "$STATE_DIR/timezone")"
     echo "Hostname: $(cat "$STATE_DIR/hostname")"
-    echo "Tipo: $(cat "$STATE_DIR/device_type")"
+    echo "Tipo/Type: $(cat "$STATE_DIR/device_type")"
     local swap=$(cat "$STATE_DIR/swap")
-    if [ "$swap" = "0" ]; then echo "Swap: Sem swap"; else echo "Swap: ${swap}GB"; fi
+    if [ "$swap" = "0" ]; then
+        echo "Swap: Sem swap"
+    else
+        echo "Swap: ${swap}GB"
+    fi
     echo "Filesystem: $(cat "$STATE_DIR/filesystem")"
     echo "Bootloader: $(cat "$STATE_DIR/bootloader")"
     echo "Desktop: $(cat "$STATE_DIR/desktop")"
-    echo "GPU: $(cat "$STATE_DIR/gpu_driver")"
+    echo "GPU Driver: $(cat "$STATE_DIR/gpu_driver")"
     echo "Wireless: $(cat "$STATE_DIR/wireless_backend")"
     echo "Bluetooth: $(cat "$STATE_DIR/bluetooth")"
     echo "CUPS: $(cat "$STATE_DIR/cups")"
-    echo "TRIM: $(cat "$STATE_DIR/trim")"
+    echo "TRIM SSD: $(cat "$STATE_DIR/trim")"
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
-    echo "Disco: $(cat "$STATE_DIR/disk")"
-    echo "Usuário: $(cat "$STATE_DIR/username")"
+    echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
+    echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
     echo
     if ! confirm "Continuar com a instalação?"; then
@@ -744,7 +729,9 @@ generate_flake() {
 }
 EOF
     echo "Arquivo flake.nix criado em /mnt/etc/nixos/"
-    echo "Para usar flakes, adicione 'nix.settings.experimental-features = [ \"nix-command\" \"flakes\" ];'"
+    echo "Para usar flakes:"
+    echo "1. Adicione 'nix.settings.experimental-features = [ \"nix-command\" \"flakes\" ];' à configuration.nix"
+    echo "2. Use 'nixos-rebuild switch --flake /mnt/etc/nixos#$hostname'"
 }
 
 install_system() {
@@ -753,7 +740,24 @@ install_system() {
     echo "A instalação pode levar alguns minutos..."
     echo
     cd /mnt
-    sudo nixos-install --no-root-passwd
+    
+    local total_ram=$(free -m | awk '/^Mem:/{print $2}')
+    echo "RAM detectada: ${total_ram}MB"
+    
+    if [ "$total_ram" -lt 2048 ]; then
+        echo "Pouca RAM detectada. Usando configuração otimizada..."
+        export NIX_BUILD_CORES=1
+        export NIX_REMOTE=""
+        sudo -E nixos-install --no-root-passwd --max-jobs 1 --option substitute false
+    elif [ "$total_ram" -lt 4096 ]; then
+        echo "RAM moderada detectada. Usando configuração balanceada..."
+        export NIX_BUILD_CORES=2
+        sudo -E nixos-install --no-root-passwd --max-jobs 2
+    else
+        echo "RAM suficiente detectada. Usando configuração padrão..."
+        sudo -E nixos-install --no-root-passwd
+    fi
+    
     echo
     echo "=== INSTALAÇÃO CONCLUÍDA ==="
     echo "Após reiniciar, faça login com usuário: $(cat "$STATE_DIR/username")"
@@ -786,16 +790,16 @@ main() {
     select_filesystem
     select_bootloader
     select_swap_size
-    select_encryption
     select_gpu_drivers
     select_desktop
-    select_wireless
+    select_wireless_backend
     select_bluetooth
     select_cups
     select_ssd_trim
+    select_encryption
     select_flakes
-    detect_disk
     select_username
+    detect_disk
     show_summary
     partition_disk
     mount_partitions
