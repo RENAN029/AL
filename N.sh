@@ -105,6 +105,24 @@ select_device_type() {
     esac
 }
 
+select_kernel() {
+    while true; do
+        clear
+        echo "=== KERNEL ==="
+        echo "1) Linux Latest (padrão, mais atual)"
+        echo "2) Linux Liquorix (otimizado para desktop/performance)"
+        read -p "Opção: " kernel_opt
+        case $kernel_opt in
+            1|2) break ;;
+            *) echo "Opção inválida"; sleep 2 ;;
+        esac
+    done
+    case $kernel_opt in
+        1) echo "latest" > "$STATE_DIR/kernel" ;;
+        2) echo "lqx" > "$STATE_DIR/kernel" ;;
+    esac
+}
+
 select_filesystem() {
     while true; do
         clear
@@ -138,24 +156,6 @@ select_bootloader() {
     case $bl_opt in
         1) echo "systemd-boot" > "$STATE_DIR/bootloader" ;;
         2) echo "grub" > "$STATE_DIR/bootloader" ;;
-    esac
-}
-
-select_kernel() {
-    while true; do
-        clear
-        echo "=== KERNEL ==="
-        echo "1) Linux Latest (padrão, maior compatibilidade)"
-        echo "2) Linux Liquorix (otimizado para desempenho em desktop)"
-        read -p "Opção: " kernel_opt
-        case $kernel_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
-    done
-    case $kernel_opt in
-        1) echo "latest" > "$STATE_DIR/kernel" ;;
-        2) echo "liquorix" > "$STATE_DIR/kernel" ;;
     esac
 }
 
@@ -509,9 +509,9 @@ generate_config() {
     local username=$(cat "$STATE_DIR/username")
     local pass_hash=$(cat "$STATE_DIR/pass_hash")
     local device_type=$(cat "$STATE_DIR/device_type")
+    local kernel=$(cat "$STATE_DIR/kernel")
     local boot_mode=$(cat "$STATE_DIR/boot_mode")
     local bootloader=$(cat "$STATE_DIR/bootloader")
-    local kernel=$(cat "$STATE_DIR/kernel")
     local desktop=$(cat "$STATE_DIR/desktop")
     local bluetooth=$(cat "$STATE_DIR/bluetooth")
     local cups=$(cat "$STATE_DIR/cups")
@@ -565,23 +565,21 @@ EOF
         fi
     fi
 
-    if [ "$recommended" = "yes" ]; then
+    if [ "$kernel" = "lqx" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
     };
-    loader.timeout = 2;
+    kernelPackages = pkgs.linuxPackages_lqx;
 EOF
-
-        if [ "$kernel" = "liquorix" ]; then
-            sudo tee -a "$config_file" > /dev/null << EOF
-    kernelPackages = pkgs.linuxPackages_liquorix;
-EOF
-        else
-            sudo tee -a "$config_file" > /dev/null << EOF
+    else
+        sudo tee -a "$config_file" > /dev/null << EOF
+    };
     kernelPackages = pkgs.linuxPackages_latest;
 EOF
-        fi
+    fi
 
+    if [ "$recommended" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
+    loader.timeout = 2;
     kernelModules = [ "tcp_bbr" ];
     kernelParams = [
       "quiet"
@@ -970,6 +968,7 @@ generate_flake() {
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
     # nix-flatpak.url = "github:gmodena/nix-flatpak";
+    # preload-ng.url = "github:miguel-b-p/preload-ng";
   };
 
   outputs = { self, nixpkgs, nixpkgs-unstable, ... } @ inputs:
@@ -995,6 +994,8 @@ generate_flake() {
             # Descomente os módulos abaixo se tiver descomentado os inputs correspondentes:
             # nix-flatpak.nixosModules.nix-flatpak
             # lanzaboote.nixosModules.lanzaboote
+            # preload-ng.nixosModules.default
+            # { services.preload-ng.enable = true; }
           ];
         };
       };
@@ -1087,9 +1088,9 @@ main() {
     select_timezone
     select_hostname
     select_device_type
+    select_kernel
     select_filesystem
     select_bootloader
-    select_kernel
     select_swap_size
     select_gpu_drivers
     select_desktop
