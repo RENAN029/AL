@@ -275,7 +275,6 @@ select_recommended_config() {
     clear
     echo "=== CONFIGURAÇÕES RECOMENDADAS / RECOMMENDED SETTINGS ==="
     echo "Aplicar configurações otimizadas de desempenho e sistema?"
-    echo "- Kernel latest (versão mais recente)"
     echo "- Kernel otimizado (BBR, sysctl, parâmetros)"
     echo "- earlyOOM para evitar travamentos"
     echo "- ananicy para priorização de processos"
@@ -550,8 +549,6 @@ EOF
         sudo tee -a "$config_file" > /dev/null << EOF
     };
     loader.timeout = 2;
-    kernelPackages = pkgs.linuxPackages_latest;
-    kernelModules = [ "tcp_bbr" ];
     kernelParams = [
       "quiet"
       "splash"
@@ -927,7 +924,7 @@ generate_flake() {
     
     sudo tee "$flake_file" > /dev/null << EOF
 {
-  description = "Configuração NixOS com flakes";
+  description = "Configuração NixOS com flakes - Kernel estável + NVIDIA unstable";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
@@ -945,19 +942,26 @@ generate_flake() {
   outputs = { self, nixpkgs, nixpkgs-unstable, ... } @ inputs:
     let
       system = "x86_64-linux";
+      
+      # Kernel do repositório estável
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
       };
+      
+      # Drivers NVIDIA do repositório unstable (para suportar kernels mais novos)
       unstable = import nixpkgs-unstable {
         inherit system;
         config.allowUnfree = true;
       };
+      
+      # Kernel packages do repositório estável
+      linuxPackages = pkgs.linuxPackages;
     in
       {
         nixosConfigurations.${hostname} = nixpkgs.lib.nixosSystem {
           specialArgs = { 
-            inherit inputs unstable;
+            inherit inputs unstable linuxPackages;
           };
           system = "x86_64-linux";
           modules = [
