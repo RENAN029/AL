@@ -275,6 +275,7 @@ select_recommended_config() {
     clear
     echo "=== CONFIGURAÇÕES RECOMENDADAS / RECOMMENDED SETTINGS ==="
     echo "Aplicar configurações otimizadas de desempenho e sistema?"
+    echo "- Kernel latest (versão mais recente)"
     echo "- Kernel otimizado (BBR, sysctl, parâmetros)"
     echo "- earlyOOM para evitar travamentos"
     echo "- ananicy para priorização de processos"
@@ -694,11 +695,11 @@ EOF
         sudo tee -a "$config_file" > /dev/null << EOF
   services.xserver.videoDrivers = [ "nvidia" ];
   hardware.nvidia = {
+    package = config.boot.kernelPackages.nvidiaPackages.beta;
     modesetting.enable = true;
     powerManagement.enable = $([ "$device_type" = "laptop" ] && echo "true" || echo "false");
     open = true;
     nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.latest;
   };
 EOF
     elif [ "$gpu_driver" = "intel-amd" ]; then
