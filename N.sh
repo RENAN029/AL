@@ -783,12 +783,12 @@ EOF
       RemainAfterExit = true;
     };
     script = ''
-      TOTAL_MEM=\$(${pkgs.gawk}/bin/awk '/MemTotal/ {printf "%.0f", \$2 * 0.01}' /proc/meminfo)
-      if [ -z "\$TOTAL_MEM" ] || [ "\$TOTAL_MEM" -eq 0 ]; then
+      TOTAL_MEM=$(awk '/MemTotal/ {printf "%.0f", $2 * 0.01}' /proc/meminfo)
+      if [ -z "$TOTAL_MEM" ] || [ "$TOTAL_MEM" -eq 0 ]; then
         echo "Failed to calculate memory size" >&2
         exit 1
       fi
-      ${pkgs.sysctl}/bin/sysctl -w vm.min_free_kbytes=\$TOTAL_MEM
+      sysctl -w vm.min_free_kbytes=$TOTAL_MEM
     '';
   };
   zramSwap.enable = true;
