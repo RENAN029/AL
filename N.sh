@@ -921,22 +921,86 @@ generate_flake() {
     fi
     local hostname=$(cat "$STATE_DIR/hostname")
     local flake_file="/mnt/etc/nixos/flake.nix"
+    
     sudo tee "$flake_file" > /dev/null << EOF
 {
-  description = "Configuração NixOS";
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-  outputs = { self, nixpkgs }: {
-    nixosConfigurations.$hostname = nixpkgs.lib.nixosSystem {
+  description = "Configuração NixOS com flakes";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+    
+    # Opcionais - Descomente se quiser usar:
+    # lanzaboote = {
+    #   url = "github:nix-community/lanzaboote/v0.4.3";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
+    # nix-flatpak.url = "github:gmodena/nix-flatpak";
+    # preload-ng.url = "github:miguel-b-p/preload-ng";
+  };
+
+  outputs = { self, nixpkgs, nixpkgs-unstable, ... } @ inputs:
+    let
       system = "x86_64-linux";
-      modules = [ ./configuration.nix ];
-    };
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
+      unstable = import nixpkgs-unstable {
+        inherit system;
+        config.allowUnfree = true;
+      };
+    in
+      {
+        nixosConfigurations.${hostname} = nixpkgs.lib.nixosSystem {
+          specialArgs = { 
+            inherit inputs unstable;
+          };
+          system = "x86_64-linux";
+          modules = [
+            ./configuration.nix
+            # Descomente os módulos abaixo se tiver descomentado os inputs correspondentes:
+            # nix-flatpak.nixosModules.nix-flatpak
+            # lanzaboote.nixosModules.lanzaboote
+            # preload-ng.nixosModules.default
+            # { services.preload-ng.enable = true; }
+          ];
+        };
+      };
+
+  nixConfig = {
+    extra-substituters = [
+      "https://nixpkgs.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "nixpkgs.cachix.org-1:q91R6hxbwFvDqTSDKwDAV4T5PxqXGxswD8vhONFMeOE="
+    ];
   };
 }
 EOF
+
+    echo
+    echo "============================================="
     echo "Arquivo flake.nix criado em /mnt/etc/nixos/"
-    echo "Para usar flakes:"
-    echo "1. Adicione 'nix.settings.experimental-features = [ \"nix-command\" \"flakes\" ];' à configuration.nix"
-    echo "2. Use 'nixos-rebuild switch --flake /mnt/etc/nixos#$hostname'"
+    echo "============================================="
+    echo
+    echo "PARA ATIVAR O FLAKE APÓS A INSTALAÇÃO:"
+    echo
+    echo "1. Após reiniciar, edite o arquivo /etc/nixos/flake.nix"
+    echo "   e descomente as linhas dos inputs e módulos que deseja usar"
+    echo
+    echo "2. No arquivo /etc/nixos/configuration.nix, descomente as linhas"
+    echo "   relacionadas aos módulos que você ativou no flake.nix"
+    echo
+    echo "3. Execute para ativar:"
+    echo "   sudo nixos-rebuild switch --flake /etc/nixos#$hostname"
+    echo
+    echo "4. Para atualizar as entradas do flake:"
+    echo "   sudo nix flake update --flake /etc/nixos"
+    echo
+    echo "NOTA: Os experimental-features 'nix-command' e 'flakes'"
+    echo "já estão habilitados no configuration.nix gerado."
+    echo "============================================="
 }
 
 install_system() {
