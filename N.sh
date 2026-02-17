@@ -549,7 +549,6 @@ EOF
         sudo tee -a "$config_file" > /dev/null << EOF
     };
     loader.timeout = 2;
-    kernelPackages = pkgs.linuxPackages_latest;
     kernelModules = [ "tcp_bbr" ];
     kernelParams = [
       "quiet"
