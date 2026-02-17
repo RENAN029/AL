@@ -141,6 +141,24 @@ select_bootloader() {
     esac
 }
 
+select_kernel() {
+    while true; do
+        clear
+        echo "=== KERNEL ==="
+        echo "1) Linux Latest (padrão, maior compatibilidade)"
+        echo "2) Linux Liquorix (otimizado para desempenho em desktop)"
+        read -p "Opção: " kernel_opt
+        case $kernel_opt in
+            1|2) break ;;
+            *) echo "Opção inválida"; sleep 2 ;;
+        esac
+    done
+    case $kernel_opt in
+        1) echo "latest" > "$STATE_DIR/kernel" ;;
+        2) echo "liquorix" > "$STATE_DIR/kernel" ;;
+    esac
+}
+
 select_swap_size() {
     while true; do
         clear
@@ -450,6 +468,7 @@ show_summary() {
     echo "Fuso/Timezone: $(cat "$STATE_DIR/timezone")"
     echo "Hostname: $(cat "$STATE_DIR/hostname")"
     echo "Tipo/Type: $(cat "$STATE_DIR/device_type")"
+    echo "Kernel: $(cat "$STATE_DIR/kernel")"
     local swap=$(cat "$STATE_DIR/swap")
     if [ "$swap" = "0" ]; then
         echo "Swap: Sem swap"
@@ -492,6 +511,7 @@ generate_config() {
     local device_type=$(cat "$STATE_DIR/device_type")
     local boot_mode=$(cat "$STATE_DIR/boot_mode")
     local bootloader=$(cat "$STATE_DIR/bootloader")
+    local kernel=$(cat "$STATE_DIR/kernel")
     local desktop=$(cat "$STATE_DIR/desktop")
     local bluetooth=$(cat "$STATE_DIR/bluetooth")
     local cups=$(cat "$STATE_DIR/cups")
@@ -549,6 +569,20 @@ EOF
         sudo tee -a "$config_file" > /dev/null << EOF
     };
     loader.timeout = 2;
+EOF
+
+        if [ "$kernel" = "liquorix" ]; then
+            sudo tee -a "$config_file" > /dev/null << EOF
+    kernelPackages = pkgs.linuxPackages_liquorix;
+EOF
+        else
+            sudo tee -a "$config_file" > /dev/null << EOF
+    kernelPackages = pkgs.linuxPackages_latest;
+EOF
+        fi
+
+        sudo tee -a "$config_file" > /dev/null << EOF
+    kernelModules = [ "tcp_bbr" ];
     kernelParams = [
       "quiet"
       "splash"
@@ -692,11 +726,11 @@ EOF
         sudo tee -a "$config_file" > /dev/null << EOF
   services.xserver.videoDrivers = [ "nvidia" ];
   hardware.nvidia = {
-    package = config.boot.kernelPackages.nvidiaPackages.beta;
     modesetting.enable = true;
     powerManagement.enable = $([ "$device_type" = "laptop" ] && echo "true" || echo "false");
     open = true;
     nvidiaSettings = true;
+    package = config.boot.kernelPackages.nvidiaPackages.latest;
   };
 EOF
     elif [ "$gpu_driver" = "intel-amd" ]; then
@@ -924,7 +958,7 @@ generate_flake() {
     
     sudo tee "$flake_file" > /dev/null << EOF
 {
-  description = "Configuração NixOS com flakes - Kernel estável + NVIDIA unstable";
+  description = "Configuração NixOS com flakes";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
@@ -936,32 +970,24 @@ generate_flake() {
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
     # nix-flatpak.url = "github:gmodena/nix-flatpak";
-    # preload-ng.url = "github:miguel-b-p/preload-ng";
   };
 
   outputs = { self, nixpkgs, nixpkgs-unstable, ... } @ inputs:
     let
       system = "x86_64-linux";
-      
-      # Kernel do repositório estável
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
       };
-      
-      # Drivers NVIDIA do repositório unstable (para suportar kernels mais novos)
       unstable = import nixpkgs-unstable {
         inherit system;
         config.allowUnfree = true;
       };
-      
-      # Kernel packages do repositório estável
-      linuxPackages = pkgs.linuxPackages;
     in
       {
         nixosConfigurations.${hostname} = nixpkgs.lib.nixosSystem {
           specialArgs = { 
-            inherit inputs unstable linuxPackages;
+            inherit inputs unstable;
           };
           system = "x86_64-linux";
           modules = [
@@ -969,8 +995,6 @@ generate_flake() {
             # Descomente os módulos abaixo se tiver descomentado os inputs correspondentes:
             # nix-flatpak.nixosModules.nix-flatpak
             # lanzaboote.nixosModules.lanzaboote
-            # preload-ng.nixosModules.default
-            # { services.preload-ng.enable = true; }
           ];
         };
       };
@@ -1065,6 +1089,7 @@ main() {
     select_device_type
     select_filesystem
     select_bootloader
+    select_kernel
     select_swap_size
     select_gpu_drivers
     select_desktop
