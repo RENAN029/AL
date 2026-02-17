@@ -549,6 +549,7 @@ EOF
         sudo tee -a "$config_file" > /dev/null << EOF
     };
     loader.timeout = 2;
+    kernelPackages = pkgs.linuxPackages_latest;
     kernelModules = [ "tcp_bbr" ];
     kernelParams = [
       "quiet"
@@ -697,6 +698,7 @@ EOF
     powerManagement.enable = $([ "$device_type" = "laptop" ] && echo "true" || echo "false");
     open = true;
     nvidiaSettings = true;
+    package = config.boot.kernelPackages.nvidiaPackages.latest;
   };
 EOF
     elif [ "$gpu_driver" = "intel-amd" ]; then
