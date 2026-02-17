@@ -24,26 +24,18 @@ select_language() {
         esac
     done
     case $lang_opt in
-        1) echo "pt_BR.UTF-8" > "$STATE_DIR/lang" ;;
-        2) echo "en_US.UTF-8" > "$STATE_DIR/lang" ;;
-    esac
-}
-
-select_keyboard() {
-    while true; do
-        clear
-        echo "=== LAYOUT DO TECLADO / KEYBOARD LAYOUT ==="
-        echo "1) Português Brasileiro (br)"
-        echo "2) English US (us)"
-        read -p "Opção: " kb_opt
-        case $kb_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
-    done
-    case $kb_opt in
-        1) echo "br" > "$STATE_DIR/keyboard" ;;
-        2) echo "us" > "$STATE_DIR/keyboard" ;;
+        1) 
+            echo "pt_BR.UTF-8" > "$STATE_DIR/lang"
+            echo "us-acentos" > "$STATE_DIR/console_keymap"
+            echo "us" > "$STATE_DIR/xkb_layout"
+            echo "intl" > "$STATE_DIR/xkb_variant"
+            ;;
+        2) 
+            echo "en_US.UTF-8" > "$STATE_DIR/lang"
+            echo "us" > "$STATE_DIR/console_keymap"
+            echo "us" > "$STATE_DIR/xkb_layout"
+            echo "" > "$STATE_DIR/xkb_variant"
+            ;;
     esac
 }
 
@@ -259,6 +251,25 @@ select_flakes() {
     fi
 }
 
+select_recommended_config() {
+    clear
+    echo "=== CONFIGURAÇÕES RECOMENDADAS / RECOMMENDED SETTINGS ==="
+    echo "Aplicar configurações otimizadas de desempenho e sistema?"
+    echo "- Kernel otimizado (BBR, sysctl, parâmetros)"
+    echo "- earlyOOM para evitar travamentos"
+    echo "- ananicy para priorização de processos"
+    echo "- zram para compressão de memória"
+    echo "- Gerenciamento de memória otimizado"
+    echo "- Preload inteligente"
+    echo "- Regras udev para dispositivos"
+    echo
+    if confirm "Aplicar configurações recomendadas?"; then
+        echo "yes" > "$STATE_DIR/recommended"
+    else
+        echo "no" > "$STATE_DIR/recommended"
+    fi
+}
+
 detect_disk() {
     while true; do
         clear
@@ -416,7 +427,7 @@ show_summary() {
     clear
     echo "=== RESUMO DA INSTALAÇÃO / INSTALLATION SUMMARY ==="
     echo "Idioma/Language: $(cat "$STATE_DIR/lang")"
-    echo "Teclado/Keyboard: $(cat "$STATE_DIR/keyboard")"
+    echo "Teclado/Keyboard: $(cat "$STATE_DIR/console_keymap")"
     echo "Fuso/Timezone: $(cat "$STATE_DIR/timezone")"
     echo "Hostname: $(cat "$STATE_DIR/hostname")"
     echo "Tipo/Type: $(cat "$STATE_DIR/device_type")"
@@ -436,6 +447,7 @@ show_summary() {
     echo "TRIM SSD: $(cat "$STATE_DIR/trim")"
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
+    echo "Configurações recomendadas: $(cat "$STATE_DIR/recommended")"
     echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
     echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
@@ -451,7 +463,9 @@ generate_config() {
     echo "=== GERANDO CONFIGURAÇÃO ==="
     sudo nixos-generate-config --root /mnt
     local lang=$(cat "$STATE_DIR/lang")
-    local keyboard=$(cat "$STATE_DIR/keyboard")
+    local console_keymap=$(cat "$STATE_DIR/console_keymap")
+    local xkb_layout=$(cat "$STATE_DIR/xkb_layout")
+    local xkb_variant=$(cat "$STATE_DIR/xkb_variant")
     local timezone=$(cat "$STATE_DIR/timezone")
     local hostname=$(cat "$STATE_DIR/hostname")
     local username=$(cat "$STATE_DIR/username")
@@ -470,66 +484,119 @@ generate_config() {
     local disk=$(cat "$STATE_DIR/disk")
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
+    local recommended=$(cat "$STATE_DIR/recommended")
     local config_file="/mnt/etc/nixos/configuration.nix"
+    
     sudo tee "$config_file" > /dev/null << EOF
 { config, pkgs, lib, ... }:
+
 {
   imports = [ ./hardware-configuration.nix ];
 EOF
+
     if [ "$gpu_driver" = "nvidia" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   nixpkgs.config.allowUnfree = true;
 EOF
     fi
+
     sudo tee -a "$config_file" > /dev/null << EOF
-  boot.loader = {
+  boot = {
+    loader = {
 EOF
+
     if [ "$bootloader" = "systemd-boot" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
 EOF
     else
         if [ "$boot_mode" = "uefi" ]; then
             sudo tee -a "$config_file" > /dev/null << EOF
-    grub = {
-      enable = true;
-      efiSupport = true;
-      device = "nodev";
-    };
-    efi.canTouchEfiVariables = true;
+      grub = {
+        enable = true;
+        efiSupport = true;
+        device = "nodev";
+      };
+      efi.canTouchEfiVariables = true;
 EOF
         else
             sudo tee -a "$config_file" > /dev/null << EOF
-    grub = {
-      enable = true;
-      device = "$disk";
-    };
+      grub = {
+        enable = true;
+        device = "$disk";
+      };
 EOF
         fi
     fi
-    sudo tee -a "$config_file" > /dev/null << EOF
-  };
-  i18n.defaultLocale = "$lang";
-  console.keyMap = "$keyboard";
-  time.timeZone = "$timezone";
-  services.ntp.enable = true;
-  networking.hostName = "$hostname";
-  networking.networkmanager.enable = true;
-EOF
-    if [ "$wireless_backend" = "iwd" ]; then
+
+    if [ "$recommended" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  networking.wireless.iwd.enable = true;
+    };
+    loader.timeout = 2;
+    kernelPackages = pkgs.linuxPackages_latest;
+    kernelModules = [ "tcp_bbr" ];
+    kernelParams = [
+      "quiet"
+      "splash"
+      "transparent_hugepage=always"
+      "preempt=full"
+    ];
+    kernel.sysctl = {
+      "kernel.split_lock_mitigate" = 0;
+      "kernel.nmi_watchdog" = 0;
+      "net.core.netdev_max_backlog" = 4096;
+      "fs.file-max" = 2097152;
+      "net.ipv4.tcp_congestion_control" = "bbr";
+    };
 EOF
     else
         sudo tee -a "$config_file" > /dev/null << EOF
-  networking.wireless.enable = true;
+    };
 EOF
     fi
+
     sudo tee -a "$config_file" > /dev/null << EOF
-  services.xserver.enable = true;
-  services.xserver.xkb.layout = "$keyboard";
+  };
+  networking.hostName = "$hostname";
+  networking.networkmanager.enable = true;
+  time.timeZone = "$timezone";
+  i18n.defaultLocale = "$lang";
 EOF
+
+    if [ "$lang" = "pt_BR.UTF-8" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  i18n.extraLocaleSettings = {
+    LC_ADDRESS = "pt_BR.UTF-8";
+    LC_IDENTIFICATION = "pt_BR.UTF-8";
+    LC_MEASUREMENT = "pt_BR.UTF-8";
+    LC_MONETARY = "pt_BR.UTF-8";
+    LC_NAME = "pt_BR.UTF-8";
+    LC_NUMERIC = "pt_BR.UTF-8";
+    LC_PAPER = "pt_BR.UTF-8";
+    LC_TELEPHONE = "pt_BR.UTF-8";
+    LC_TIME = "pt_BR.UTF-8";
+  };
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
+  console.keyMap = "$console_keymap";
+  services.xserver.enable = true;
+  services.xserver.xkb = {
+    layout = "$xkb_layout";
+EOF
+
+    if [ -n "$xkb_variant" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+    variant = "$xkb_variant";
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
+  };
+EOF
+
     if [ "$desktop" != "none" ]; then
         case $desktop in
             cosmic)
@@ -543,8 +610,9 @@ EOF
                 ;;
             gnome)
                 sudo tee -a "$config_file" > /dev/null << EOF
-  services.desktopManager.gnome.enable = true;
   services.displayManager.gdm.enable = true;
+  services.desktopManager.gnome.enable = true;
+  services.gnome.games.enable = false;
   environment.gnome.excludePackages = with pkgs; [
     gnome-tour
     epiphany
@@ -555,13 +623,15 @@ EOF
     gnome-music
     gnome-photos
     gnome-terminal
+    gnome-software
   ];
 EOF
                 ;;
             plasma)
                 sudo tee -a "$config_file" > /dev/null << EOF
-  services.desktopManager.plasma6.enable = true;
   services.displayManager.sddm.enable = true;
+  services.displayManager.sddm.wayland.enable = true;
+  services.desktopManager.plasma6.enable = true;
   environment.plasma6.excludePackages = with pkgs.kdePackages; [
     plasma-browser-integration
     konsole
@@ -571,6 +641,7 @@ EOF
                 ;;
         esac
     fi
+
     sudo tee -a "$config_file" > /dev/null << EOF
   security.rtkit.enable = true;
   services.pipewire = {
@@ -580,25 +651,30 @@ EOF
     pulse.enable = true;
   };
 EOF
+
     if [ "$bluetooth" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   hardware.bluetooth.enable = true;
   services.blueman.enable = true;
 EOF
     fi
+
     if [ "$cups" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.printing.enable = true;
 EOF
     fi
+
     if [ "$trim" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.fstrim.enable = true;
 EOF
     fi
+
     sudo tee -a "$config_file" > /dev/null << EOF
   hardware.graphics.enable = true;
 EOF
+
     if [ "$gpu_driver" = "nvidia" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.xserver.videoDrivers = [ "nvidia" ];
@@ -609,11 +685,21 @@ EOF
     nvidiaSettings = true;
   };
 EOF
+    elif [ "$gpu_driver" = "intel-amd" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.xserver.videoDrivers = [ "modesetting" ];
+  hardware.graphics.extraPackages = with pkgs; [
+    intel-compute-runtime
+    intel-media-driver
+    vpl-gpu-rt
+  ];
+EOF
     else
         sudo tee -a "$config_file" > /dev/null << EOF
   services.xserver.videoDrivers = [ "modesetting" ];
 EOF
     fi
+
     if [ "$device_type" = "laptop" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   powerManagement.enable = true;
@@ -625,11 +711,75 @@ EOF
   powerManagement.cpuFreqGovernor = "performance";
 EOF
     fi
+
+    if [ "$recommended" = "yes" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.ananicy = {
+    enable = true;
+    package = pkgs.ananicy-cpp;
+    rulesProvider = pkgs.ananicy-rules-cachyos;
+  };
+  services.earlyoom = {
+    enable = true;
+    freeSwapThreshold = 2;
+    freeMemThreshold = 2;
+    extraArgs = [
+      "-g" "--avoid" "'^(X|plasma.*|konsole|kwin|wayland|gnome.*)$'"
+    ];
+  };
+  services.udev.extraRules = ''
+    ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="1", \
+      ATTR{queue/scheduler}="bfq"
+    ACTION=="add|change", KERNEL=="sd[a-z]*|mmcblk[0-9]*", ATTR{queue/rotational}=="0", \
+      ATTR{queue/scheduler}="mq-deadline"
+    ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/rotational}=="0", \
+      ATTR{queue/scheduler}="none"
+    KERNEL=="rtc0", GROUP="audio"
+    KERNEL=="hpet", GROUP="audio"
+    DEVPATH=="/devices/virtual/misc/cpu_dma_latency", OWNER="root", GROUP="audio", MODE="0660"
+  '';
+  services.preload-ng = {
+    enable = true;
+    settings = {
+      cycle = 15;
+      memTotal = -5;
+      memFree = 70;
+      memCached = 10;
+      memBuffers = 50;
+      minSize = 1000000;
+      processes = 60;
+      sortStrategy = 0;
+      autoSave = 1800;
+      mapPrefix = "/nix/store/;/run/current-system/;!/";
+      exePrefix = "/nix/store/;/run/current-system/;!/";
+    };
+  };
+  systemd.services.set-min-free-mem = {
+    description = "Set vm.min_free_kbytes dynamically";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "local-fs.target" ];
+    serviceConfig = {
+      User = "root";
+      RemainAfterExit = true;
+    };
+    script = ''
+      TOTAL_MEM=\$(${pkgs.gawk}/bin/awk '/MemTotal/ {printf "%.0f", \$2 * 0.01}' /proc/meminfo)
+      if [ -z "\$TOTAL_MEM" ] || [ "\$TOTAL_MEM" -eq 0 ]; then
+        echo "Failed to calculate memory size" >&2
+        exit 1
+      fi
+      ${pkgs.sysctl}/bin/sysctl -w vm.min_free_kbytes=\$TOTAL_MEM
+    '';
+  };
+  zramSwap.enable = true;
+EOF
+    fi
+
     sudo tee -a "$config_file" > /dev/null << EOF
   users.users.$username = {
     isNormalUser = true;
     description = "$username";
-    extraGroups = [ "wheel" "networkmanager" "audio" "video" "lp" ];
+    extraGroups = [ "wheel" "networkmanager" "audio" "video" "lp" "render" ];
     hashedPassword = "$pass_hash";
     shell = pkgs.bash;
   };
@@ -645,11 +795,13 @@ EOF
     }
   ];
 EOF
+
     if [ "$swap_size" != "0" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   swapDevices = [ { device = "/.swapfile"; } ];
 EOF
     fi
+
     if [ "$encryption" = "yes" ] && [ -n "$luks_uuid" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   boot.initrd.luks.devices."cryptroot" = {
@@ -658,11 +810,23 @@ EOF
   };
 EOF
     fi
+
     if [ "$fs" = "btrfs" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   boot.supportedFilesystems = [ "btrfs" ];
 EOF
     fi
+
+    if [ "$wireless_backend" = "iwd" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  networking.wireless.iwd.enable = true;
+EOF
+    else
+        sudo tee -a "$config_file" > /dev/null << EOF
+  networking.wireless.enable = true;
+EOF
+    fi
+
     sudo tee -a "$config_file" > /dev/null << EOF
   environment.systemPackages = with pkgs; [
     vim
@@ -678,13 +842,20 @@ EOF
     zip
     openssl
     file
+    clinfo
+    wayland-utils
+    starship
 EOF
+
     case $desktop in
         gnome)
             sudo tee -a "$config_file" > /dev/null << EOF
+    refine
     gnome-tweaks
     gnome-disk-utility
-    gnome-software
+    vanilla-dmz
+    tela-icon-theme
+    ffmpegthumbnailer
 EOF
             ;;
         plasma)
@@ -692,6 +863,8 @@ EOF
     kdePackages.dolphin
     kdePackages.ark
     kdePackages.kate
+    libsForQt5.qt5ct
+    libsForQt5.qtstyleplugin-kvantum
 EOF
             ;;
         cosmic)
@@ -702,11 +875,46 @@ EOF
 EOF
             ;;
     esac
+
+    if [ "$recommended" = "yes" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+    lshw
+    pciutils
+    sbctl
+    disfetch
+    mission-center
+EOF
+    fi
+
     sudo tee -a "$config_file" > /dev/null << EOF
   ];
+  programs.firefox.enable = true;
+  programs.starship.enable = true;
+  nixpkgs.config.allowUnfree = true;
+  nix.settings = {
+    auto-optimise-store = true;
+    experimental-features = [ "nix-command" "flakes" ];
+  };
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 5d";
+  };
+  fonts.packages = with pkgs; [
+    nerd-fonts.adwaita-mono
+    noto-fonts
+    noto-fonts-cjk-sans
+    noto-fonts-color-emoji
+    liberation_ttf
+    cantarell-fonts
+    poppins
+  ];
+  hardware.enableAllFirmware = true;
+  hardware.firmware = [ pkgs.linux-firmware ];
   system.stateVersion = "25.11";
 }
 EOF
+
     echo "Configuração gerada com sucesso!"
 }
 
@@ -783,7 +991,6 @@ main() {
     echo
     check_dependencies
     select_language
-    select_keyboard
     select_timezone
     select_hostname
     select_device_type
@@ -798,6 +1005,7 @@ main() {
     select_ssd_trim
     select_encryption
     select_flakes
+    select_recommended_config
     select_username
     detect_disk
     show_summary
