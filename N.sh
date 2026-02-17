@@ -512,13 +512,9 @@ generate_config() {
 
 {
   imports = [ ./hardware-configuration.nix ];
-EOF
 
-    if [ "$gpu_driver" = "nvidia" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
   nixpkgs.config.allowUnfree = true;
 EOF
-    fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
   boot = {
@@ -910,7 +906,6 @@ EOF
   ];
   programs.firefox.enable = true;
   programs.starship.enable = true;
-  nixpkgs.config.allowUnfree = true;
   nix.settings = {
     auto-optimise-store = true;
     experimental-features = [ "nix-command" "flakes" ];
