@@ -26,32 +26,12 @@ select_language() {
     case $lang_opt in
         1) 
             echo "pt_BR.UTF-8" > "$STATE_DIR/lang"
+            echo "br-abnt2" > "$STATE_DIR/console_keymap"
+            echo "br" > "$STATE_DIR/xkb_layout"
+            echo "abnt2" > "$STATE_DIR/xkb_variant"
             ;;
         2) 
             echo "en_US.UTF-8" > "$STATE_DIR/lang"
-            ;;
-    esac
-}
-
-select_keyboard() {
-    while true; do
-        clear
-        echo "=== LAYOUT DO TECLADO / KEYBOARD LAYOUT ==="
-        echo "1) Português Brasileiro (br)"
-        echo "2) English US (us)"
-        read -p "Opção: " kb_opt
-        case $kb_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
-    done
-    case $kb_opt in
-        1)
-            echo "br" > "$STATE_DIR/console_keymap"
-            echo "br" > "$STATE_DIR/xkb_layout"
-            echo "" > "$STATE_DIR/xkb_variant"
-            ;;
-        2)
             echo "us" > "$STATE_DIR/console_keymap"
             echo "us" > "$STATE_DIR/xkb_layout"
             echo "" > "$STATE_DIR/xkb_variant"
@@ -218,24 +198,6 @@ select_desktop() {
         2) echo "gnome" > "$STATE_DIR/desktop" ;;
         3) echo "plasma" > "$STATE_DIR/desktop" ;;
         4) echo "none" > "$STATE_DIR/desktop" ;;
-    esac
-}
-
-select_wireless_backend() {
-    while true; do
-        clear
-        echo "=== BACKEND DE REDE SEM FIO / WIRELESS BACKEND ==="
-        echo "1) iwd (mais leve, melhor performance)"
-        echo "2) wpa_supplicant (padrão, maior compatibilidade)"
-        read -p "Opção: " net_opt
-        case $net_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
-    done
-    case $net_opt in
-        1) echo "iwd" > "$STATE_DIR/wireless_backend" ;;
-        2) echo "wpa_supplicant" > "$STATE_DIR/wireless_backend" ;;
     esac
 }
 
@@ -479,7 +441,6 @@ show_summary() {
     echo "Kernel: $(cat "$STATE_DIR/kernel")"
     echo "Desktop: $(cat "$STATE_DIR/desktop")"
     echo "GPU Driver: $(cat "$STATE_DIR/gpu_driver")"
-    echo "Wireless: $(cat "$STATE_DIR/wireless_backend")"
     echo "Bluetooth: $(cat "$STATE_DIR/bluetooth")"
     echo "CUPS: $(cat "$STATE_DIR/cups")"
     echo "TRIM SSD: $(cat "$STATE_DIR/trim")"
@@ -518,7 +479,6 @@ generate_config() {
     local trim=$(cat "$STATE_DIR/trim")
     local encryption=$(cat "$STATE_DIR/encryption")
     local gpu_driver=$(cat "$STATE_DIR/gpu_driver")
-    local wireless_backend=$(cat "$STATE_DIR/wireless_backend")
     local swap_size=$(cat "$STATE_DIR/swap")
     local disk=$(cat "$STATE_DIR/disk")
     local fs=$(cat "$STATE_DIR/filesystem")
@@ -601,15 +561,7 @@ EOF
   };
   networking.hostName = "$hostname";
   networking.networkmanager.enable = true;
-EOF
-
-    if [ "$wireless_backend" = "iwd" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  networking.wireless.iwd.enable = lib.mkForce false;
-EOF
-    fi
-
-    sudo tee -a "$config_file" > /dev/null << EOF
+  networking.wireless.iwd.enable = true;
   time.timeZone = "$timezone";
   i18n.defaultLocale = "$lang";
 EOF
@@ -745,18 +697,28 @@ EOF
     vpl-gpu-rt
   ];
 EOF
+    else
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.xserver.videoDrivers = [ "modesetting" ];
+EOF
     fi
 
     if [ "$device_type" = "laptop" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   powerManagement.enable = true;
   services.thermald.enable = true;
-  services.tlp.enable = lib.mkForce false;
-  services.power-profiles-daemon.enable = true;
+  services.tlp = {
+    enable = true;
+    settings = {
+      WIFI_PWR_ON_AC = "off";
+      WIFI_PWR_ON_BAT = "on";
+    };
+  };
 EOF
     else
         sudo tee -a "$config_file" > /dev/null << EOF
   powerManagement.cpuFreqGovernor = "performance";
+  services.tlp.enable = false;
 EOF
     fi
 
@@ -1076,7 +1038,6 @@ main() {
     echo
     check_dependencies
     select_language
-    select_keyboard
     select_timezone
     select_hostname
     select_device_type
@@ -1086,7 +1047,6 @@ main() {
     select_swap_size
     select_gpu_drivers
     select_desktop
-    select_wireless_backend
     select_bluetooth
     select_cups
     select_ssd_trim
