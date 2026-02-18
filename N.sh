@@ -289,40 +289,6 @@ select_recommended_config() {
     fi
 }
 
-select_packages() {
-    clear
-    echo "=== SELEÇÃO DE PACOTES / PACKAGE SELECTION ==="
-    echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para confirmar"
-    echo
-    
-    local options=(
-        "org.gimp.GIMP" "GIMP - Editor de imagens"
-        "org.onlyoffice.desktopeditors" "OnlyOffice - Suíte de escritório"
-        "app.zen_browser.zen" "Zen Browser - Navegador web"
-        "io.github.Faugus.faugus-launcher" "Faugus Launcher - Launcher de jogos"
-        "com.vysp3r.ProtonPlus" "ProtonPlus - Gerenciador de camadas de compatibilidade"
-    )
-    
-    local selected=()
-    local choice
-    local dialog_output
-    
-    dialog_output=$(dialog --clear --stdout \
-        --title "Seleção de Pacotes" \
-        --checklist "Escolha os pacotes que deseja instalar:" \
-        20 70 10 \
-        "${options[@]}")
-    
-    if [ $? -eq 0 ]; then
-        echo "$dialog_output" > "$STATE_DIR/packages"
-        echo "Pacotes selecionados: $dialog_output"
-    else
-        echo "Nenhum pacote selecionado" > "$STATE_DIR/packages"
-        echo "Nenhum pacote selecionado."
-    fi
-    sleep 2
-}
-
 detect_disk() {
     while true; do
         clear
@@ -362,6 +328,89 @@ select_username() {
             read
         fi
     done
+}
+
+select_flatpaks() {
+    clear
+    echo "=== SELEÇÃO DE APLICATIVOS FLATPAK / FLATPAK APPLICATIONS SELECTION ==="
+    echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para confirmar"
+    echo
+    
+    local options=(
+        "org.gimp.GIMP" "Editor de imagens / Image editor"
+        "org.onlyoffice.desktopeditors" "Suíte de escritório / Office suite"
+        "app.zen_browser.zen" "Navegador web / Web browser"
+        "io.github.Faugus.faugus-launcher" "Lançador de jogos / Game launcher"
+        "com.vysp3r.ProtonPlus" "Gerenciador Proton / Proton manager"
+    )
+    
+    local selected=()
+    local current=0
+    
+    while true; do
+        clear
+        echo "=== SELEÇÃO DE APLICATIVOS FLATPAK / FLATPAK APPLICATIONS SELECTION ==="
+        echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para confirmar"
+        echo
+        
+        for i in "${!options[@]}"; do
+            if [ $((i % 2)) -eq 0 ]; then
+                local index=$((i / 2))
+                local name="${options[i]}"
+                local desc="${options[i+1]}"
+                local prefix="[ ]"
+                
+                for sel in "${selected[@]}"; do
+                    if [ "$sel" = "$name" ]; then
+                        prefix="[✓]"
+                        break
+                    fi
+                done
+                
+                if [ $current -eq $index ]; then
+                    echo -e "\e[1;32m> $prefix $name - $desc\e[0m"
+                else
+                    echo "  $prefix $name - $desc"
+                fi
+            fi
+        done
+        
+        echo
+        echo "Selecionados: ${selected[*]}"
+        
+        read -s -n 3 key
+        case $key in
+            $'\e[A')
+                if [ $current -gt 0 ]; then
+                    current=$((current - 1))
+                fi
+                ;;
+            $'\e[B')
+                if [ $current -lt $((${#options[@]}/2 - 1)) ]; then
+                    current=$((current + 1))
+                fi
+                ;;
+            ' ')
+                local pkg_name="${options[$((current * 2))]}"
+                local found=0
+                for i in "${!selected[@]}"; do
+                    if [ "${selected[i]}" = "$pkg_name" ]; then
+                        unset 'selected[i]'
+                        found=1
+                        break
+                    fi
+                done
+                if [ $found -eq 0 ]; then
+                    selected+=("$pkg_name")
+                fi
+                ;;
+            '')
+                break
+                ;;
+        esac
+    done
+    
+    printf "%s\n" "${selected[@]}" > "$STATE_DIR/flatpaks"
 }
 
 check_existing_partitions() {
@@ -501,9 +550,12 @@ show_summary() {
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
     echo "Configurações recomendadas: $(cat "$STATE_DIR/recommended")"
-    echo "Pacotes selecionados: $(cat "$STATE_DIR/packages")"
     echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
     echo "Usuário/User: $(cat "$STATE_DIR/username")"
+    if [ -f "$STATE_DIR/flatpaks" ]; then
+        echo "Flatpaks selecionados:"
+        cat "$STATE_DIR/flatpaks" | sed 's/^/  - /'
+    fi
     echo "================================="
     echo
     if ! confirm "Continuar com a instalação?"; then
@@ -539,7 +591,7 @@ generate_config() {
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
     local recommended=$(cat "$STATE_DIR/recommended")
-    local packages=$(cat "$STATE_DIR/packages")
+    local flatpaks=$(cat "$STATE_DIR/flatpaks" 2>/dev/null || echo "")
     local config_file="/mnt/etc/nixos/configuration.nix"
     
     sudo tee "$config_file" > /dev/null << EOF
@@ -854,7 +906,26 @@ EOF
     fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
-  services.flatpak.enable = true;
+  services.flatpak = {
+    enable = true;
+    packages = [
+EOF
+
+    if [ -n "$flatpaks" ]; then
+        while IFS= read -r pkg; do
+            sudo tee -a "$config_file" > /dev/null << EOF
+      "$pkg"
+EOF
+        done <<< "$flatpaks"
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
+    ];
+    update.auto = {
+      enable = true;
+      onCalendar = "weekly";
+    };
+  };
   systemd.services.flatpak-repo = {
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.flatpak ];
@@ -862,6 +933,9 @@ EOF
       flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     '';
   };
+EOF
+
+    sudo tee -a "$config_file" > /dev/null << EOF
   environment.systemPackages = with pkgs; [
     vim
     nano
@@ -899,19 +973,6 @@ EOF
     if [ "$recommended" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
 EOF
-    fi
-
-    sudo tee -a "$config_file" > /dev/null << EOF
-  ];
-  services.flatpak.packages = [
-EOF
-
-    if [ "$packages" != "Nenhum pacote selecionado" ] && [ -n "$packages" ]; then
-        for pkg in $packages; do
-            sudo tee -a "$config_file" > /dev/null << EOF
-    "$pkg"
-EOF
-        done
     fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
@@ -1100,7 +1161,7 @@ main() {
     select_recommended_config
     select_username
     detect_disk
-    select_packages
+    select_flatpaks
     show_summary
     partition_disk
     mount_partitions
