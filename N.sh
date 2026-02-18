@@ -302,14 +302,14 @@ select_packages() {
         "com.vysp3r.ProtonPlus" "ProtonPlus (Gerenciador de compatibilidade)" off \
         "io.github.Faugus.faugus-launcher" "Faugus Launcher (Gerenciador de jogos)" off \
         "org.gimp.GIMP" "GIMP (Editor de imagens)" off \
-        "org.onlyoffice.desktopeditors" "OnlyOffice (Suite de escritório)" off \
+        "org.onlyoffice.desktopeditors" "OnlyOffice (Suíte de escritório)" off \
         2> "$temp_file"
     
     local selected=$(cat "$temp_file" | tr '\n' ' ')
     rm -f "$temp_file"
     
     echo "$selected" > "$STATE_DIR/packages"
-    echo
+    clear
     echo "Seleção concluída. Pressione Enter para continuar."
     read
 }
@@ -844,12 +844,14 @@ EOF
 EOF
     fi
 
-    if [ -n "$packages" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
+    sudo tee -a "$config_file" > /dev/null << EOF
   services.flatpak.enable = true;
-  services.flatpak.packages = [
 EOF
 
+    if [ -n "$packages" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.flatpak.packages = [
+EOF
         for pkg in $packages; do
             if [ -n "$pkg" ]; then
                 sudo tee -a "$config_file" > /dev/null << EOF
@@ -857,9 +859,12 @@ EOF
 EOF
             fi
         done
-
         sudo tee -a "$config_file" > /dev/null << EOF
   ];
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
   systemd.services.flatpak-repo = {
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.flatpak ];
@@ -867,10 +872,6 @@ EOF
       flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     '';
   };
-EOF
-    fi
-
-    sudo tee -a "$config_file" > /dev/null << EOF
   environment.systemPackages = with pkgs; [
     vim
     nano
@@ -1061,14 +1062,13 @@ install_system() {
 
 check_dependencies() {
     local missing_deps=()
-    for cmd in parted mkfs.fat mkfs.ext4 mkfs.btrfs cryptsetup fallocate mkpasswd dialog; do
+    for cmd in parted mkfs.fat mkfs.ext4 mkfs.btrfs cryptsetup fallocate mkpasswd; do
         if ! command -v $cmd >/dev/null 2>&1; then
             missing_deps+=($cmd)
         fi
     done
     if [ ${#missing_deps[@]} -ne 0 ]; then
         echo "Aviso: Alguns comandos podem não estar disponíveis: ${missing_deps[*]}"
-        echo "Instale-os com: nix-shell -p dialog"
         sleep 3
     fi
 }
