@@ -621,31 +621,17 @@ EOF
 
     if [ "$desktop" != "none" ]; then
         case $desktop in
-            cosmic)
-                sudo tee -a "$config_file" > /dev/null << EOF
-  services.desktopManager.cosmic.enable = true;
-  services.displayManager.cosmic-greeter.enable = true;
-  environment.cosmic.excludePackages = with pkgs; [
-    cosmic-edit
-  ];
-EOF
-                ;;
             gnome)
                 sudo tee -a "$config_file" > /dev/null << EOF
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
-  services.gnome.games.enable = false;
   environment.gnome.excludePackages = with pkgs; [
-    gnome-tour
+    totem
     epiphany
     geary
-    evince
-    totem
-    gnome-characters
     gnome-music
-    gnome-photos
-    gnome-terminal
-    gnome-software
+    gnome-tour
+    gnome-user-docs
   ];
 EOF
                 ;;
@@ -655,9 +641,18 @@ EOF
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
   environment.plasma6.excludePackages = with pkgs.kdePackages; [
-    plasma-browser-integration
-    konsole
-    elisa
+    kate
+    plasma-systemmonitor
+  ];
+EOF
+                ;;
+            cosmic)
+                sudo tee -a "$config_file" > /dev/null << EOF
+  services.desktopManager.cosmic.enable = true;
+  services.displayManager.cosmic-greeter.enable = true;
+  environment.cosmic.excludePackages = with pkgs; [
+    cosmic-player
+    cosmic-text-editor
   ];
 EOF
                 ;;
@@ -779,6 +774,8 @@ EOF
     fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
+  users.mutableUsers = false;
+  users.users.root.hashedPassword = "!";
   users.users.$username = {
     isNormalUser = true;
     description = "$username";
@@ -792,7 +789,7 @@ EOF
       commands = [
         {
           command = "ALL";
-          options = [ "SETENV" "NOPASSWD" ];
+          options = [ "SETENV" ];
         }
       ];
     }
@@ -843,28 +840,14 @@ EOF
     case $desktop in
         gnome)
             sudo tee -a "$config_file" > /dev/null << EOF
-    refine
-    gnome-tweaks
-    gnome-disk-utility
-    vanilla-dmz
-    tela-icon-theme
-    ffmpegthumbnailer
 EOF
             ;;
         plasma)
             sudo tee -a "$config_file" > /dev/null << EOF
-    kdePackages.dolphin
-    kdePackages.ark
-    kdePackages.kate
-    libsForQt5.qt5ct
-    libsForQt5.qtstyleplugin-kvantum
 EOF
             ;;
         cosmic)
             sudo tee -a "$config_file" > /dev/null << EOF
-    cosmic-term
-    cosmic-files
-    cosmic-store
 EOF
             ;;
     esac
