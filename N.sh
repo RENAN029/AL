@@ -289,6 +289,46 @@ select_recommended_config() {
     fi
 }
 
+select_packages() {
+    local temp_file=$(mktemp)
+    
+    dialog --title "Seleção de Pacotes" \
+        --checklist "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, TAB para mudar de botão, ENTER para confirmar" \
+        20 70 10 \
+        "app.zen_browser.zen" "Zen Browser (Navegador web)" off \
+        "com.vysp3r.ProtonPlus" "ProtonPlus (Gerenciador de compatibilidade)" off \
+        "io.github.Faugus.faugus-launcher" "Faugus Launcher (Gerenciador de jogos)" off \
+        "org.gimp.GIMP" "GIMP (Editor de imagens)" off \
+        "org.onlyoffice.desktopeditors" "OnlyOffice (Suíte de escritório)" off \
+        2> "$temp_file"
+    
+    local exit_code=$?
+    local selection=$(cat "$temp_file" | tr '\n' ' ' | sed 's/ $//')
+    rm -f "$temp_file"
+    
+    if [ $exit_code -eq 0 ]; then
+        echo "$selection" > "$STATE_DIR/packages"
+        clear
+        echo "=== SELEÇÃO DE PACOTES CONCLUÍDA ==="
+        if [ -n "$selection" ]; then
+            echo "Pacotes selecionados:"
+            for pkg in $selection; do
+                echo "  - $pkg"
+            done
+        else
+            echo "Nenhum pacote selecionado."
+        fi
+        echo
+        echo "Pressione Enter para continuar..."
+        read
+    else
+        echo "Seleção cancelada. Nenhum pacote será instalado."
+        echo "" > "$STATE_DIR/packages"
+        echo "Pressione Enter para continuar..."
+        read
+    fi
+}
+
 detect_disk() {
     while true; do
         clear
@@ -328,98 +368,6 @@ select_username() {
             read
         fi
     done
-}
-
-select_packages() {
-    clear
-    echo "=== SELEÇÃO DE PACOTES / PACKAGE SELECTION ==="
-    echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para continuar"
-    echo
-    
-    local packages=(
-        "org.gimp.GIMP|GIMP (Editor de imagens)|flatpak"
-        "org.onlyoffice.desktopeditors|OnlyOffice (Suite de escritório)|flatpak"
-        "app.zen_browser.zen|Zen Browser (Navegador web)|flatpak"
-        "io.github.Faugus.faugus-launcher|Faugus Launcher (Gerenciador de jogos)|flatpak"
-        "com.vysp3r.ProtonPlus|ProtonPlus (Gerenciador de compatibilidade)|flatpak"
-    )
-    
-    local selected=()
-    for i in "${!packages[@]}"; do
-        selected[$i]=0
-    done
-    
-    local current=0
-    
-    while true; do
-        clear
-        echo "=== SELEÇÃO DE PACOTES / PACKAGE SELECTION ==="
-        echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para continuar"
-        echo
-        
-        for i in "${!packages[@]}"; do
-            IFS='|' read -r id name type <<< "${packages[$i]}"
-            
-            if [ $i -eq $current ]; then
-                echo -n "> "
-            else
-                echo -n "  "
-            fi
-            
-            if [ ${selected[$i]} -eq 1 ]; then
-                echo -n "[*] "
-            else
-                echo -n "[ ] "
-            fi
-            
-            echo "$name [$type]"
-        done
-        
-        echo
-        echo "Pressione ENTER para confirmar a seleção"
-        
-        read -rsn1 key
-        if [[ $key == $'\x1b' ]]; then
-            read -rsn2 key
-            case $key in
-                '[A') current=$((current - 1))
-                    if [ $current -lt 0 ]; then
-                        current=$((${#packages[@]} - 1))
-                    fi
-                    ;;
-                '[B') current=$((current + 1))
-                    if [ $current -ge ${#packages[@]} ]; then
-                        current=0
-                    fi
-                    ;;
-            esac
-        elif [[ $key == " " ]]; then
-            if [ ${selected[$current]} -eq 0 ]; then
-                selected[$current]=1
-            else
-                selected[$current]=0
-            fi
-        elif [[ $key == "" ]]; then
-            break
-        fi
-    done
-    
-    echo "" > "$STATE_DIR/flatpaks"
-    echo "" > "$STATE_DIR/nixpkgs"
-    
-    for i in "${!packages[@]}"; do
-        if [ ${selected[$i]} -eq 1 ]; then
-            IFS='|' read -r id name type <<< "${packages[$i]}"
-            if [ "$type" = "flatpak" ]; then
-                echo "$id" >> "$STATE_DIR/flatpaks"
-            else
-                echo "$id" >> "$STATE_DIR/nixpkgs"
-            fi
-        fi
-    done
-    
-    echo "Seleção concluída. Pressione Enter para continuar."
-    read
 }
 
 check_existing_partitions() {
@@ -559,23 +507,7 @@ show_summary() {
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
     echo "Configurações recomendadas: $(cat "$STATE_DIR/recommended")"
-    echo "Pacotes selecionados:"
-    echo "  Flatpaks:"
-    if [ -s "$STATE_DIR/flatpaks" ]; then
-        while IFS= read -r pkg; do
-            echo "    - $pkg"
-        done < "$STATE_DIR/flatpaks"
-    else
-        echo "    Nenhum flatpak selecionado"
-    fi
-    echo "  Nixpkgs:"
-    if [ -s "$STATE_DIR/nixpkgs" ]; then
-        while IFS= read -r pkg; do
-            echo "    - $pkg"
-        done < "$STATE_DIR/nixpkgs"
-    else
-        echo "    Nenhum pacote nixpkgs selecionado"
-    fi
+    echo "Pacotes selecionados: $(cat "$STATE_DIR/packages")"
     echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
     echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
@@ -613,6 +545,7 @@ generate_config() {
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
     local recommended=$(cat "$STATE_DIR/recommended")
+    local packages=$(cat "$STATE_DIR/packages")
     local config_file="/mnt/etc/nixos/configuration.nix"
     
     sudo tee "$config_file" > /dev/null << EOF
@@ -926,8 +859,20 @@ EOF
 EOF
     fi
 
-    sudo tee -a "$config_file" > /dev/null << EOF
+    if [ -n "$packages" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
   services.flatpak.enable = true;
+  services.flatpak.packages = [
+EOF
+
+        for pkg in $packages; do
+            sudo tee -a "$config_file" > /dev/null << EOF
+    "$pkg"
+EOF
+        done
+
+        sudo tee -a "$config_file" > /dev/null << EOF
+  ];
   systemd.services.flatpak-repo = {
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.flatpak ];
@@ -935,19 +880,6 @@ EOF
       flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     '';
   };
-EOF
-
-    if [ -s "$STATE_DIR/flatpaks" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  services.flatpak.packages = [
-EOF
-        while IFS= read -r pkg; do
-            sudo tee -a "$config_file" > /dev/null << EOF
-    "$pkg"
-EOF
-        done < "$STATE_DIR/flatpaks"
-        sudo tee -a "$config_file" > /dev/null << EOF
-  ];
 EOF
     fi
 
@@ -970,14 +902,6 @@ EOF
     wayland-utils
     starship
 EOF
-
-    if [ -s "$STATE_DIR/nixpkgs" ]; then
-        while IFS= read -r pkg; do
-            sudo tee -a "$config_file" > /dev/null << EOF
-    $pkg
-EOF
-        done < "$STATE_DIR/nixpkgs"
-    fi
 
     case $desktop in
         gnome)
