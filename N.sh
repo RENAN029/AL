@@ -292,25 +292,35 @@ select_recommended_config() {
 select_packages() {
     clear
     echo "=== SELEÇÃO DE PACOTES / PACKAGE SELECTION ==="
-    echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para continuar"
-    echo "========================================================================"
+    echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para confirmar"
+    echo
     
     local options=(
-        "org.gimp.GIMP" "flathub" "off"
-        "org.onlyoffice.desktopeditors" "flathub" "off"
-        "app.zen_browser.zen" "flathub" "off"
-        "io.github.Faugus.faugus-launcher" "flathub" "off"
-        "com.vysp3r.ProtonPlus" "flathub" "off"
+        "org.gimp.GIMP" "GIMP - Editor de imagens"
+        "org.onlyoffice.desktopeditors" "OnlyOffice - Suíte de escritório"
+        "app.zen_browser.zen" "Zen Browser - Navegador web"
+        "io.github.Faugus.faugus-launcher" "Faugus Launcher - Launcher de jogos"
+        "com.vysp3r.ProtonPlus" "ProtonPlus - Gerenciador de camadas de compatibilidade"
     )
     
-    local selected=$(whiptail --title "Seleção de Pacotes" \
-        --checklist \
-        "Escolha os pacotes que deseja instalar:" \
-        20 60 10 \
-        "${options[@]}" \
-        3>&1 1>&2 2>&3)
+    local selected=()
+    local choice
+    local dialog_output
     
-    echo "$selected" > "$STATE_DIR/packages"
+    dialog_output=$(dialog --clear --stdout \
+        --title "Seleção de Pacotes" \
+        --checklist "Escolha os pacotes que deseja instalar:" \
+        20 70 10 \
+        "${options[@]}")
+    
+    if [ $? -eq 0 ]; then
+        echo "$dialog_output" > "$STATE_DIR/packages"
+        echo "Pacotes selecionados: $dialog_output"
+    else
+        echo "Nenhum pacote selecionado" > "$STATE_DIR/packages"
+        echo "Nenhum pacote selecionado."
+    fi
+    sleep 2
 }
 
 detect_disk() {
@@ -529,7 +539,7 @@ generate_config() {
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
     local recommended=$(cat "$STATE_DIR/recommended")
-    local packages=$(cat "$STATE_DIR/packages" | tr -d '"' | sed 's/ /\n/g')
+    local packages=$(cat "$STATE_DIR/packages")
     local config_file="/mnt/etc/nixos/configuration.nix"
     
     sudo tee "$config_file" > /dev/null << EOF
@@ -845,19 +855,6 @@ EOF
 
     sudo tee -a "$config_file" > /dev/null << EOF
   services.flatpak.enable = true;
-  services.flatpak.packages = [
-EOF
-
-    for pkg in $packages; do
-        if [ -n "$pkg" ]; then
-            sudo tee -a "$config_file" > /dev/null << EOF
-    "$pkg"
-EOF
-        fi
-    done
-
-    sudo tee -a "$config_file" > /dev/null << EOF
-  ];
   systemd.services.flatpak-repo = {
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.flatpak ];
@@ -902,6 +899,19 @@ EOF
     if [ "$recommended" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
 EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
+  ];
+  services.flatpak.packages = [
+EOF
+
+    if [ "$packages" != "Nenhum pacote selecionado" ] && [ -n "$packages" ]; then
+        for pkg in $packages; do
+            sudo tee -a "$config_file" > /dev/null << EOF
+    "$pkg"
+EOF
+        done
     fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
