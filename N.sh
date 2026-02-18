@@ -779,11 +779,13 @@ EOF
       commands = [
         {
           command = "ALL";
-          options = [ "SETENV" "NOPASSWD" ];
+          options = [ "SETENV" ];
         }
       ];
     }
   ];
+  users.mutableUsers = false;
+  users.users.root.hashedPassword = "!";
 EOF
 
     if [ "$swap_size" != "0" ]; then
@@ -999,6 +1001,7 @@ install_system() {
     echo "=== INSTALAÇÃO CONCLUÍDA ==="
     echo "Após reiniciar, faça login com usuário: $(cat "$STATE_DIR/username")"
     echo "Digite 'reboot' para reiniciar."
+    echo "O usuário root está desabilitado. Use 'sudo' com a senha do seu usuário."
 }
 
 check_dependencies() {
