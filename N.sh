@@ -222,21 +222,16 @@ select_desktop() {
 }
 
 select_wireless_backend() {
-    while true; do
-        clear
-        echo "=== BACKEND DE REDE SEM FIO / WIRELESS BACKEND ==="
-        echo "1) iwd (mais leve, melhor performance)"
-        echo "2) wpa_supplicant (padrão, maior compatibilidade)"
-        read -p "Opção: " net_opt
-        case $net_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
-    done
-    case $net_opt in
-        1) echo "iwd" > "$STATE_DIR/wireless_backend" ;;
-        2) echo "wpa_supplicant" > "$STATE_DIR/wireless_backend" ;;
-    esac
+    clear
+    echo "=== BACKEND DE REDE SEM FIO / WIRELESS BACKEND ==="
+    echo "NOTA: Como NetworkManager está sempre habilitado,"
+    echo "o backend de rede sem fio será gerenciado por ele."
+    echo
+    if confirm "Usar iwd como backend do NetworkManager? (recomendado)"; then
+        echo "iwd" > "$STATE_DIR/wireless_backend"
+    else
+        echo "wpa_supplicant" > "$STATE_DIR/wireless_backend"
+    fi
 }
 
 select_bluetooth() {
@@ -479,7 +474,7 @@ show_summary() {
     echo "Kernel: $(cat "$STATE_DIR/kernel")"
     echo "Desktop: $(cat "$STATE_DIR/desktop")"
     echo "GPU Driver: $(cat "$STATE_DIR/gpu_driver")"
-    echo "Wireless: $(cat "$STATE_DIR/wireless_backend")"
+    echo "Wireless backend: $(cat "$STATE_DIR/wireless_backend")"
     echo "Bluetooth: $(cat "$STATE_DIR/bluetooth")"
     echo "CUPS: $(cat "$STATE_DIR/cups")"
     echo "TRIM SSD: $(cat "$STATE_DIR/trim")"
@@ -601,6 +596,15 @@ EOF
   };
   networking.hostName = "$hostname";
   networking.networkmanager.enable = true;
+EOF
+
+    if [ "$wireless_backend" = "iwd" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  networking.networkmanager.wifi.backend = "iwd";
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
   time.timeZone = "$timezone";
   i18n.defaultLocale = "$lang";
 EOF
@@ -840,16 +844,6 @@ EOF
     if [ "$fs" = "btrfs" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   boot.supportedFilesystems = [ "btrfs" ];
-EOF
-    fi
-
-    if [ "$wireless_backend" = "iwd" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  networking.wireless.iwd.enable = true;
-EOF
-    else
-        sudo tee -a "$config_file" > /dev/null << EOF
-  networking.wireless.enable = true;
 EOF
     fi
 
