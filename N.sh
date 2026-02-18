@@ -330,6 +330,98 @@ select_username() {
     done
 }
 
+select_packages() {
+    clear
+    echo "=== SELEÇÃO DE PACOTES / PACKAGE SELECTION ==="
+    echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para continuar"
+    echo
+    
+    local packages=(
+        "org.gimp.GIMP|GIMP (Editor de imagens)|flatpak"
+        "org.onlyoffice.desktopeditors|OnlyOffice (Suite de escritório)|flatpak"
+        "app.zen_browser.zen|Zen Browser (Navegador web)|flatpak"
+        "io.github.Faugus.faugus-launcher|Faugus Launcher (Gerenciador de jogos)|flatpak"
+        "com.vysp3r.ProtonPlus|ProtonPlus (Gerenciador de compatibilidade)|flatpak"
+    )
+    
+    local selected=()
+    for i in "${!packages[@]}"; do
+        selected[$i]=0
+    done
+    
+    local current=0
+    
+    while true; do
+        clear
+        echo "=== SELEÇÃO DE PACOTES / PACKAGE SELECTION ==="
+        echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para continuar"
+        echo
+        
+        for i in "${!packages[@]}"; do
+            IFS='|' read -r id name type <<< "${packages[$i]}"
+            
+            if [ $i -eq $current ]; then
+                echo -n "> "
+            else
+                echo -n "  "
+            fi
+            
+            if [ ${selected[$i]} -eq 1 ]; then
+                echo -n "[*] "
+            else
+                echo -n "[ ] "
+            fi
+            
+            echo "$name [$type]"
+        done
+        
+        echo
+        echo "Pressione ENTER para confirmar a seleção"
+        
+        read -rsn1 key
+        if [[ $key == $'\x1b' ]]; then
+            read -rsn2 key
+            case $key in
+                '[A') current=$((current - 1))
+                    if [ $current -lt 0 ]; then
+                        current=$((${#packages[@]} - 1))
+                    fi
+                    ;;
+                '[B') current=$((current + 1))
+                    if [ $current -ge ${#packages[@]} ]; then
+                        current=0
+                    fi
+                    ;;
+            esac
+        elif [[ $key == " " ]]; then
+            if [ ${selected[$current]} -eq 0 ]; then
+                selected[$current]=1
+            else
+                selected[$current]=0
+            fi
+        elif [[ $key == "" ]]; then
+            break
+        fi
+    done
+    
+    echo "" > "$STATE_DIR/flatpaks"
+    echo "" > "$STATE_DIR/nixpkgs"
+    
+    for i in "${!packages[@]}"; do
+        if [ ${selected[$i]} -eq 1 ]; then
+            IFS='|' read -r id name type <<< "${packages[$i]}"
+            if [ "$type" = "flatpak" ]; then
+                echo "$id" >> "$STATE_DIR/flatpaks"
+            else
+                echo "$id" >> "$STATE_DIR/nixpkgs"
+            fi
+        fi
+    done
+    
+    echo "Seleção concluída. Pressione Enter para continuar."
+    read
+}
+
 check_existing_partitions() {
     local disk=$(cat "$STATE_DIR/disk")
     if [ -n "$(lsblk -no NAME "$disk" | tail -n +2)" ]; then
@@ -467,6 +559,23 @@ show_summary() {
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
     echo "Configurações recomendadas: $(cat "$STATE_DIR/recommended")"
+    echo "Pacotes selecionados:"
+    echo "  Flatpaks:"
+    if [ -s "$STATE_DIR/flatpaks" ]; then
+        while IFS= read -r pkg; do
+            echo "    - $pkg"
+        done < "$STATE_DIR/flatpaks"
+    else
+        echo "    Nenhum flatpak selecionado"
+    fi
+    echo "  Nixpkgs:"
+    if [ -s "$STATE_DIR/nixpkgs" ]; then
+        while IFS= read -r pkg; do
+            echo "    - $pkg"
+        done < "$STATE_DIR/nixpkgs"
+    else
+        echo "    Nenhum pacote nixpkgs selecionado"
+    fi
     echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
     echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
@@ -818,6 +927,31 @@ EOF
     fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
+  services.flatpak.enable = true;
+  systemd.services.flatpak-repo = {
+    wantedBy = [ "multi-user.target" ];
+    path = [ pkgs.flatpak ];
+    script = ''
+      flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    '';
+  };
+EOF
+
+    if [ -s "$STATE_DIR/flatpaks" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.flatpak.packages = [
+EOF
+        while IFS= read -r pkg; do
+            sudo tee -a "$config_file" > /dev/null << EOF
+    "$pkg"
+EOF
+        done < "$STATE_DIR/flatpaks"
+        sudo tee -a "$config_file" > /dev/null << EOF
+  ];
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
   environment.systemPackages = with pkgs; [
     vim
     nano
@@ -837,6 +971,14 @@ EOF
     starship
 EOF
 
+    if [ -s "$STATE_DIR/nixpkgs" ]; then
+        while IFS= read -r pkg; do
+            sudo tee -a "$config_file" > /dev/null << EOF
+    $pkg
+EOF
+        done < "$STATE_DIR/nixpkgs"
+    fi
+
     case $desktop in
         gnome)
             sudo tee -a "$config_file" > /dev/null << EOF
@@ -854,11 +996,6 @@ EOF
 
     if [ "$recommended" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-    lshw
-    pciutils
-    sbctl
-    disfetch
-    mission-center
 EOF
     fi
 
@@ -1048,6 +1185,7 @@ main() {
     select_recommended_config
     select_username
     detect_disk
+    select_packages
     show_summary
     partition_disk
     mount_partitions
