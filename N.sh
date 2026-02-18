@@ -290,25 +290,66 @@ select_recommended_config() {
 }
 
 select_packages() {
-    clear
-    echo "=== SELEÇÃO DE PACOTES / PACKAGE SELECTION ==="
-    echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, TAB para mudar de opção, ENTER para confirmar"
-    echo "================================================================================"
+    local packages_file="$STATE_DIR/packages"
+    > "$packages_file"
     
-    local temp_file=$(mktemp)
+    local options=(
+        "app.zen_browser.zen" "Zen Browser (Navegador web)" off
+        "com.vysp3r.ProtonPlus" "ProtonPlus (Gerenciador de compatibilidade)" off
+        "io.github.Faugus.faugus-launcher" "Faugus Launcher (Gerenciador de jogos)" off
+        "org.gimp.GIMP" "GIMP (Editor de imagens)" off
+        "org.onlyoffice.desktopeditors" "OnlyOffice (Suíte de escritório)" off
+    )
     
-    dialog --checklist "Selecione os pacotes desejados:" 20 70 10 \
-        "app.zen_browser.zen" "Zen Browser (Navegador web)" off \
-        "com.vysp3r.ProtonPlus" "ProtonPlus (Gerenciador de compatibilidade)" off \
-        "io.github.Faugus.faugus-launcher" "Faugus Launcher (Gerenciador de jogos)" off \
-        "org.gimp.GIMP" "GIMP (Editor de imagens)" off \
-        "org.onlyoffice.desktopeditors" "OnlyOffice (Suíte de escritório)" off \
-        2> "$temp_file"
+    while true; do
+        clear
+        echo "=== SELEÇÃO DE PACOTES / PACKAGE SELECTION ==="
+        echo "Digite o número do pacote para marcar/desmarcar, ou 0 para continuar"
+        echo "================================================================================"
+        echo
+        echo "Pacotes disponíveis:"
+        echo
+        
+        local i=1
+        local selected_list=$(cat "$packages_file" 2>/dev/null || echo "")
+        
+        for ((idx=0; idx<${#options[@]}; idx+=3)); do
+            local pkg_id="${options[idx]}"
+            local pkg_desc="${options[idx+1]}"
+            local pkg_status="${options[idx+2]}"
+            
+            if echo "$selected_list" | grep -q "$pkg_id"; then
+                pkg_status="on"
+                options[idx+2]="on"
+                echo "$i) [X] $pkg_desc"
+            else
+                options[idx+2]="off"
+                echo "$i) [ ] $pkg_desc"
+            fi
+            
+            eval "pkg_$i=\"$pkg_id\""
+            i=$((i+1))
+        done
+        
+        echo
+        read -p "Opção (1-$((i-1)), 0 para continuar): " choice
+        
+        if [ "$choice" = "0" ]; then
+            break
+        elif [ "$choice" -ge 1 ] && [ "$choice" -le "$((i-1))" ]; then
+            local selected_pkg=$(eval echo "\$pkg_$choice")
+            local temp_file=$(mktemp)
+            
+            if cat "$packages_file" 2>/dev/null | grep -q "$selected_pkg"; then
+                grep -v "$selected_pkg" "$packages_file" 2>/dev/null > "$temp_file" || true
+                mv "$temp_file" "$packages_file"
+            else
+                echo "$selected_pkg" >> "$packages_file"
+            fi
+            rm -f "$temp_file"
+        fi
+    done
     
-    local selected=$(cat "$temp_file" | tr '\n' ' ')
-    rm -f "$temp_file"
-    
-    echo "$selected" > "$STATE_DIR/packages"
     clear
     echo "Seleção concluída. Pressione Enter para continuar."
     read
@@ -492,7 +533,7 @@ show_summary() {
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
     echo "Configurações recomendadas: $(cat "$STATE_DIR/recommended")"
-    echo "Pacotes selecionados: $(cat "$STATE_DIR/packages")"
+    echo "Pacotes selecionados: $(cat "$STATE_DIR/packages" | tr '\n' ' ')"
     echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
     echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
@@ -530,7 +571,7 @@ generate_config() {
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
     local recommended=$(cat "$STATE_DIR/recommended")
-    local packages=$(cat "$STATE_DIR/packages")
+    local packages=$(cat "$STATE_DIR/packages" 2>/dev/null | tr '\n' ' ')
     local config_file="/mnt/etc/nixos/configuration.nix"
     
     sudo tee "$config_file" > /dev/null << EOF
