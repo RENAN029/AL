@@ -290,43 +290,31 @@ select_recommended_config() {
 }
 
 select_packages() {
+    clear
+    echo "=== SELEÇÃO DE PACOTES / PACKAGE SELECTION ==="
+    echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para confirmar"
+    echo "========================================================================"
+    
     local temp_file=$(mktemp)
     
-    dialog --title "Seleção de Pacotes" \
-        --checklist "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, TAB para mudar de botão, ENTER para confirmar" \
+    dialog --clear --stdout \
+        --title "Seleção de Pacotes" \
+        --checklist "Escolha os pacotes que deseja instalar:" \
         20 70 10 \
         "app.zen_browser.zen" "Zen Browser (Navegador web)" off \
         "com.vysp3r.ProtonPlus" "ProtonPlus (Gerenciador de compatibilidade)" off \
         "io.github.Faugus.faugus-launcher" "Faugus Launcher (Gerenciador de jogos)" off \
         "org.gimp.GIMP" "GIMP (Editor de imagens)" off \
-        "org.onlyoffice.desktopeditors" "OnlyOffice (Suíte de escritório)" off \
+        "org.onlyoffice.desktopeditors" "OnlyOffice (Suite de escritório)" off \
         2> "$temp_file"
     
-    local exit_code=$?
-    local selection=$(cat "$temp_file" | tr '\n' ' ' | sed 's/ $//')
+    local selected=$(cat "$temp_file" | tr -d '"' | sed 's/ /\n/g')
     rm -f "$temp_file"
     
-    if [ $exit_code -eq 0 ]; then
-        echo "$selection" > "$STATE_DIR/packages"
-        clear
-        echo "=== SELEÇÃO DE PACOTES CONCLUÍDA ==="
-        if [ -n "$selection" ]; then
-            echo "Pacotes selecionados:"
-            for pkg in $selection; do
-                echo "  - $pkg"
-            done
-        else
-            echo "Nenhum pacote selecionado."
-        fi
-        echo
-        echo "Pressione Enter para continuar..."
-        read
-    else
-        echo "Seleção cancelada. Nenhum pacote será instalado."
-        echo "" > "$STATE_DIR/packages"
-        echo "Pressione Enter para continuar..."
-        read
-    fi
+    echo "$selected" > "$STATE_DIR/packages"
+    echo
+    echo "Seleção concluída. Pressione Enter para continuar."
+    read
 }
 
 detect_disk() {
@@ -545,7 +533,7 @@ generate_config() {
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
     local recommended=$(cat "$STATE_DIR/recommended")
-    local packages=$(cat "$STATE_DIR/packages")
+    local packages=$(cat "$STATE_DIR/packages" | tr -d '"' | sed 's/ /\n/g')
     local config_file="/mnt/etc/nixos/configuration.nix"
     
     sudo tee "$config_file" > /dev/null << EOF
@@ -859,19 +847,20 @@ EOF
 EOF
     fi
 
-    if [ -n "$packages" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
+    sudo tee -a "$config_file" > /dev/null << EOF
   services.flatpak.enable = true;
   services.flatpak.packages = [
 EOF
 
-        for pkg in $packages; do
+    for pkg in $packages; do
+        if [ -n "$pkg" ]; then
             sudo tee -a "$config_file" > /dev/null << EOF
     "$pkg"
 EOF
-        done
+        fi
+    done
 
-        sudo tee -a "$config_file" > /dev/null << EOF
+    sudo tee -a "$config_file" > /dev/null << EOF
   ];
   systemd.services.flatpak-repo = {
     wantedBy = [ "multi-user.target" ];
@@ -880,10 +869,6 @@ EOF
       flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     '';
   };
-EOF
-    fi
-
-    sudo tee -a "$config_file" > /dev/null << EOF
   environment.systemPackages = with pkgs; [
     vim
     nano
