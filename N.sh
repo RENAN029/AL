@@ -316,14 +316,10 @@ select_packages() {
         for ((idx=0; idx<${#options[@]}; idx+=3)); do
             local pkg_id="${options[idx]}"
             local pkg_desc="${options[idx+1]}"
-            local pkg_status="${options[idx+2]}"
             
             if echo "$selected_list" | grep -q "$pkg_id"; then
-                pkg_status="on"
-                options[idx+2]="on"
                 echo "$i) [X] $pkg_desc"
             else
-                options[idx+2]="off"
                 echo "$i) [ ] $pkg_desc"
             fi
             
@@ -886,31 +882,26 @@ EOF
     fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
-  services.flatpak.enable = true;
-EOF
-
-    if [ -n "$packages" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  services.flatpak.packages = [
-EOF
-        for pkg in $packages; do
-            if [ -n "$pkg" ]; then
-                sudo tee -a "$config_file" > /dev/null << EOF
-    "$pkg"
-EOF
-            fi
-        done
-        sudo tee -a "$config_file" > /dev/null << EOF
-  ];
-EOF
-    fi
-
-    sudo tee -a "$config_file" > /dev/null << EOF
-  systemd.services.flatpak-repo = {
+  systemd.services.flatpak-install = {
     wantedBy = [ "multi-user.target" ];
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
     path = [ pkgs.flatpak ];
     script = ''
       flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+EOF
+
+    if [ -n "$packages" ]; then
+        for pkg in $packages; do
+            if [ -n "$pkg" ]; then
+                sudo tee -a "$config_file" > /dev/null << EOF
+      flatpak install --noninteractive -y flathub $pkg
+EOF
+            fi
+        done
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
     '';
   };
   environment.systemPackages = with pkgs; [
@@ -930,6 +921,7 @@ EOF
     clinfo
     wayland-utils
     starship
+    flatpak
 EOF
 
     case $desktop in
