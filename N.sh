@@ -26,32 +26,12 @@ select_language() {
     case $lang_opt in
         1) 
             echo "pt_BR.UTF-8" > "$STATE_DIR/lang"
-            ;;
-        2) 
-            echo "en_US.UTF-8" > "$STATE_DIR/lang"
-            ;;
-    esac
-}
-
-select_keyboard() {
-    while true; do
-        clear
-        echo "=== LAYOUT DO TECLADO / KEYBOARD LAYOUT ==="
-        echo "1) Português Brasileiro (br-abnt2)"
-        echo "2) English US (us)"
-        read -p "Opção: " kb_opt
-        case $kb_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
-    done
-    case $kb_opt in
-        1)
             echo "br-abnt2" > "$STATE_DIR/console_keymap"
             echo "br" > "$STATE_DIR/xkb_layout"
             echo "abnt2" > "$STATE_DIR/xkb_variant"
             ;;
-        2)
+        2) 
+            echo "en_US.UTF-8" > "$STATE_DIR/lang"
             echo "us" > "$STATE_DIR/console_keymap"
             echo "us" > "$STATE_DIR/xkb_layout"
             echo "" > "$STATE_DIR/xkb_variant"
@@ -626,7 +606,8 @@ EOF
   services.desktopManager.cosmic.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
   environment.cosmic.excludePackages = with pkgs; [
-    cosmic-edit
+    cosmic-player
+    cosmic-text-editor
   ];
 EOF
                 ;;
@@ -636,16 +617,12 @@ EOF
   services.desktopManager.gnome.enable = true;
   services.gnome.games.enable = false;
   environment.gnome.excludePackages = with pkgs; [
-    gnome-tour
+    totem
     epiphany
     geary
-    evince
-    totem
-    gnome-characters
     gnome-music
-    gnome-photos
-    gnome-terminal
-    gnome-software
+    gnome-tour
+    gnome-user-docs
   ];
 EOF
                 ;;
@@ -655,9 +632,8 @@ EOF
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
   environment.plasma6.excludePackages = with pkgs.kdePackages; [
-    plasma-browser-integration
-    konsole
-    elisa
+    kate
+    plasma-systemmonitor
   ];
 EOF
                 ;;
@@ -717,17 +693,28 @@ EOF
     vpl-gpu-rt
   ];
 EOF
+    else
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.xserver.videoDrivers = [ "modesetting" ];
+EOF
     fi
 
     if [ "$device_type" = "laptop" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   powerManagement.enable = true;
   services.thermald.enable = true;
-  services.tlp.enable = false;
+  services.tlp = {
+    enable = true;
+    settings = {
+      WIFI_PWR_ON_AC = "off";
+      WIFI_PWR_ON_BAT = "on";
+    };
+  };
 EOF
     else
         sudo tee -a "$config_file" > /dev/null << EOF
   powerManagement.cpuFreqGovernor = "performance";
+  services.tlp.enable = false;
 EOF
     fi
 
@@ -843,28 +830,14 @@ EOF
     case $desktop in
         gnome)
             sudo tee -a "$config_file" > /dev/null << EOF
-    refine
-    gnome-tweaks
-    gnome-disk-utility
-    vanilla-dmz
-    tela-icon-theme
-    ffmpegthumbnailer
 EOF
             ;;
         plasma)
             sudo tee -a "$config_file" > /dev/null << EOF
-    kdePackages.dolphin
-    kdePackages.ark
-    kdePackages.kate
-    libsForQt5.qt5ct
-    libsForQt5.qtstyleplugin-kvantum
 EOF
             ;;
         cosmic)
             sudo tee -a "$config_file" > /dev/null << EOF
-    cosmic-term
-    cosmic-files
-    cosmic-store
 EOF
             ;;
     esac
@@ -1047,7 +1020,6 @@ main() {
     echo
     check_dependencies
     select_language
-    select_keyboard
     select_timezone
     select_hostname
     select_device_type
