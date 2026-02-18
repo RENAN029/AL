@@ -141,6 +141,24 @@ select_bootloader() {
     esac
 }
 
+select_kernel() {
+    while true; do
+        clear
+        echo "=== KERNEL / KERNEL ==="
+        echo "1) Linux Latest (padrão, versão mais recente)"
+        echo "2) Linux Liquorix (otimizado para desempenho, lqx)"
+        read -p "Opção: " kernel_opt
+        case $kernel_opt in
+            1|2) break ;;
+            *) echo "Opção inválida"; sleep 2 ;;
+        esac
+    done
+    case $kernel_opt in
+        1) echo "latest" > "$STATE_DIR/kernel" ;;
+        2) echo "lqx" > "$STATE_DIR/kernel" ;;
+    esac
+}
+
 select_swap_size() {
     while true; do
         clear
@@ -287,24 +305,6 @@ select_recommended_config() {
     else
         echo "no" > "$STATE_DIR/recommended"
     fi
-}
-
-select_kernel() {
-    while true; do
-        clear
-        echo "=== KERNEL ==="
-        echo "1) linuxPackages_latest (kernel genérico mais recente)"
-        echo "2) linuxPackages_lqx (kernel Liquorix - focado em desempenho)"
-        read -p "Opção: " kernel_opt
-        case $kernel_opt in
-            1|2) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
-    done
-    case $kernel_opt in
-        1) echo "latest" > "$STATE_DIR/kernel" ;;
-        2) echo "lqx" > "$STATE_DIR/kernel" ;;
-    esac
 }
 
 detect_disk() {
@@ -476,6 +476,7 @@ show_summary() {
     fi
     echo "Filesystem: $(cat "$STATE_DIR/filesystem")"
     echo "Bootloader: $(cat "$STATE_DIR/bootloader")"
+    echo "Kernel: $(cat "$STATE_DIR/kernel")"
     echo "Desktop: $(cat "$STATE_DIR/desktop")"
     echo "GPU Driver: $(cat "$STATE_DIR/gpu_driver")"
     echo "Wireless: $(cat "$STATE_DIR/wireless_backend")"
@@ -485,7 +486,6 @@ show_summary() {
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
     echo "Configurações recomendadas: $(cat "$STATE_DIR/recommended")"
-    echo "Kernel: $(cat "$STATE_DIR/kernel")"
     echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
     echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
@@ -511,6 +511,7 @@ generate_config() {
     local device_type=$(cat "$STATE_DIR/device_type")
     local boot_mode=$(cat "$STATE_DIR/boot_mode")
     local bootloader=$(cat "$STATE_DIR/bootloader")
+    local kernel=$(cat "$STATE_DIR/kernel")
     local desktop=$(cat "$STATE_DIR/desktop")
     local bluetooth=$(cat "$STATE_DIR/bluetooth")
     local cups=$(cat "$STATE_DIR/cups")
@@ -523,7 +524,6 @@ generate_config() {
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
     local recommended=$(cat "$STATE_DIR/recommended")
-    local kernel=$(cat "$STATE_DIR/kernel")
     local config_file="/mnt/etc/nixos/configuration.nix"
     
     sudo tee "$config_file" > /dev/null << EOF
@@ -964,6 +964,7 @@ generate_flake() {
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
     # nix-flatpak.url = "github:gmodena/nix-flatpak";
+    # preload-ng.url = "github:miguel-b-p/preload-ng";
   };
 
   outputs = { self, nixpkgs, nixpkgs-unstable, ... } @ inputs:
@@ -989,6 +990,8 @@ generate_flake() {
             # Descomente os módulos abaixo se tiver descomentado os inputs correspondentes:
             # nix-flatpak.nixosModules.nix-flatpak
             # lanzaboote.nixosModules.lanzaboote
+            # preload-ng.nixosModules.default
+            # { services.preload-ng.enable = true; }
           ];
         };
       };
@@ -1014,10 +1017,13 @@ EOF
     echo "1. Após reiniciar, edite o arquivo /etc/nixos/flake.nix"
     echo "   e descomente as linhas dos inputs e módulos que deseja usar"
     echo
-    echo "2. Execute para ativar:"
+    echo "2. No arquivo /etc/nixos/configuration.nix, descomente as linhas"
+    echo "   relacionadas aos módulos que você ativou no flake.nix"
+    echo
+    echo "3. Execute para ativar:"
     echo "   sudo nixos-rebuild switch --flake /etc/nixos#$hostname"
     echo
-    echo "3. Para atualizar as entradas do flake:"
+    echo "4. Para atualizar as entradas do flake:"
     echo "   sudo nix flake update --flake /etc/nixos"
     echo
     echo "NOTA: Os experimental-features 'nix-command' e 'flakes'"
@@ -1080,6 +1086,7 @@ main() {
     select_device_type
     select_filesystem
     select_bootloader
+    select_kernel
     select_swap_size
     select_gpu_drivers
     select_desktop
@@ -1090,7 +1097,6 @@ main() {
     select_encryption
     select_flakes
     select_recommended_config
-    select_kernel
     select_username
     detect_disk
     show_summary
