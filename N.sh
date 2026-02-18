@@ -292,15 +292,12 @@ select_recommended_config() {
 select_packages() {
     clear
     echo "=== SELEÇÃO DE PACOTES / PACKAGE SELECTION ==="
-    echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para confirmar"
+    echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para continuar"
     echo "========================================================================"
     
     local temp_file=$(mktemp)
     
-    dialog --clear --stdout \
-        --title "Seleção de Pacotes" \
-        --checklist "Escolha os pacotes que deseja instalar:" \
-        20 70 10 \
+    dialog --checklist "Selecione os pacotes desejados:" 20 70 10 \
         "app.zen_browser.zen" "Zen Browser (Navegador web)" off \
         "com.vysp3r.ProtonPlus" "ProtonPlus (Gerenciador de compatibilidade)" off \
         "io.github.Faugus.faugus-launcher" "Faugus Launcher (Gerenciador de jogos)" off \
@@ -308,7 +305,7 @@ select_packages() {
         "org.onlyoffice.desktopeditors" "OnlyOffice (Suite de escritório)" off \
         2> "$temp_file"
     
-    local selected=$(cat "$temp_file" | tr -d '"' | sed 's/ /\n/g')
+    local selected=$(cat "$temp_file" | tr '\n' ' ')
     rm -f "$temp_file"
     
     echo "$selected" > "$STATE_DIR/packages"
@@ -533,7 +530,7 @@ generate_config() {
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
     local recommended=$(cat "$STATE_DIR/recommended")
-    local packages=$(cat "$STATE_DIR/packages" | tr -d '"' | sed 's/ /\n/g')
+    local packages=$(cat "$STATE_DIR/packages")
     local config_file="/mnt/etc/nixos/configuration.nix"
     
     sudo tee "$config_file" > /dev/null << EOF
@@ -847,20 +844,21 @@ EOF
 EOF
     fi
 
-    sudo tee -a "$config_file" > /dev/null << EOF
+    if [ -n "$packages" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
   services.flatpak.enable = true;
   services.flatpak.packages = [
 EOF
 
-    for pkg in $packages; do
-        if [ -n "$pkg" ]; then
-            sudo tee -a "$config_file" > /dev/null << EOF
+        for pkg in $packages; do
+            if [ -n "$pkg" ]; then
+                sudo tee -a "$config_file" > /dev/null << EOF
     "$pkg"
 EOF
-        fi
-    done
+            fi
+        done
 
-    sudo tee -a "$config_file" > /dev/null << EOF
+        sudo tee -a "$config_file" > /dev/null << EOF
   ];
   systemd.services.flatpak-repo = {
     wantedBy = [ "multi-user.target" ];
@@ -869,6 +867,10 @@ EOF
       flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     '';
   };
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
   environment.systemPackages = with pkgs; [
     vim
     nano
@@ -1059,13 +1061,14 @@ install_system() {
 
 check_dependencies() {
     local missing_deps=()
-    for cmd in parted mkfs.fat mkfs.ext4 mkfs.btrfs cryptsetup fallocate mkpasswd; do
+    for cmd in parted mkfs.fat mkfs.ext4 mkfs.btrfs cryptsetup fallocate mkpasswd dialog; do
         if ! command -v $cmd >/dev/null 2>&1; then
             missing_deps+=($cmd)
         fi
     done
     if [ ${#missing_deps[@]} -ne 0 ]; then
         echo "Aviso: Alguns comandos podem não estar disponíveis: ${missing_deps[*]}"
+        echo "Instale-os com: nix-shell -p dialog"
         sleep 3
     fi
 }
