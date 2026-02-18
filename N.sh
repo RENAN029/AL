@@ -292,8 +292,8 @@ select_recommended_config() {
 select_packages() {
     clear
     echo "=== SELEÇÃO DE PACOTES / PACKAGE SELECTION ==="
-    echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, ENTER para continuar"
-    echo "========================================================================"
+    echo "Use as setas ↑ ↓ para navegar, ESPAÇO para selecionar, TAB para mudar de opção, ENTER para confirmar"
+    echo "================================================================================"
     
     local temp_file=$(mktemp)
     
