@@ -26,12 +26,32 @@ select_language() {
     case $lang_opt in
         1) 
             echo "pt_BR.UTF-8" > "$STATE_DIR/lang"
+            ;;
+        2) 
+            echo "en_US.UTF-8" > "$STATE_DIR/lang"
+            ;;
+    esac
+}
+
+select_keyboard() {
+    while true; do
+        clear
+        echo "=== LAYOUT DO TECLADO / KEYBOARD LAYOUT ==="
+        echo "1) Português Brasileiro (br-abnt2)"
+        echo "2) English US (us)"
+        read -p "Opção: " kb_opt
+        case $kb_opt in
+            1|2) break ;;
+            *) echo "Opção inválida"; sleep 2 ;;
+        esac
+    done
+    case $kb_opt in
+        1)
             echo "br-abnt2" > "$STATE_DIR/console_keymap"
             echo "br" > "$STATE_DIR/xkb_layout"
             echo "abnt2" > "$STATE_DIR/xkb_variant"
             ;;
-        2) 
-            echo "en_US.UTF-8" > "$STATE_DIR/lang"
+        2)
             echo "us" > "$STATE_DIR/console_keymap"
             echo "us" > "$STATE_DIR/xkb_layout"
             echo "" > "$STATE_DIR/xkb_variant"
@@ -697,28 +717,17 @@ EOF
     vpl-gpu-rt
   ];
 EOF
-    else
-        sudo tee -a "$config_file" > /dev/null << EOF
-  services.xserver.videoDrivers = [ "modesetting" ];
-EOF
     fi
 
     if [ "$device_type" = "laptop" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   powerManagement.enable = true;
   services.thermald.enable = true;
-  services.tlp = {
-    enable = true;
-    settings = {
-      WIFI_PWR_ON_AC = "off";
-      WIFI_PWR_ON_BAT = "on";
-    };
-  };
+  services.tlp.enable = false;
 EOF
     else
         sudo tee -a "$config_file" > /dev/null << EOF
   powerManagement.cpuFreqGovernor = "performance";
-  services.tlp.enable = false;
 EOF
     fi
 
@@ -1038,6 +1047,7 @@ main() {
     echo
     check_dependencies
     select_language
+    select_keyboard
     select_timezone
     select_hostname
     select_device_type
