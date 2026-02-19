@@ -261,13 +261,17 @@ select_encryption() {
     fi
 }
 
-select_flakes() {
+select_firewall() {
     clear
-    echo "=== FLAKES (EXPERIMENTAL) ==="
-    if confirm "Criar arquivo flake.nix de exemplo?"; then
-        echo "yes" > "$STATE_DIR/flakes"
+    echo "=== FIREWALL ==="
+    echo "Habilitar firewall? (recomendado para segurança)"
+    echo "- Com firewall ativado, portas e serviços ficam restritos"
+    echo "- É possível liberar portas específicas depois na configuração"
+    echo
+    if confirm "Habilitar firewall?"; then
+        echo "yes" > "$STATE_DIR/firewall"
     else
-        echo "no" > "$STATE_DIR/flakes"
+        echo "no" > "$STATE_DIR/firewall"
     fi
 }
 
@@ -295,11 +299,11 @@ select_packages_page1() {
     
     while true; do
         clear
-        echo "=== SELEÇÃO DE PACOTES - PÁGINA 1/2 ==="
-        echo "Digite o número do pacote para marcar/desmarcar, ou 0 para continuar"
+        echo "=== SELEÇÃO DE PACOTES - PÁGINA 1/3 ==="
+        echo "Digite o número do pacote para marcar/desmarcar, N para próxima página, 0 para continuar"
         echo "================================================================================"
         echo
-        echo "Pacotes Flatpak (Página 1):"
+        echo "Pacotes Flatpak (Página 1/2 - 20 pacotes):"
         echo
         
         local i=1
@@ -326,9 +330,29 @@ select_packages_page1() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.benjamimgois.goverlay"; then echo "[X]"; else echo "[ ]"; fi) GOverlay (Overlay para MangoHud)"
         i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.hmlendea.geforcenow-electron"; then echo "[X]"; else echo "[ ]"; fi) GeForce NOW (Streaming de jogos)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.unknownskl.greenlight"; then echo "[X]"; else echo "[ ]"; fi) Greenlight (Cliente Xbox)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.wivrn.wivrn"; then echo "[X]"; else echo "[ ]"; fi) WiVRn (Streaming VR)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.mrarm.mcpelauncher"; then echo "[X]"; else echo "[ ]"; fi) MCPE Launcher (Minecraft Pocket Edition)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.dec05eba.gpu_screen_recorder"; then echo "[X]"; else echo "[ ]"; fi) GPU Screen Recorder (Captura de tela)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.moonlight_stream.Moonlight"; then echo "[X]"; else echo "[ ]"; fi) Moonlight (Streaming de jogos)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "sh.ppy.osu"; then echo "[X]"; else echo "[ ]"; fi) osu! (Jogo de ritmo)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.prismlauncher.PrismLauncher"; then echo "[X]"; else echo "[ ]"; fi) Prism Launcher (Minecraft)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.github.Matoking.protontricks"; then echo "[X]"; else echo "[ ]"; fi) Protontricks (Ferramentas Proton)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.vinegarhq.Vinegar"; then echo "[X]"; else echo "[ ]"; fi) Vinegar (Roblox)"
+        i=$((i+1))
         
         echo
-        echo "Pacotes Nixpkgs (Página 1):"
+        echo "Pacotes Nixpkgs (Página 1/2 - 20 pacotes):"
         echo
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "aria2"; then echo "[X]"; else echo "[ ]"; fi) Aria2 (Downloader)"
         i=$((i+1))
@@ -366,6 +390,10 @@ select_packages_page1() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "podman"; then echo "[X]"; else echo "[ ]"; fi) Podman (Gerenciador de containers)"
         i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ryubing"; then echo "[X]"; else echo "[ ]"; fi) Ryubing (Emulador de Switch)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "stirling-pdf"; then echo "[X]"; else echo "[ ]"; fi) Stirling PDF (Manipulação de PDF)"
+        i=$((i+1))
         
         echo
         echo "Opções: 1-$((i-1)) para selecionar, N para próxima página, 0 para continuar"
@@ -388,24 +416,36 @@ select_packages_page1() {
                 8) pkg="fr.handbrake.ghb"; type="flatpak" ;;
                 9) pkg="io.github.Faugus.faugus-launcher"; type="flatpak" ;;
                 10) pkg="io.github.benjamimgois.goverlay"; type="flatpak" ;;
-                11) pkg="aria2"; type="nixpkgs" ;;
-                12) pkg="btop"; type="nixpkgs" ;;
-                13) pkg="curl"; type="nixpkgs" ;;
-                14) pkg="davinci-resolve"; type="nixpkgs" ;;
-                15) pkg="distrobox"; type="nixpkgs" ;;
-                16) pkg="fastfetch"; type="nixpkgs" ;;
-                17) pkg="fish"; type="nixpkgs" ;;
-                18) pkg="forgejo"; type="nixpkgs" ;;
-                19) pkg="gamemode"; type="nixpkgs" ;;
-                20) pkg="gamescope"; type="nixpkgs" ;;
-                21) pkg="git"; type="nixpkgs" ;;
-                22) pkg="hydralauncher"; type="nixpkgs" ;;
-                23) pkg="mangohud"; type="nixpkgs" ;;
-                24) pkg="mise"; type="nixpkgs" ;;
-                25) pkg="neofetch"; type="nixpkgs" ;;
-                26) pkg="ollama"; type="nixpkgs" ;;
-                27) pkg="opencode"; type="nixpkgs" ;;
-                28) pkg="podman"; type="nixpkgs" ;;
+                11) pkg="io.github.hmlendea.geforcenow-electron"; type="flatpak" ;;
+                12) pkg="io.github.unknownskl.greenlight"; type="flatpak" ;;
+                13) pkg="io.github.wivrn.wivrn"; type="flatpak" ;;
+                14) pkg="io.mrarm.mcpelauncher"; type="flatpak" ;;
+                15) pkg="com.dec05eba.gpu_screen_recorder"; type="flatpak" ;;
+                16) pkg="com.moonlight_stream.Moonlight"; type="flatpak" ;;
+                17) pkg="sh.ppy.osu"; type="flatpak" ;;
+                18) pkg="org.prismlauncher.PrismLauncher"; type="flatpak" ;;
+                19) pkg="com.github.Matoking.protontricks"; type="flatpak" ;;
+                20) pkg="org.vinegarhq.Vinegar"; type="flatpak" ;;
+                21) pkg="aria2"; type="nixpkgs" ;;
+                22) pkg="btop"; type="nixpkgs" ;;
+                23) pkg="curl"; type="nixpkgs" ;;
+                24) pkg="davinci-resolve"; type="nixpkgs" ;;
+                25) pkg="distrobox"; type="nixpkgs" ;;
+                26) pkg="fastfetch"; type="nixpkgs" ;;
+                27) pkg="fish"; type="nixpkgs" ;;
+                28) pkg="forgejo"; type="nixpkgs" ;;
+                29) pkg="gamemode"; type="nixpkgs" ;;
+                30) pkg="gamescope"; type="nixpkgs" ;;
+                31) pkg="git"; type="nixpkgs" ;;
+                32) pkg="hydralauncher"; type="nixpkgs" ;;
+                33) pkg="mangohud"; type="nixpkgs" ;;
+                34) pkg="mise"; type="nixpkgs" ;;
+                35) pkg="neofetch"; type="nixpkgs" ;;
+                36) pkg="ollama"; type="nixpkgs" ;;
+                37) pkg="opencode"; type="nixpkgs" ;;
+                38) pkg="podman"; type="nixpkgs" ;;
+                39) pkg="ryubing"; type="nixpkgs" ;;
+                40) pkg="stirling-pdf"; type="nixpkgs" ;;
                 *) continue ;;
             esac
             
@@ -437,11 +477,11 @@ select_packages_page2() {
     
     while true; do
         clear
-        echo "=== SELEÇÃO DE PACOTES - PÁGINA 2/2 ==="
-        echo "Digite o número do pacote para marcar/desmarcar, P para página anterior, 0 para continuar"
+        echo "=== SELEÇÃO DE PACOTES - PÁGINA 2/3 ==="
+        echo "Digite o número do pacote para marcar/desmarcar, P para anterior, N para próxima, 0 para continuar"
         echo "================================================================================"
         echo
-        echo "Pacotes Flatpak (Página 2):"
+        echo "Pacotes Flatpak (Página 2/2 - 20 pacotes):"
         echo
         
         local i=1
@@ -488,24 +528,10 @@ select_packages_page2() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.termius.Termius"; then echo "[X]"; else echo "[ ]"; fi) Termius (Cliente SSH)"
         i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.visualstudio.code"; then echo "[X]"; else echo "[ ]"; fi) VS Code (Editor de código)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.vscodium.codium"; then echo "[X]"; else echo "[ ]"; fi) VSCodium (Editor de código open-source)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "dev.zed.Zed"; then echo "[X]"; else echo "[ ]"; fi) Zed (Editor de código)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.httpie.Httpie"; then echo "[X]"; else echo "[ ]"; fi) HTTPie (Cliente HTTP)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "rest.insomnia.Insomnia"; then echo "[X]"; else echo "[ ]"; fi) Insomnia (Cliente API)"
-        i=$((i+1))
         
         echo
-        echo "Pacotes Nixpkgs (Página 2):"
+        echo "Pacotes Nixpkgs (Página 2/2 - 20 pacotes):"
         echo
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ryubing"; then echo "[X]"; else echo "[ ]"; fi) Ryubing (Emulador de Switch)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "stirling-pdf"; then echo "[X]"; else echo "[ ]"; fi) Stirling PDF (Manipulação de PDF)"
-        i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "tailscale"; then echo "[X]"; else echo "[ ]"; fi) Tailscale (VPN mesh)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "vimPlugins.LazyVim"; then echo "[X]"; else echo "[ ]"; fi) LazyVim (Framework para Neovim)"
@@ -536,15 +562,28 @@ select_packages_page2() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "btrfs-assistant"; then echo "[X]"; else echo "[ ]"; fi) BTRFS Assistant (Gerenciador BTRFS)"
         i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "starship"; then echo "[X]"; else echo "[ ]"; fi) Starship (Prompt personalizável)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "com.visualstudio.code"; then echo "[X]"; else echo "[ ]"; fi) VS Code (Editor de código)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "com.vscodium.codium"; then echo "[X]"; else echo "[ ]"; fi) VSCodium (Editor de código open-source)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "dev.zed.Zed"; then echo "[X]"; else echo "[ ]"; fi) Zed (Editor de código)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "io.httpie.Httpie"; then echo "[X]"; else echo "[ ]"; fi) HTTPie (Cliente HTTP)"
+        i=$((i+1))
         
         echo
-        echo "Opções: 1-$((i-1)) para selecionar, P para página anterior, 0 para continuar"
+        echo "Opções: 1-$((i-1)) para selecionar, P para anterior, N para próxima, 0 para continuar"
         read -p "Opção: " choice
         
         if [ "$choice" = "0" ]; then
             return 0
         elif [ "$choice" = "P" ] || [ "$choice" = "p" ]; then
             select_packages_page1
+            return $?
+        elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
+            select_packages_page3
             return $?
         elif [ "$choice" -ge 1 ] && [ "$choice" -le "$((i-1))" ]; then
             case $choice in
@@ -568,28 +607,26 @@ select_packages_page2() {
                 18) pkg="com.google.AndroidStudio"; type="flatpak" ;;
                 19) pkg="com.sublimehq.SublimeText"; type="flatpak" ;;
                 20) pkg="com.termius.Termius"; type="flatpak" ;;
-                21) pkg="com.visualstudio.code"; type="flatpak" ;;
-                22) pkg="com.vscodium.codium"; type="flatpak" ;;
-                23) pkg="dev.zed.Zed"; type="flatpak" ;;
-                24) pkg="io.httpie.Httpie"; type="flatpak" ;;
-                25) pkg="rest.insomnia.Insomnia"; type="flatpak" ;;
-                26) pkg="ryubing"; type="nixpkgs" ;;
-                27) pkg="stirling-pdf"; type="nixpkgs" ;;
-                28) pkg="tailscale"; type="nixpkgs" ;;
-                29) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
-                30) pkg="waydroid"; type="nixpkgs" ;;
-                31) pkg="winboat"; type="nixpkgs" ;;
-                32) pkg="yt-dlp"; type="nixpkgs" ;;
-                33) pkg="maven"; type="nixpkgs" ;;
-                34) pkg="javaPackages.compiler.openjdk25"; type="nixpkgs" ;;
-                35) pkg="nodejs_24"; type="nixpkgs" ;;
-                36) pkg="oh-my-zsh"; type="nixpkgs" ;;
-                37) pkg="zsh"; type="nixpkgs" ;;
-                38) pkg="pyenv"; type="nixpkgs" ;;
-                39) pkg="zerotierone"; type="nixpkgs" ;;
-                40) pkg="dnsmasq"; type="nixpkgs" ;;
-                41) pkg="ffmpegthumbnailer"; type="nixpkgs" ;;
-                42) pkg="btrfs-assistant"; type="nixpkgs" ;;
+                21) pkg="tailscale"; type="nixpkgs" ;;
+                22) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
+                23) pkg="waydroid"; type="nixpkgs" ;;
+                24) pkg="winboat"; type="nixpkgs" ;;
+                25) pkg="yt-dlp"; type="nixpkgs" ;;
+                26) pkg="maven"; type="nixpkgs" ;;
+                27) pkg="javaPackages.compiler.openjdk25"; type="nixpkgs" ;;
+                28) pkg="nodejs_24"; type="nixpkgs" ;;
+                29) pkg="oh-my-zsh"; type="nixpkgs" ;;
+                30) pkg="zsh"; type="nixpkgs" ;;
+                31) pkg="pyenv"; type="nixpkgs" ;;
+                32) pkg="zerotierone"; type="nixpkgs" ;;
+                33) pkg="dnsmasq"; type="nixpkgs" ;;
+                34) pkg="ffmpegthumbnailer"; type="nixpkgs" ;;
+                35) pkg="btrfs-assistant"; type="nixpkgs" ;;
+                36) pkg="starship"; type="nixpkgs" ;;
+                37) pkg="com.visualstudio.code"; type="nixpkgs" ;;
+                38) pkg="com.vscodium.codium"; type="nixpkgs" ;;
+                39) pkg="dev.zed.Zed"; type="nixpkgs" ;;
+                40) pkg="io.httpie.Httpie"; type="nixpkgs" ;;
                 *) continue ;;
             esac
             
@@ -609,6 +646,69 @@ select_packages_page2() {
                 else
                     echo "$pkg" >> "$nixpkgs_file"
                 fi
+            fi
+            rm -f "$temp_file"
+        fi
+    done
+}
+
+select_packages_page3() {
+    local packages_file="$STATE_DIR/packages"
+    local nixpkgs_file="$STATE_DIR/nixpkgs_packages"
+    
+    while true; do
+        clear
+        echo "=== SELEÇÃO DE PACOTES - PÁGINA 3/3 ==="
+        echo "Digite o número do pacote para marcar/desmarcar, P para anterior, 0 para continuar"
+        echo "================================================================================"
+        echo
+        echo "Pacotes Nixpkgs (Página 3/2 - 12 pacotes restantes):"
+        echo
+        
+        local i=1
+        local flatpak_selected=$(cat "$packages_file" 2>/dev/null || echo "")
+        local nixpkgs_selected=$(cat "$nixpkgs_file" 2>/dev/null || echo "")
+        
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "rest.insomnia.Insomnia"; then echo "[X]"; else echo "[ ]"; fi) Insomnia (Cliente API)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "com.visualstudio.code"; then echo "[X]"; else echo "[ ]"; fi) VS Code (Editor de código)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "com.vscodium.codium"; then echo "[X]"; else echo "[ ]"; fi) VSCodium (Editor de código open-source)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "dev.zed.Zed"; then echo "[X]"; else echo "[ ]"; fi) Zed (Editor de código)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "io.httpie.Httpie"; then echo "[X]"; else echo "[ ]"; fi) HTTPie (Cliente HTTP)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "rest.insomnia.Insomnia"; then echo "[X]"; else echo "[ ]"; fi) Insomnia (Cliente API)"
+        i=$((i+1))
+        
+        echo
+        echo "Opções: 1-$((i-1)) para selecionar, P para anterior, 0 para continuar"
+        read -p "Opção: " choice
+        
+        if [ "$choice" = "0" ]; then
+            return 0
+        elif [ "$choice" = "P" ] || [ "$choice" = "p" ]; then
+            select_packages_page2
+            return $?
+        elif [ "$choice" -ge 1 ] && [ "$choice" -le "$((i-1))" ]; then
+            case $choice in
+                1) pkg="rest.insomnia.Insomnia"; type="nixpkgs" ;;
+                2) pkg="com.visualstudio.code"; type="nixpkgs" ;;
+                3) pkg="com.vscodium.codium"; type="nixpkgs" ;;
+                4) pkg="dev.zed.Zed"; type="nixpkgs" ;;
+                5) pkg="io.httpie.Httpie"; type="nixpkgs" ;;
+                6) pkg="rest.insomnia.Insomnia"; type="nixpkgs" ;;
+                *) continue ;;
+            esac
+            
+            local temp_file=$(mktemp)
+            
+            if cat "$nixpkgs_file" 2>/dev/null | grep -q "$pkg"; then
+                grep -v "$pkg" "$nixpkgs_file" 2>/dev/null > "$temp_file" || true
+                mv "$temp_file" "$nixpkgs_file"
+            else
+                echo "$pkg" >> "$nixpkgs_file"
             fi
             rm -f "$temp_file"
         fi
@@ -799,7 +899,7 @@ show_summary() {
     echo "CUPS: $(cat "$STATE_DIR/cups")"
     echo "TRIM SSD: $(cat "$STATE_DIR/trim")"
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
-    echo "Flakes: $(cat "$STATE_DIR/flakes")"
+    echo "Firewall: $(cat "$STATE_DIR/firewall")"
     echo "Configurações recomendadas: $(cat "$STATE_DIR/recommended")"
     echo "Pacotes Flatpak: $(cat "$STATE_DIR/packages" 2>/dev/null | wc -l | tr -d ' ') selecionados"
     echo "Pacotes Nixpkgs: $(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | wc -l | tr -d ' ') selecionados"
@@ -834,6 +934,7 @@ generate_config() {
     local cups=$(cat "$STATE_DIR/cups")
     local trim=$(cat "$STATE_DIR/trim")
     local encryption=$(cat "$STATE_DIR/encryption")
+    local firewall=$(cat "$STATE_DIR/firewall")
     local gpu_driver=$(cat "$STATE_DIR/gpu_driver")
     local swap_size=$(cat "$STATE_DIR/swap")
     local disk=$(cat "$STATE_DIR/disk")
@@ -920,6 +1021,7 @@ EOF
   networking.hostName = "$hostname";
   networking.networkmanager.enable = true;
   networking.wireless.iwd.enable = true;
+  networking.firewall.enable = $firewall;
   time.timeZone = "$timezone";
   i18n.defaultLocale = "$lang";
 EOF
@@ -1276,7 +1378,6 @@ EOF
     file
     clinfo
     wayland-utils
-    starship
 EOF
 
     for pkg in $nixpkgs_packages; do
@@ -1343,9 +1444,6 @@ EOF
 }
 
 generate_flake() {
-    if [ "$(cat "$STATE_DIR/flakes")" != "yes" ]; then
-        return
-    fi
     local hostname=$(cat "$STATE_DIR/hostname")
     local flake_file="/mnt/etc/nixos/flake.nix"
     
@@ -1493,7 +1591,7 @@ main() {
     select_cups
     select_ssd_trim
     select_encryption
-    select_flakes
+    select_firewall
     select_recommended_config
     select_username
     detect_disk
