@@ -269,9 +269,9 @@ select_firewall() {
     echo "- É possível liberar portas específicas depois na configuração"
     echo
     if confirm "Habilitar firewall?"; then
-        echo "yes" > "$STATE_DIR/firewall"
+        echo "true" > "$STATE_DIR/firewall"
     else
-        echo "no" > "$STATE_DIR/firewall"
+        echo "false" > "$STATE_DIR/firewall"
     fi
 }
 
@@ -299,11 +299,11 @@ select_packages_page1() {
     
     while true; do
         clear
-        echo "=== SELEÇÃO DE PACOTES - PÁGINA 1/3 ==="
+        echo "=== SELEÇÃO DE PACOTES - PÁGINA 1/4 ==="
         echo "Digite o número do pacote para marcar/desmarcar, N para próxima página, 0 para continuar"
         echo "================================================================================"
         echo
-        echo "Pacotes Flatpak (Página 1/2 - 20 pacotes):"
+        echo "Pacotes Flatpak (Página 1/3 - 20 pacotes):"
         echo
         
         local i=1
@@ -477,11 +477,11 @@ select_packages_page2() {
     
     while true; do
         clear
-        echo "=== SELEÇÃO DE PACOTES - PÁGINA 2/3 ==="
+        echo "=== SELEÇÃO DE PACOTES - PÁGINA 2/4 ==="
         echo "Digite o número do pacote para marcar/desmarcar, P para anterior, N para próxima, 0 para continuar"
         echo "================================================================================"
         echo
-        echo "Pacotes Flatpak (Página 2/2 - 20 pacotes):"
+        echo "Pacotes Flatpak (Página 2/3 - 20 pacotes):"
         echo
         
         local i=1
@@ -508,25 +508,25 @@ select_packages_page2() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.cockpit_project.CockpitClient"; then echo "[X]"; else echo "[ ]"; fi) Cockpit Client (Gerenciamento de servidores)"
         i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.endlessos.Key"; then echo "[X]"; else echo "[ ]"; fi) Endless Key (Educação offline)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.geogebra.GeoGebra"; then echo "[X]"; else echo "[ ]"; fi) GeoGebra (Matemática interativa)"
+        i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.gimp.GIMP"; then echo "[X]"; else echo "[ ]"; fi) GIMP (Editor de imagens)"
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.gnome.World.PikaBackup"; then echo "[X]"; else echo "[ ]"; fi) Pika Backup (Backups)"
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.godotengine.Godot"; then echo "[X]"; else echo "[ ]"; fi) Godot Engine (Game engine)"
         i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.kde.gcompris"; then echo "[X]"; else echo "[ ]"; fi) GCompris (Educação infantil)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.kde.kalzium"; then echo "[X]"; else echo "[ ]"; fi) Kalzium (Química)"
+        i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.kde.kdenlive"; then echo "[X]"; else echo "[ ]"; fi) Kdenlive (Editor de vídeo)"
         i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.learningequality.Kolibri"; then echo "[X]"; else echo "[ ]"; fi) Kolibri (Educação offline)"
+        i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.localsend.localsend_app"; then echo "[X]"; else echo "[ ]"; fi) LocalSend (Compartilhamento de arquivos)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.onlyoffice.desktopeditors"; then echo "[X]"; else echo "[ ]"; fi) OnlyOffice (Suíte de escritório)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.vinegarhq.Sober"; then echo "[X]"; else echo "[ ]"; fi) Sober (Inicializador de jogos Roblox)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.google.AndroidStudio"; then echo "[X]"; else echo "[ ]"; fi) Android Studio (IDE Android)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.sublimehq.SublimeText"; then echo "[X]"; else echo "[ ]"; fi) Sublime Text (Editor de texto)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.termius.Termius"; then echo "[X]"; else echo "[ ]"; fi) Termius (Cliente SSH)"
         i=$((i+1))
         
         echo
@@ -564,13 +564,13 @@ select_packages_page2() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "starship"; then echo "[X]"; else echo "[ ]"; fi) Starship (Prompt personalizável)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "com.visualstudio.code"; then echo "[X]"; else echo "[ ]"; fi) VS Code (Editor de código)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "neovim"; then echo "[X]"; else echo "[ ]"; fi) Neovim (Editor de texto)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "com.vscodium.codium"; then echo "[X]"; else echo "[ ]"; fi) VSCodium (Editor de código open-source)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "smartmontools"; then echo "[X]"; else echo "[ ]"; fi) Smartmontools (Monitoramento de disco)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "dev.zed.Zed"; then echo "[X]"; else echo "[ ]"; fi) Zed (Editor de código)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "superfile"; then echo "[X]"; else echo "[ ]"; fi) Superfile (Gerenciador de arquivos)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "io.httpie.Httpie"; then echo "[X]"; else echo "[ ]"; fi) HTTPie (Cliente HTTP)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "wireguard-tools"; then echo "[X]"; else echo "[ ]"; fi) WireGuard Tools (VPN)"
         i=$((i+1))
         
         echo
@@ -597,16 +597,16 @@ select_packages_page2() {
                 8) pkg="org.audacityteam.Audacity"; type="flatpak" ;;
                 9) pkg="org.blender.Blender"; type="flatpak" ;;
                 10) pkg="org.cockpit_project.CockpitClient"; type="flatpak" ;;
-                11) pkg="org.gimp.GIMP"; type="flatpak" ;;
-                12) pkg="org.gnome.World.PikaBackup"; type="flatpak" ;;
-                13) pkg="org.godotengine.Godot"; type="flatpak" ;;
-                14) pkg="org.kde.kdenlive"; type="flatpak" ;;
-                15) pkg="org.localsend.localsend_app"; type="flatpak" ;;
-                16) pkg="org.onlyoffice.desktopeditors"; type="flatpak" ;;
-                17) pkg="org.vinegarhq.Sober"; type="flatpak" ;;
-                18) pkg="com.google.AndroidStudio"; type="flatpak" ;;
-                19) pkg="com.sublimehq.SublimeText"; type="flatpak" ;;
-                20) pkg="com.termius.Termius"; type="flatpak" ;;
+                11) pkg="org.endlessos.Key"; type="flatpak" ;;
+                12) pkg="org.geogebra.GeoGebra"; type="flatpak" ;;
+                13) pkg="org.gimp.GIMP"; type="flatpak" ;;
+                14) pkg="org.gnome.World.PikaBackup"; type="flatpak" ;;
+                15) pkg="org.godotengine.Godot"; type="flatpak" ;;
+                16) pkg="org.kde.gcompris"; type="flatpak" ;;
+                17) pkg="org.kde.kalzium"; type="flatpak" ;;
+                18) pkg="org.kde.kdenlive"; type="flatpak" ;;
+                19) pkg="org.learningequality.Kolibri"; type="flatpak" ;;
+                20) pkg="org.localsend.localsend_app"; type="flatpak" ;;
                 21) pkg="tailscale"; type="nixpkgs" ;;
                 22) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
                 23) pkg="waydroid"; type="nixpkgs" ;;
@@ -623,10 +623,10 @@ select_packages_page2() {
                 34) pkg="ffmpegthumbnailer"; type="nixpkgs" ;;
                 35) pkg="btrfs-assistant"; type="nixpkgs" ;;
                 36) pkg="starship"; type="nixpkgs" ;;
-                37) pkg="com.visualstudio.code"; type="nixpkgs" ;;
-                38) pkg="com.vscodium.codium"; type="nixpkgs" ;;
-                39) pkg="dev.zed.Zed"; type="nixpkgs" ;;
-                40) pkg="io.httpie.Httpie"; type="nixpkgs" ;;
+                37) pkg="neovim"; type="nixpkgs" ;;
+                38) pkg="smartmontools"; type="nixpkgs" ;;
+                39) pkg="superfile"; type="nixpkgs" ;;
+                40) pkg="wireguard-tools"; type="nixpkgs" ;;
                 *) continue ;;
             esac
             
@@ -658,28 +658,54 @@ select_packages_page3() {
     
     while true; do
         clear
-        echo "=== SELEÇÃO DE PACOTES - PÁGINA 3/3 ==="
-        echo "Digite o número do pacote para marcar/desmarcar, P para anterior, 0 para continuar"
+        echo "=== SELEÇÃO DE PACOTES - PÁGINA 3/4 ==="
+        echo "Digite o número do pacote para marcar/desmarcar, P para anterior, N para próxima, 0 para continuar"
         echo "================================================================================"
         echo
-        echo "Pacotes Nixpkgs (Página 3/2 - 12 pacotes restantes):"
+        echo "Pacotes Flatpak (Página 3/3 - 16 pacotes):"
         echo
         
         local i=1
         local flatpak_selected=$(cat "$packages_file" 2>/dev/null || echo "")
         local nixpkgs_selected=$(cat "$nixpkgs_file" 2>/dev/null || echo "")
         
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "rest.insomnia.Insomnia"; then echo "[X]"; else echo "[ ]"; fi) Insomnia (Cliente API)"
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.onlyoffice.desktopeditors"; then echo "[X]"; else echo "[ ]"; fi) OnlyOffice (Suíte de escritório)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "com.visualstudio.code"; then echo "[X]"; else echo "[ ]"; fi) VS Code (Editor de código)"
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.stellarium.Stellarium"; then echo "[X]"; else echo "[ ]"; fi) Stellarium (Planetário)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "com.vscodium.codium"; then echo "[X]"; else echo "[ ]"; fi) VSCodium (Editor de código open-source)"
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.vinegarhq.Sober"; then echo "[X]"; else echo "[ ]"; fi) Sober (Inicializador de jogos Roblox)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "dev.zed.Zed"; then echo "[X]"; else echo "[ ]"; fi) Zed (Editor de código)"
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.google.AndroidStudio"; then echo "[X]"; else echo "[ ]"; fi) Android Studio (IDE Android)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "io.httpie.Httpie"; then echo "[X]"; else echo "[ ]"; fi) HTTPie (Cliente HTTP)"
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.sublimehq.SublimeText"; then echo "[X]"; else echo "[ ]"; fi) Sublime Text (Editor de texto)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "rest.insomnia.Insomnia"; then echo "[X]"; else echo "[ ]"; fi) Insomnia (Cliente API)"
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.termius.Termius"; then echo "[X]"; else echo "[ ]"; fi) Termius (Cliente SSH)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.github.IsmaelMartinez.teams_for_linux"; then echo "[X]"; else echo "[ ]"; fi) Teams for Linux (Comunicação)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.signal.Signal"; then echo "[X]"; else echo "[ ]"; fi) Signal (Mensageiro seguro)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.slack.Slack"; then echo "[X]"; else echo "[ ]"; fi) Slack (Comunicação)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.telegram.desktop"; then echo "[X]"; else echo "[ ]"; fi) Telegram (Mensageiro)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.rtosta.zapzap"; then echo "[X]"; else echo "[ ]"; fi) ZapZap (WhatsApp desktop)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.visualstudio.code"; then echo "[X]"; else echo "[ ]"; fi) VS Code (Editor de código)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.vscodium.codium"; then echo "[X]"; else echo "[ ]"; fi) VSCodium (Editor de código open-source)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "dev.zed.Zed"; then echo "[X]"; else echo "[ ]"; fi) Zed (Editor de código)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.httpie.Httpie"; then echo "[X]"; else echo "[ ]"; fi) HTTPie (Cliente HTTP)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "rest.insomnia.Insomnia"; then echo "[X]"; else echo "[ ]"; fi) Insomnia (Cliente API)"
+        i=$((i+1))
+        
+        echo
+        echo "Pacotes Nixpkgs (Página 3/3 - 4 pacotes):"
+        echo
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "f3"; then echo "[X]"; else echo "[ ]"; fi) F3 (Teste de integridade de flash)"
         i=$((i+1))
         
         echo
@@ -693,22 +719,42 @@ select_packages_page3() {
             return $?
         elif [ "$choice" -ge 1 ] && [ "$choice" -le "$((i-1))" ]; then
             case $choice in
-                1) pkg="rest.insomnia.Insomnia"; type="nixpkgs" ;;
-                2) pkg="com.visualstudio.code"; type="nixpkgs" ;;
-                3) pkg="com.vscodium.codium"; type="nixpkgs" ;;
-                4) pkg="dev.zed.Zed"; type="nixpkgs" ;;
-                5) pkg="io.httpie.Httpie"; type="nixpkgs" ;;
-                6) pkg="rest.insomnia.Insomnia"; type="nixpkgs" ;;
+                1) pkg="org.onlyoffice.desktopeditors"; type="flatpak" ;;
+                2) pkg="org.stellarium.Stellarium"; type="flatpak" ;;
+                3) pkg="org.vinegarhq.Sober"; type="flatpak" ;;
+                4) pkg="com.google.AndroidStudio"; type="flatpak" ;;
+                5) pkg="com.sublimehq.SublimeText"; type="flatpak" ;;
+                6) pkg="com.termius.Termius"; type="flatpak" ;;
+                7) pkg="com.github.IsmaelMartinez.teams_for_linux"; type="flatpak" ;;
+                8) pkg="org.signal.Signal"; type="flatpak" ;;
+                9) pkg="com.slack.Slack"; type="flatpak" ;;
+                10) pkg="org.telegram.desktop"; type="flatpak" ;;
+                11) pkg="com.rtosta.zapzap"; type="flatpak" ;;
+                12) pkg="com.visualstudio.code"; type="flatpak" ;;
+                13) pkg="com.vscodium.codium"; type="flatpak" ;;
+                14) pkg="dev.zed.Zed"; type="flatpak" ;;
+                15) pkg="io.httpie.Httpie"; type="flatpak" ;;
+                16) pkg="rest.insomnia.Insomnia"; type="flatpak" ;;
+                17) pkg="f3"; type="nixpkgs" ;;
                 *) continue ;;
             esac
             
             local temp_file=$(mktemp)
             
-            if cat "$nixpkgs_file" 2>/dev/null | grep -q "$pkg"; then
-                grep -v "$pkg" "$nixpkgs_file" 2>/dev/null > "$temp_file" || true
-                mv "$temp_file" "$nixpkgs_file"
+            if [ "$type" = "flatpak" ]; then
+                if cat "$packages_file" 2>/dev/null | grep -q "$pkg"; then
+                    grep -v "$pkg" "$packages_file" 2>/dev/null > "$temp_file" || true
+                    mv "$temp_file" "$packages_file"
+                else
+                    echo "$pkg" >> "$packages_file"
+                fi
             else
-                echo "$pkg" >> "$nixpkgs_file"
+                if cat "$nixpkgs_file" 2>/dev/null | grep -q "$pkg"; then
+                    grep -v "$pkg" "$nixpkgs_file" 2>/dev/null > "$temp_file" || true
+                    mv "$temp_file" "$nixpkgs_file"
+                else
+                    echo "$pkg" >> "$nixpkgs_file"
+                fi
             fi
             rm -f "$temp_file"
         fi
@@ -1316,6 +1362,12 @@ EOF
 EOF
     fi
 
+    if echo "$nixpkgs_packages" | grep -q "wireguard-tools"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  networking.wireguard.enable = true;
+EOF
+    fi
+
     if echo "$nixpkgs_packages" | grep -q "forgejo"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.forgejo.enable = true;
@@ -1381,7 +1433,7 @@ EOF
 EOF
 
     for pkg in $nixpkgs_packages; do
-        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "zerotierone" ] && [ "$pkg" != "dnsmasq" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ] && [ "$pkg" != "zsh" ] && [ "$pkg" != "oh-my-zsh" ]; then
+        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "zerotierone" ] && [ "$pkg" != "dnsmasq" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "wireguard-tools" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ] && [ "$pkg" != "zsh" ] && [ "$pkg" != "oh-my-zsh" ]; then
             sudo tee -a "$config_file" > /dev/null << EOF
     ${pkg}
 EOF
