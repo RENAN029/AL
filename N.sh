@@ -314,6 +314,8 @@ select_packages() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.discordapp.Discord"; then echo "[X]"; else echo "[ ]"; fi) Discord (Chat e voz)"
         i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.heroicgameslauncher.hgl"; then echo "[X]"; else echo "[ ]"; fi) Heroic Games Launcher (Jogos)"
+        i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.jeffser.Alpaca"; then echo "[X]"; else echo "[ ]"; fi) Alpaca (Cliente de IA)"
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.obsproject.Studio"; then echo "[X]"; else echo "[ ]"; fi) OBS Studio (Captura e transmissão)"
@@ -324,6 +326,8 @@ select_packages() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.Faugus.faugus-launcher"; then echo "[X]"; else echo "[ ]"; fi) Faugus Launcher (Gerenciador de jogos)"
         i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.benjamimgois.goverlay"; then echo "[X]"; else echo "[ ]"; fi) GOverlay (Overlay para MangoHud)"
+        i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.peazip.PeaZip"; then echo "[X]"; else echo "[ ]"; fi) PeaZip (Compactador de arquivos)"
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.radiolamp.mangojuice"; then echo "[X]"; else echo "[ ]"; fi) MangoJuice (Player de música)"
@@ -331,6 +335,10 @@ select_packages() {
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "it.mijorus.gearlever"; then echo "[X]"; else echo "[ ]"; fi) Gear Lever (Gerenciador de AppImage)"
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "md.obsidian.Obsidian"; then echo "[X]"; else echo "[ ]"; fi) Obsidian (Editor de notas)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "net.davidotek.pupgui2"; then echo "[X]"; else echo "[ ]"; fi) ProtonUp-Qt (Gerenciador de Proton)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "net.lutris.Lutris"; then echo "[X]"; else echo "[ ]"; fi) Lutris (Gerenciador de jogos)"
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "net.shadps4.shadPS4"; then echo "[X]"; else echo "[ ]"; fi) shadPS4 (Emulador de PS4)"
         i=$((i+1))
@@ -344,6 +352,8 @@ select_packages() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.kde.kdenlive"; then echo "[X]"; else echo "[ ]"; fi) Kdenlive (Editor de vídeo)"
         i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.localsend.localsend_app"; then echo "[X]"; else echo "[ ]"; fi) LocalSend (Compartilhamento de arquivos)"
+        i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.onlyoffice.desktopeditors"; then echo "[X]"; else echo "[ ]"; fi) OnlyOffice (Suíte de escritório)"
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.vinegarhq.Sober"; then echo "[X]"; else echo "[ ]"; fi) Sober (Inicializador de jogos Roblox)"
@@ -354,15 +364,27 @@ select_packages() {
         echo
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "aria2"; then echo "[X]"; else echo "[ ]"; fi) Aria2 (Downloader)"
         i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "btop"; then echo "[X]"; else echo "[ ]"; fi) Btop (Monitor do sistema)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "curl"; then echo "[X]"; else echo "[ ]"; fi) Curl (Transferência de dados)"
+        i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "davinci-resolve"; then echo "[X]"; else echo "[ ]"; fi) DaVinci Resolve (Edição de vídeo)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "distrobox"; then echo "[X]"; else echo "[ ]"; fi) Distrobox (Containers de distribuições)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "fastfetch"; then echo "[X]"; else echo "[ ]"; fi) Fastfetch (Info do sistema)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "fish"; then echo "[X]"; else echo "[ ]"; fi) Fish (Shell)"
         i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "forgejo"; then echo "[X]"; else echo "[ ]"; fi) Forgejo (Plataforma Git)"
+        i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "gamemode"; then echo "[X]"; else echo "[ ]"; fi) Gamemode (Otimização de jogos)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "gamescope"; then echo "[X]"; else echo "[ ]"; fi) Gamescope (Micro-compositor para jogos)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "git"; then echo "[X]"; else echo "[ ]"; fi) Git (Controle de versão)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "hydralauncher"; then echo "[X]"; else echo "[ ]"; fi) Hydra Launcher (Gerenciador de jogos)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "mangohud"; then echo "[X]"; else echo "[ ]"; fi) MangoHud (Overlay de desempenho)"
         i=$((i+1))
@@ -372,15 +394,23 @@ select_packages() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ollama"; then echo "[X]"; else echo "[ ]"; fi) Ollama (Execução de modelos LLM)"
         i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "opencode"; then echo "[X]"; else echo "[ ]"; fi) OpenCode (Editor de código)"
+        i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "podman"; then echo "[X]"; else echo "[ ]"; fi) Podman (Gerenciador de containers)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ryubing"; then echo "[X]"; else echo "[ ]"; fi) Ryubing (Emulador de Switch)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "stirling-pdf"; then echo "[X]"; else echo "[ ]"; fi) Stirling PDF (Manipulação de PDF)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "tailscale"; then echo "[X]"; else echo "[ ]"; fi) Tailscale (VPN mesh)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "vimPlugins.LazyVim"; then echo "[X]"; else echo "[ ]"; fi) LazyVim (Framework para Neovim)"
         i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "waydroid"; then echo "[X]"; else echo "[ ]"; fi) Waydroid (Android em Wayland)"
+        i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "winboat"; then echo "[X]"; else echo "[ ]"; fi) Winboat (Gerenciador de Wine)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "yt-dlp"; then echo "[X]"; else echo "[ ]"; fi) yt-dlp (Download de vídeos)"
         i=$((i+1))
         
         echo
@@ -393,38 +423,53 @@ select_packages() {
                 1) pkg="app.zen_browser.zen"; type="flatpak" ;;
                 2) pkg="com.bitwarden.desktop"; type="flatpak" ;;
                 3) pkg="com.discordapp.Discord"; type="flatpak" ;;
-                4) pkg="com.jeffser.Alpaca"; type="flatpak" ;;
-                5) pkg="com.obsproject.Studio"; type="flatpak" ;;
-                6) pkg="com.vysp3r.ProtonPlus"; type="flatpak" ;;
-                7) pkg="fr.handbrake.ghb"; type="flatpak" ;;
-                8) pkg="io.github.Faugus.faugus-launcher"; type="flatpak" ;;
-                9) pkg="io.github.peazip.PeaZip"; type="flatpak" ;;
-                10) pkg="io.github.radiolamp.mangojuice"; type="flatpak" ;;
-                11) pkg="it.mijorus.gearlever"; type="flatpak" ;;
-                12) pkg="md.obsidian.Obsidian"; type="flatpak" ;;
-                13) pkg="net.shadps4.shadPS4"; type="flatpak" ;;
-                14) pkg="org.audacityteam.Audacity"; type="flatpak" ;;
-                15) pkg="org.blender.Blender"; type="flatpak" ;;
-                16) pkg="org.gimp.GIMP"; type="flatpak" ;;
-                17) pkg="org.gnome.World.PikaBackup"; type="flatpak" ;;
-                18) pkg="org.kde.kdenlive"; type="flatpak" ;;
-                19) pkg="org.onlyoffice.desktopeditors"; type="flatpak" ;;
-                20) pkg="org.vinegarhq.Sober"; type="flatpak" ;;
-                21) pkg="aria2"; type="nixpkgs" ;;
-                22) pkg="davinci-resolve"; type="nixpkgs" ;;
-                23) pkg="fastfetch"; type="nixpkgs" ;;
-                24) pkg="fish"; type="nixpkgs" ;;
-                25) pkg="gamemode"; type="nixpkgs" ;;
-                26) pkg="gamescope"; type="nixpkgs" ;;
-                27) pkg="mangohud"; type="nixpkgs" ;;
-                28) pkg="mise"; type="nixpkgs" ;;
-                29) pkg="neofetch"; type="nixpkgs" ;;
-                30) pkg="ollama"; type="nixpkgs" ;;
-                31) pkg="podman"; type="nixpkgs" ;;
-                32) pkg="ryubing"; type="nixpkgs" ;;
-                33) pkg="tailscale"; type="nixpkgs" ;;
-                34) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
-                35) pkg="winboat"; type="nixpkgs" ;;
+                4) pkg="com.heroicgameslauncher.hgl"; type="flatpak" ;;
+                5) pkg="com.jeffser.Alpaca"; type="flatpak" ;;
+                6) pkg="com.obsproject.Studio"; type="flatpak" ;;
+                7) pkg="com.vysp3r.ProtonPlus"; type="flatpak" ;;
+                8) pkg="fr.handbrake.ghb"; type="flatpak" ;;
+                9) pkg="io.github.Faugus.faugus-launcher"; type="flatpak" ;;
+                10) pkg="io.github.benjamimgois.goverlay"; type="flatpak" ;;
+                11) pkg="io.github.peazip.PeaZip"; type="flatpak" ;;
+                12) pkg="io.github.radiolamp.mangojuice"; type="flatpak" ;;
+                13) pkg="it.mijorus.gearlever"; type="flatpak" ;;
+                14) pkg="md.obsidian.Obsidian"; type="flatpak" ;;
+                15) pkg="net.davidotek.pupgui2"; type="flatpak" ;;
+                16) pkg="net.lutris.Lutris"; type="flatpak" ;;
+                17) pkg="net.shadps4.shadPS4"; type="flatpak" ;;
+                18) pkg="org.audacityteam.Audacity"; type="flatpak" ;;
+                19) pkg="org.blender.Blender"; type="flatpak" ;;
+                20) pkg="org.gimp.GIMP"; type="flatpak" ;;
+                21) pkg="org.gnome.World.PikaBackup"; type="flatpak" ;;
+                22) pkg="org.kde.kdenlive"; type="flatpak" ;;
+                23) pkg="org.localsend.localsend_app"; type="flatpak" ;;
+                24) pkg="org.onlyoffice.desktopeditors"; type="flatpak" ;;
+                25) pkg="org.vinegarhq.Sober"; type="flatpak" ;;
+                26) pkg="aria2"; type="nixpkgs" ;;
+                27) pkg="btop"; type="nixpkgs" ;;
+                28) pkg="curl"; type="nixpkgs" ;;
+                29) pkg="davinci-resolve"; type="nixpkgs" ;;
+                30) pkg="distrobox"; type="nixpkgs" ;;
+                31) pkg="fastfetch"; type="nixpkgs" ;;
+                32) pkg="fish"; type="nixpkgs" ;;
+                33) pkg="forgejo"; type="nixpkgs" ;;
+                34) pkg="gamemode"; type="nixpkgs" ;;
+                35) pkg="gamescope"; type="nixpkgs" ;;
+                36) pkg="git"; type="nixpkgs" ;;
+                37) pkg="hydralauncher"; type="nixpkgs" ;;
+                38) pkg="mangohud"; type="nixpkgs" ;;
+                39) pkg="mise"; type="nixpkgs" ;;
+                40) pkg="neofetch"; type="nixpkgs" ;;
+                41) pkg="ollama"; type="nixpkgs" ;;
+                42) pkg="opencode"; type="nixpkgs" ;;
+                43) pkg="podman"; type="nixpkgs" ;;
+                44) pkg="ryubing"; type="nixpkgs" ;;
+                45) pkg="stirling-pdf"; type="nixpkgs" ;;
+                46) pkg="tailscale"; type="nixpkgs" ;;
+                47) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
+                48) pkg="waydroid"; type="nixpkgs" ;;
+                49) pkg="winboat"; type="nixpkgs" ;;
+                50) pkg="yt-dlp"; type="nixpkgs" ;;
                 *) continue ;;
             esac
             
@@ -1025,9 +1070,21 @@ EOF
 EOF
     fi
 
+    if echo "$nixpkgs_packages" | grep -q "waydroid"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  virtualisation.waydroid.enable = true;
+EOF
+    fi
+
     if echo "$nixpkgs_packages" | grep -q "tailscale"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.tailscale.enable = true;
+EOF
+    fi
+
+    if echo "$nixpkgs_packages" | grep -q "forgejo"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.forgejo.enable = true;
 EOF
     fi
 
@@ -1079,7 +1136,7 @@ EOF
 EOF
 
     for pkg in $nixpkgs_packages; do
-        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ]; then
+        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ]; then
             sudo tee -a "$config_file" > /dev/null << EOF
     ${pkg}
 EOF
@@ -1112,6 +1169,11 @@ EOF
   nix.settings = {
     auto-optimise-store = true;
     experimental-features = [ "nix-command" "flakes" ];
+    max-jobs = 1;
+    cores = 1;
+    extra-sandbox-paths = [];
+    min-free = 512000000;
+    max-free = 1024000000;
   };
   nix.gc = {
     automatic = true;
@@ -1235,10 +1297,10 @@ install_system() {
     echo "RAM detectada: ${total_ram}MB"
     
     if [ "$total_ram" -lt 2048 ]; then
-        echo "Pouca RAM detectada. Usando configuração otimizada..."
+        echo "Pouca RAM detectada. Usando configuração otimizada para baixa memória..."
         export NIX_BUILD_CORES=1
         export NIX_REMOTE=""
-        sudo -E nixos-install --no-root-passwd --max-jobs 1 --option substitute false
+        sudo -E nixos-install --no-root-passwd --max-jobs 1 --cores 1 --option substitute false
     elif [ "$total_ram" -lt 4096 ]; then
         echo "RAM moderada detectada. Usando configuração balanceada..."
         export NIX_BUILD_CORES=2
