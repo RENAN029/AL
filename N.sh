@@ -314,9 +314,13 @@ select_packages() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.discordapp.Discord"; then echo "[X]"; else echo "[ ]"; fi) Discord (Chat e voz)"
         i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.jeffser.Alpaca"; then echo "[X]"; else echo "[ ]"; fi) Alpaca (Cliente de IA)"
+        i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.obsproject.Studio"; then echo "[X]"; else echo "[ ]"; fi) OBS Studio (Captura e transmissão)"
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.vysp3r.ProtonPlus"; then echo "[X]"; else echo "[ ]"; fi) ProtonPlus (Gerenciador de compatibilidade)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "fr.handbrake.ghb"; then echo "[X]"; else echo "[ ]"; fi) HandBrake (Conversor de vídeo)"
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.Faugus.faugus-launcher"; then echo "[X]"; else echo "[ ]"; fi) Faugus Launcher (Gerenciador de jogos)"
         i=$((i+1))
@@ -328,9 +332,15 @@ select_packages() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "md.obsidian.Obsidian"; then echo "[X]"; else echo "[ ]"; fi) Obsidian (Editor de notas)"
         i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "net.shadps4.shadPS4"; then echo "[X]"; else echo "[ ]"; fi) shadPS4 (Emulador de PS4)"
+        i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.audacityteam.Audacity"; then echo "[X]"; else echo "[ ]"; fi) Audacity (Editor de áudio)"
         i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.blender.Blender"; then echo "[X]"; else echo "[ ]"; fi) Blender (Modelagem 3D)"
+        i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.gimp.GIMP"; then echo "[X]"; else echo "[ ]"; fi) GIMP (Editor de imagens)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.gnome.World.PikaBackup"; then echo "[X]"; else echo "[ ]"; fi) Pika Backup (Backups)"
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.kde.kdenlive"; then echo "[X]"; else echo "[ ]"; fi) Kdenlive (Editor de vídeo)"
         i=$((i+1))
@@ -342,6 +352,12 @@ select_packages() {
         echo
         echo "Pacotes Nixpkgs:"
         echo
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "aria2"; then echo "[X]"; else echo "[ ]"; fi) Aria2 (Downloader)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "davinci-resolve"; then echo "[X]"; else echo "[ ]"; fi) DaVinci Resolve (Edição de vídeo)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "fastfetch"; then echo "[X]"; else echo "[ ]"; fi) Fastfetch (Info do sistema)"
+        i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "fish"; then echo "[X]"; else echo "[ ]"; fi) Fish (Shell)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "gamemode"; then echo "[X]"; else echo "[ ]"; fi) Gamemode (Otimização de jogos)"
@@ -352,11 +368,17 @@ select_packages() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "mise"; then echo "[X]"; else echo "[ ]"; fi) Mise (Gerenciador de versões)"
         i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "neofetch"; then echo "[X]"; else echo "[ ]"; fi) Neofetch (Info do sistema)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ollama"; then echo "[X]"; else echo "[ ]"; fi) Ollama (Execução de modelos LLM)"
+        i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "podman"; then echo "[X]"; else echo "[ ]"; fi) Podman (Gerenciador de containers)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ryubing"; then echo "[X]"; else echo "[ ]"; fi) Ryubing (Emulador de Switch)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "tailscale"; then echo "[X]"; else echo "[ ]"; fi) Tailscale (VPN mesh)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "vimPlugins.LazyVim"; then echo "[X]"; else echo "[ ]"; fi) LazyVim (Framework para Neovim)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "winboat"; then echo "[X]"; else echo "[ ]"; fi) Winboat (Gerenciador de Wine)"
         i=$((i+1))
@@ -371,27 +393,38 @@ select_packages() {
                 1) pkg="app.zen_browser.zen"; type="flatpak" ;;
                 2) pkg="com.bitwarden.desktop"; type="flatpak" ;;
                 3) pkg="com.discordapp.Discord"; type="flatpak" ;;
-                4) pkg="com.obsproject.Studio"; type="flatpak" ;;
-                5) pkg="com.vysp3r.ProtonPlus"; type="flatpak" ;;
-                6) pkg="io.github.Faugus.faugus-launcher"; type="flatpak" ;;
-                7) pkg="io.github.peazip.PeaZip"; type="flatpak" ;;
-                8) pkg="io.github.radiolamp.mangojuice"; type="flatpak" ;;
-                9) pkg="it.mijorus.gearlever"; type="flatpak" ;;
-                10) pkg="md.obsidian.Obsidian"; type="flatpak" ;;
-                11) pkg="org.audacityteam.Audacity"; type="flatpak" ;;
-                12) pkg="org.gimp.GIMP"; type="flatpak" ;;
-                13) pkg="org.kde.kdenlive"; type="flatpak" ;;
-                14) pkg="org.onlyoffice.desktopeditors"; type="flatpak" ;;
-                15) pkg="org.vinegarhq.Sober"; type="flatpak" ;;
-                16) pkg="fish"; type="nixpkgs" ;;
-                17) pkg="gamemode"; type="nixpkgs" ;;
-                18) pkg="gamescope"; type="nixpkgs" ;;
-                19) pkg="mangohud"; type="nixpkgs" ;;
-                20) pkg="mise"; type="nixpkgs" ;;
-                21) pkg="podman"; type="nixpkgs" ;;
-                22) pkg="ryubing"; type="nixpkgs" ;;
-                23) pkg="tailscale"; type="nixpkgs" ;;
-                24) pkg="winboat"; type="nixpkgs" ;;
+                4) pkg="com.jeffser.Alpaca"; type="flatpak" ;;
+                5) pkg="com.obsproject.Studio"; type="flatpak" ;;
+                6) pkg="com.vysp3r.ProtonPlus"; type="flatpak" ;;
+                7) pkg="fr.handbrake.ghb"; type="flatpak" ;;
+                8) pkg="io.github.Faugus.faugus-launcher"; type="flatpak" ;;
+                9) pkg="io.github.peazip.PeaZip"; type="flatpak" ;;
+                10) pkg="io.github.radiolamp.mangojuice"; type="flatpak" ;;
+                11) pkg="it.mijorus.gearlever"; type="flatpak" ;;
+                12) pkg="md.obsidian.Obsidian"; type="flatpak" ;;
+                13) pkg="net.shadps4.shadPS4"; type="flatpak" ;;
+                14) pkg="org.audacityteam.Audacity"; type="flatpak" ;;
+                15) pkg="org.blender.Blender"; type="flatpak" ;;
+                16) pkg="org.gimp.GIMP"; type="flatpak" ;;
+                17) pkg="org.gnome.World.PikaBackup"; type="flatpak" ;;
+                18) pkg="org.kde.kdenlive"; type="flatpak" ;;
+                19) pkg="org.onlyoffice.desktopeditors"; type="flatpak" ;;
+                20) pkg="org.vinegarhq.Sober"; type="flatpak" ;;
+                21) pkg="aria2"; type="nixpkgs" ;;
+                22) pkg="davinci-resolve"; type="nixpkgs" ;;
+                23) pkg="fastfetch"; type="nixpkgs" ;;
+                24) pkg="fish"; type="nixpkgs" ;;
+                25) pkg="gamemode"; type="nixpkgs" ;;
+                26) pkg="gamescope"; type="nixpkgs" ;;
+                27) pkg="mangohud"; type="nixpkgs" ;;
+                28) pkg="mise"; type="nixpkgs" ;;
+                29) pkg="neofetch"; type="nixpkgs" ;;
+                30) pkg="ollama"; type="nixpkgs" ;;
+                31) pkg="podman"; type="nixpkgs" ;;
+                32) pkg="ryubing"; type="nixpkgs" ;;
+                33) pkg="tailscale"; type="nixpkgs" ;;
+                34) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
+                35) pkg="winboat"; type="nixpkgs" ;;
                 *) continue ;;
             esac
             
@@ -569,11 +602,13 @@ create_swap() {
         return
     fi
     echo "Criando arquivo swap de ${swap_size}G..."
-    sudo dd if=/dev/zero of=/mnt/.swapfile bs=1M count=$((swap_size * 1024)) status=progress
-    sudo chmod 600 /mnt/.swapfile
-    sudo mkswap /mnt/.swapfile
+    if [ ! -f /mnt/.swapfile ]; then
+        sudo dd if=/dev/zero of=/mnt/.swapfile bs=1M count=$((swap_size * 1024)) status=progress
+        sudo chmod 600 /mnt/.swapfile
+        sudo mkswap /mnt/.swapfile
+    fi
     echo "Configurando swap no sistema..."
-    sudo swapon /mnt/.swapfile || true
+    sudo swapon /mnt/.swapfile 2>/dev/null || true
 }
 
 show_summary() {
@@ -996,6 +1031,15 @@ EOF
 EOF
     fi
 
+    if echo "$nixpkgs_packages" | grep -q "ollama"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.ollama = {
+    enable = true;
+    acceleration = "$(if [ "$gpu_driver" = "nvidia" ]; then echo "cuda"; else echo "false"; fi)";
+  };
+EOF
+    fi
+
     if echo "$nixpkgs_packages" | grep -q "gamemode"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   programs.gamemode.enable = true;
@@ -1034,29 +1078,13 @@ EOF
     starship
 EOF
 
-    if echo "$nixpkgs_packages" | grep -q "mangohud"; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-    mangohud
+    for pkg in $nixpkgs_packages; do
+        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ]; then
+            sudo tee -a "$config_file" > /dev/null << EOF
+    ${pkg}
 EOF
-    fi
-
-    if echo "$nixpkgs_packages" | grep -q "mise"; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-    mise
-EOF
-    fi
-
-    if echo "$nixpkgs_packages" | grep -q "ryubing"; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-    ryubing
-EOF
-    fi
-
-    if echo "$nixpkgs_packages" | grep -q "winboat"; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-    winboat
-EOF
-    fi
+        fi
+    done
 
     case $desktop in
         gnome)
