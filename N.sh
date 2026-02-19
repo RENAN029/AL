@@ -342,8 +342,6 @@ select_packages() {
         echo
         echo "Pacotes Nixpkgs:"
         echo
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "docker"; then echo "[X]"; else echo "[ ]"; fi) Docker (Gerenciador de containers)"
-        i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "fish"; then echo "[X]"; else echo "[ ]"; fi) Fish (Shell)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "gamemode"; then echo "[X]"; else echo "[ ]"; fi) Gamemode (Otimização de jogos)"
@@ -385,16 +383,15 @@ select_packages() {
                 13) pkg="org.kde.kdenlive"; type="flatpak" ;;
                 14) pkg="org.onlyoffice.desktopeditors"; type="flatpak" ;;
                 15) pkg="org.vinegarhq.Sober"; type="flatpak" ;;
-                16) pkg="docker"; type="nixpkgs" ;;
-                17) pkg="fish"; type="nixpkgs" ;;
-                18) pkg="gamemode"; type="nixpkgs" ;;
-                19) pkg="gamescope"; type="nixpkgs" ;;
-                20) pkg="mangohud"; type="nixpkgs" ;;
-                21) pkg="mise"; type="nixpkgs" ;;
-                22) pkg="podman"; type="nixpkgs" ;;
-                23) pkg="ryubing"; type="nixpkgs" ;;
-                24) pkg="tailscale"; type="nixpkgs" ;;
-                25) pkg="winboat"; type="nixpkgs" ;;
+                16) pkg="fish"; type="nixpkgs" ;;
+                17) pkg="gamemode"; type="nixpkgs" ;;
+                18) pkg="gamescope"; type="nixpkgs" ;;
+                19) pkg="mangohud"; type="nixpkgs" ;;
+                20) pkg="mise"; type="nixpkgs" ;;
+                21) pkg="podman"; type="nixpkgs" ;;
+                22) pkg="ryubing"; type="nixpkgs" ;;
+                23) pkg="tailscale"; type="nixpkgs" ;;
+                24) pkg="winboat"; type="nixpkgs" ;;
                 *) continue ;;
             esac
             
@@ -982,29 +979,42 @@ EOF
     sudo tee -a "$config_file" > /dev/null << EOF
     '';
   };
-  virtualisation = {
-    docker = {
-      enable = $(if echo "$nixpkgs_packages" | grep -q "docker"; then echo "true"; else echo "false"; fi);
-    };
-    podman = {
-      enable = $(if echo "$nixpkgs_packages" | grep -q "podman"; then echo "true"; else echo "false"; fi);
-      dockerCompat = $(if echo "$nixpkgs_packages" | grep -q "docker" || echo "$nixpkgs_packages" | grep -q "podman"; then echo "true"; else echo "false"; fi);
-    };
+EOF
+
+    if echo "$nixpkgs_packages" | grep -q "podman"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  virtualisation.podman = {
+    enable = true;
+    dockerCompat = false;
   };
-  services.tailscale = {
-    enable = $(if echo "$nixpkgs_packages" | grep -q "tailscale"; then echo "true"; else echo "false"; fi);
-  };
-  programs = {
-    gamemode = {
-      enable = $(if echo "$nixpkgs_packages" | grep -q "gamemode"; then echo "true"; else echo "false"; fi);
-    };
-    gamescope = {
-      enable = $(if echo "$nixpkgs_packages" | grep -q "gamescope"; then echo "true"; else echo "false"; fi);
-    };
-    fish = {
-      enable = $(if echo "$nixpkgs_packages" | grep -q "fish"; then echo "true"; else echo "false"; fi);
-    };
-  };
+EOF
+    fi
+
+    if echo "$nixpkgs_packages" | grep -q "tailscale"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.tailscale.enable = true;
+EOF
+    fi
+
+    if echo "$nixpkgs_packages" | grep -q "gamemode"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  programs.gamemode.enable = true;
+EOF
+    fi
+
+    if echo "$nixpkgs_packages" | grep -q "gamescope"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  programs.gamescope.enable = true;
+EOF
+    fi
+
+    if echo "$nixpkgs_packages" | grep -q "fish"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  programs.fish.enable = true;
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
   environment.systemPackages = with pkgs; [
     vim
     nano
