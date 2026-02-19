@@ -291,15 +291,9 @@ select_recommended_config() {
 
 select_packages() {
     local packages_file="$STATE_DIR/packages"
+    local nixpkgs_file="$STATE_DIR/nixpkgs_packages"
     > "$packages_file"
-    
-    local options=(
-        "app.zen_browser.zen" "Zen Browser (Navegador web)" off
-        "com.vysp3r.ProtonPlus" "ProtonPlus (Gerenciador de compatibilidade)" off
-        "io.github.Faugus.faugus-launcher" "Faugus Launcher (Gerenciador de jogos)" off
-        "org.gimp.GIMP" "GIMP (Editor de imagens)" off
-        "org.onlyoffice.desktopeditors" "OnlyOffice (Suíte de escritório)" off
-    )
+    > "$nixpkgs_file"
     
     while true; do
         clear
@@ -307,25 +301,38 @@ select_packages() {
         echo "Digite o número do pacote para marcar/desmarcar, ou 0 para continuar"
         echo "================================================================================"
         echo
-        echo "Pacotes disponíveis:"
+        echo "Pacotes Flatpak:"
         echo
         
         local i=1
-        local selected_list=$(cat "$packages_file" 2>/dev/null || echo "")
+        local flatpak_selected=$(cat "$packages_file" 2>/dev/null || echo "")
+        local nixpkgs_selected=$(cat "$nixpkgs_file" 2>/dev/null || echo "")
         
-        for ((idx=0; idx<${#options[@]}; idx+=3)); do
-            local pkg_id="${options[idx]}"
-            local pkg_desc="${options[idx+1]}"
-            
-            if echo "$selected_list" | grep -q "$pkg_id"; then
-                echo "$i) [X] $pkg_desc"
-            else
-                echo "$i) [ ] $pkg_desc"
-            fi
-            
-            eval "pkg_$i=\"$pkg_id\""
-            i=$((i+1))
-        done
+        echo "  Flatpak:"
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "app.zen_browser.zen"; then echo "[X]"; else echo "[ ]"; fi) Zen Browser (Navegador web)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.vysp3r.ProtonPlus"; then echo "[X]"; else echo "[ ]"; fi) ProtonPlus (Gerenciador de compatibilidade)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.Faugus.faugus-launcher"; then echo "[X]"; else echo "[ ]"; fi) Faugus Launcher (Gerenciador de jogos)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.gimp.GIMP"; then echo "[X]"; else echo "[ ]"; fi) GIMP (Editor de imagens)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.onlyoffice.desktopeditors"; then echo "[X]"; else echo "[ ]"; fi) OnlyOffice (Suíte de escritório)"
+        i=$((i+1))
+        
+        echo
+        echo "Pacotes Nixpkgs:"
+        echo
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ryubing"; then echo "[X]"; else echo "[ ]"; fi) Ryubing (Emulador de Switch)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "winboat"; then echo "[X]"; else echo "[ ]"; fi) Winboat (Gerenciador de Wine)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "podman"; then echo "[X]"; else echo "[ ]"; fi) Podman (Gerenciador de containers)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "docker"; then echo "[X]"; else echo "[ ]"; fi) Docker (Gerenciador de containers)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "fish"; then echo "[X]"; else echo "[ ]"; fi) Fish (Shell)"
+        i=$((i+1))
         
         echo
         read -p "Opção (1-$((i-1)), 0 para continuar): " choice
@@ -333,14 +340,36 @@ select_packages() {
         if [ "$choice" = "0" ]; then
             break
         elif [ "$choice" -ge 1 ] && [ "$choice" -le "$((i-1))" ]; then
-            local selected_pkg=$(eval echo "\$pkg_$choice")
+            case $choice in
+                1) pkg="app.zen_browser.zen"; type="flatpak" ;;
+                2) pkg="com.vysp3r.ProtonPlus"; type="flatpak" ;;
+                3) pkg="io.github.Faugus.faugus-launcher"; type="flatpak" ;;
+                4) pkg="org.gimp.GIMP"; type="flatpak" ;;
+                5) pkg="org.onlyoffice.desktopeditors"; type="flatpak" ;;
+                6) pkg="ryubing"; type="nixpkgs" ;;
+                7) pkg="winboat"; type="nixpkgs" ;;
+                8) pkg="podman"; type="nixpkgs" ;;
+                9) pkg="docker"; type="nixpkgs" ;;
+                10) pkg="fish"; type="nixpkgs" ;;
+                *) continue ;;
+            esac
+            
             local temp_file=$(mktemp)
             
-            if cat "$packages_file" 2>/dev/null | grep -q "$selected_pkg"; then
-                grep -v "$selected_pkg" "$packages_file" 2>/dev/null > "$temp_file" || true
-                mv "$temp_file" "$packages_file"
+            if [ "$type" = "flatpak" ]; then
+                if cat "$packages_file" 2>/dev/null | grep -q "$pkg"; then
+                    grep -v "$pkg" "$packages_file" 2>/dev/null > "$temp_file" || true
+                    mv "$temp_file" "$packages_file"
+                else
+                    echo "$pkg" >> "$packages_file"
+                fi
             else
-                echo "$selected_pkg" >> "$packages_file"
+                if cat "$nixpkgs_file" 2>/dev/null | grep -q "$pkg"; then
+                    grep -v "$pkg" "$nixpkgs_file" 2>/dev/null > "$temp_file" || true
+                    mv "$temp_file" "$nixpkgs_file"
+                else
+                    echo "$pkg" >> "$nixpkgs_file"
+                fi
             fi
             rm -f "$temp_file"
         fi
@@ -529,7 +558,8 @@ show_summary() {
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
     echo "Configurações recomendadas: $(cat "$STATE_DIR/recommended")"
-    echo "Pacotes selecionados: $(cat "$STATE_DIR/packages" | tr '\n' ' ')"
+    echo "Pacotes Flatpak: $(cat "$STATE_DIR/packages" 2>/dev/null | tr '\n' ' ')"
+    echo "Pacotes Nixpkgs: $(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')"
     echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
     echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
@@ -567,7 +597,8 @@ generate_config() {
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
     local recommended=$(cat "$STATE_DIR/recommended")
-    local packages=$(cat "$STATE_DIR/packages" 2>/dev/null | tr '\n' ' ')
+    local flatpak_packages=$(cat "$STATE_DIR/packages" 2>/dev/null | tr '\n' ' ')
+    local nixpkgs_packages=$(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')
     local config_file="/mnt/etc/nixos/configuration.nix"
     
     sudo tee "$config_file" > /dev/null << EOF
@@ -716,7 +747,7 @@ EOF
   services.displayManager.cosmic-greeter.enable = true;
   environment.cosmic.excludePackages = with pkgs; [
     cosmic-player
-    cosmic-text-editor
+    cosmic-edit
   ];
 EOF
                 ;;
@@ -883,9 +914,6 @@ EOF
 
     sudo tee -a "$config_file" > /dev/null << EOF
   services.flatpak.enable = true;
-EOF
-
-    sudo tee -a "$config_file" > /dev/null << EOF
   systemd.services.flatpak-install = {
     wantedBy = [ "multi-user.target" ];
     after = [ "network-online.target" ];
@@ -895,8 +923,8 @@ EOF
       flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 EOF
 
-    if [ -n "$packages" ]; then
-        for pkg in $packages; do
+    if [ -n "$flatpak_packages" ]; then
+        for pkg in $flatpak_packages; do
             if [ -n "$pkg" ]; then
                 sudo tee -a "$config_file" > /dev/null << EOF
       flatpak install --noninteractive -y flathub $pkg
@@ -907,6 +935,15 @@ EOF
 
     sudo tee -a "$config_file" > /dev/null << EOF
     '';
+  };
+  virtualisation = {
+    docker = {
+      enable = $(if echo "$nixpkgs_packages" | grep -q "docker"; then echo "true"; else echo "false"; fi);
+    };
+    podman = {
+      enable = $(if echo "$nixpkgs_packages" | grep -q "podman"; then echo "true"; else echo "false"; fi);
+      dockerCompat = $(if echo "$nixpkgs_packages" | grep -q "docker" || echo "$nixpkgs_packages" | grep -q "podman"; then echo "true"; else echo "false"; fi);
+    };
   };
   environment.systemPackages = with pkgs; [
     vim
@@ -926,6 +963,24 @@ EOF
     wayland-utils
     starship
 EOF
+
+    if echo "$nixpkgs_packages" | grep -q "ryubing"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+    ryubing
+EOF
+    fi
+
+    if echo "$nixpkgs_packages" | grep -q "winboat"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+    winboat
+EOF
+    fi
+
+    if echo "$nixpkgs_packages" | grep -q "fish"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+    fish
+EOF
+    fi
 
     case $desktop in
         gnome)
@@ -951,6 +1006,7 @@ EOF
   ];
   programs.firefox.enable = true;
   programs.starship.enable = true;
+  programs.fish.enable = $(if echo "$nixpkgs_packages" | grep -q "fish"; then echo "true"; else echo "false"; fi);
   nix.settings = {
     auto-optimise-store = true;
     experimental-features = [ "nix-command" "flakes" ];
