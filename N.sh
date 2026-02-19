@@ -289,19 +289,17 @@ select_recommended_config() {
     fi
 }
 
-select_packages() {
+select_packages_page1() {
     local packages_file="$STATE_DIR/packages"
     local nixpkgs_file="$STATE_DIR/nixpkgs_packages"
-    > "$packages_file"
-    > "$nixpkgs_file"
     
     while true; do
         clear
-        echo "=== SELEÇÃO DE PACOTES / PACKAGE SELECTION ==="
+        echo "=== SELEÇÃO DE PACOTES - PÁGINA 1/2 ==="
         echo "Digite o número do pacote para marcar/desmarcar, ou 0 para continuar"
         echo "================================================================================"
         echo
-        echo "Pacotes Flatpak:"
+        echo "Pacotes Flatpak (Página 1):"
         echo
         
         local i=1
@@ -328,39 +326,9 @@ select_packages() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.benjamimgois.goverlay"; then echo "[X]"; else echo "[ ]"; fi) GOverlay (Overlay para MangoHud)"
         i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.peazip.PeaZip"; then echo "[X]"; else echo "[ ]"; fi) PeaZip (Compactador de arquivos)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.radiolamp.mangojuice"; then echo "[X]"; else echo "[ ]"; fi) MangoJuice (Player de música)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "it.mijorus.gearlever"; then echo "[X]"; else echo "[ ]"; fi) Gear Lever (Gerenciador de AppImage)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "md.obsidian.Obsidian"; then echo "[X]"; else echo "[ ]"; fi) Obsidian (Editor de notas)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "net.davidotek.pupgui2"; then echo "[X]"; else echo "[ ]"; fi) ProtonUp-Qt (Gerenciador de Proton)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "net.lutris.Lutris"; then echo "[X]"; else echo "[ ]"; fi) Lutris (Gerenciador de jogos)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "net.shadps4.shadPS4"; then echo "[X]"; else echo "[ ]"; fi) shadPS4 (Emulador de PS4)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.audacityteam.Audacity"; then echo "[X]"; else echo "[ ]"; fi) Audacity (Editor de áudio)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.blender.Blender"; then echo "[X]"; else echo "[ ]"; fi) Blender (Modelagem 3D)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.gimp.GIMP"; then echo "[X]"; else echo "[ ]"; fi) GIMP (Editor de imagens)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.gnome.World.PikaBackup"; then echo "[X]"; else echo "[ ]"; fi) Pika Backup (Backups)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.kde.kdenlive"; then echo "[X]"; else echo "[ ]"; fi) Kdenlive (Editor de vídeo)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.localsend.localsend_app"; then echo "[X]"; else echo "[ ]"; fi) LocalSend (Compartilhamento de arquivos)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.onlyoffice.desktopeditors"; then echo "[X]"; else echo "[ ]"; fi) OnlyOffice (Suíte de escritório)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.vinegarhq.Sober"; then echo "[X]"; else echo "[ ]"; fi) Sober (Inicializador de jogos Roblox)"
-        i=$((i+1))
         
         echo
-        echo "Pacotes Nixpkgs:"
+        echo "Pacotes Nixpkgs (Página 1):"
         echo
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "aria2"; then echo "[X]"; else echo "[ ]"; fi) Aria2 (Downloader)"
         i=$((i+1))
@@ -398,26 +366,16 @@ select_packages() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "podman"; then echo "[X]"; else echo "[ ]"; fi) Podman (Gerenciador de containers)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ryubing"; then echo "[X]"; else echo "[ ]"; fi) Ryubing (Emulador de Switch)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "stirling-pdf"; then echo "[X]"; else echo "[ ]"; fi) Stirling PDF (Manipulação de PDF)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "tailscale"; then echo "[X]"; else echo "[ ]"; fi) Tailscale (VPN mesh)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "vimPlugins.LazyVim"; then echo "[X]"; else echo "[ ]"; fi) LazyVim (Framework para Neovim)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "waydroid"; then echo "[X]"; else echo "[ ]"; fi) Waydroid (Android em Wayland)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "winboat"; then echo "[X]"; else echo "[ ]"; fi) Winboat (Gerenciador de Wine)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "yt-dlp"; then echo "[X]"; else echo "[ ]"; fi) yt-dlp (Download de vídeos)"
-        i=$((i+1))
         
         echo
-        read -p "Opção (1-$((i-1)), 0 para continuar): " choice
+        echo "Opções: 1-$((i-1)) para selecionar, N para próxima página, 0 para continuar"
+        read -p "Opção: " choice
         
         if [ "$choice" = "0" ]; then
-            break
+            return 0
+        elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
+            select_packages_page2
+            return $?
         elif [ "$choice" -ge 1 ] && [ "$choice" -le "$((i-1))" ]; then
             case $choice in
                 1) pkg="app.zen_browser.zen"; type="flatpak" ;;
@@ -430,46 +388,24 @@ select_packages() {
                 8) pkg="fr.handbrake.ghb"; type="flatpak" ;;
                 9) pkg="io.github.Faugus.faugus-launcher"; type="flatpak" ;;
                 10) pkg="io.github.benjamimgois.goverlay"; type="flatpak" ;;
-                11) pkg="io.github.peazip.PeaZip"; type="flatpak" ;;
-                12) pkg="io.github.radiolamp.mangojuice"; type="flatpak" ;;
-                13) pkg="it.mijorus.gearlever"; type="flatpak" ;;
-                14) pkg="md.obsidian.Obsidian"; type="flatpak" ;;
-                15) pkg="net.davidotek.pupgui2"; type="flatpak" ;;
-                16) pkg="net.lutris.Lutris"; type="flatpak" ;;
-                17) pkg="net.shadps4.shadPS4"; type="flatpak" ;;
-                18) pkg="org.audacityteam.Audacity"; type="flatpak" ;;
-                19) pkg="org.blender.Blender"; type="flatpak" ;;
-                20) pkg="org.gimp.GIMP"; type="flatpak" ;;
-                21) pkg="org.gnome.World.PikaBackup"; type="flatpak" ;;
-                22) pkg="org.kde.kdenlive"; type="flatpak" ;;
-                23) pkg="org.localsend.localsend_app"; type="flatpak" ;;
-                24) pkg="org.onlyoffice.desktopeditors"; type="flatpak" ;;
-                25) pkg="org.vinegarhq.Sober"; type="flatpak" ;;
-                26) pkg="aria2"; type="nixpkgs" ;;
-                27) pkg="btop"; type="nixpkgs" ;;
-                28) pkg="curl"; type="nixpkgs" ;;
-                29) pkg="davinci-resolve"; type="nixpkgs" ;;
-                30) pkg="distrobox"; type="nixpkgs" ;;
-                31) pkg="fastfetch"; type="nixpkgs" ;;
-                32) pkg="fish"; type="nixpkgs" ;;
-                33) pkg="forgejo"; type="nixpkgs" ;;
-                34) pkg="gamemode"; type="nixpkgs" ;;
-                35) pkg="gamescope"; type="nixpkgs" ;;
-                36) pkg="git"; type="nixpkgs" ;;
-                37) pkg="hydralauncher"; type="nixpkgs" ;;
-                38) pkg="mangohud"; type="nixpkgs" ;;
-                39) pkg="mise"; type="nixpkgs" ;;
-                40) pkg="neofetch"; type="nixpkgs" ;;
-                41) pkg="ollama"; type="nixpkgs" ;;
-                42) pkg="opencode"; type="nixpkgs" ;;
-                43) pkg="podman"; type="nixpkgs" ;;
-                44) pkg="ryubing"; type="nixpkgs" ;;
-                45) pkg="stirling-pdf"; type="nixpkgs" ;;
-                46) pkg="tailscale"; type="nixpkgs" ;;
-                47) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
-                48) pkg="waydroid"; type="nixpkgs" ;;
-                49) pkg="winboat"; type="nixpkgs" ;;
-                50) pkg="yt-dlp"; type="nixpkgs" ;;
+                11) pkg="aria2"; type="nixpkgs" ;;
+                12) pkg="btop"; type="nixpkgs" ;;
+                13) pkg="curl"; type="nixpkgs" ;;
+                14) pkg="davinci-resolve"; type="nixpkgs" ;;
+                15) pkg="distrobox"; type="nixpkgs" ;;
+                16) pkg="fastfetch"; type="nixpkgs" ;;
+                17) pkg="fish"; type="nixpkgs" ;;
+                18) pkg="forgejo"; type="nixpkgs" ;;
+                19) pkg="gamemode"; type="nixpkgs" ;;
+                20) pkg="gamescope"; type="nixpkgs" ;;
+                21) pkg="git"; type="nixpkgs" ;;
+                22) pkg="hydralauncher"; type="nixpkgs" ;;
+                23) pkg="mangohud"; type="nixpkgs" ;;
+                24) pkg="mise"; type="nixpkgs" ;;
+                25) pkg="neofetch"; type="nixpkgs" ;;
+                26) pkg="ollama"; type="nixpkgs" ;;
+                27) pkg="opencode"; type="nixpkgs" ;;
+                28) pkg="podman"; type="nixpkgs" ;;
                 *) continue ;;
             esac
             
@@ -493,10 +429,194 @@ select_packages() {
             rm -f "$temp_file"
         fi
     done
+}
+
+select_packages_page2() {
+    local packages_file="$STATE_DIR/packages"
+    local nixpkgs_file="$STATE_DIR/nixpkgs_packages"
     
-    clear
-    echo "Seleção concluída. Pressione Enter para continuar."
-    read
+    while true; do
+        clear
+        echo "=== SELEÇÃO DE PACOTES - PÁGINA 2/2 ==="
+        echo "Digite o número do pacote para marcar/desmarcar, P para página anterior, 0 para continuar"
+        echo "================================================================================"
+        echo
+        echo "Pacotes Flatpak (Página 2):"
+        echo
+        
+        local i=1
+        local flatpak_selected=$(cat "$packages_file" 2>/dev/null || echo "")
+        local nixpkgs_selected=$(cat "$nixpkgs_file" 2>/dev/null || echo "")
+        
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.peazip.PeaZip"; then echo "[X]"; else echo "[ ]"; fi) PeaZip (Compactador de arquivos)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.radiolamp.mangojuice"; then echo "[X]"; else echo "[ ]"; fi) MangoJuice (Player de música)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "it.mijorus.gearlever"; then echo "[X]"; else echo "[ ]"; fi) Gear Lever (Gerenciador de AppImage)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "md.obsidian.Obsidian"; then echo "[X]"; else echo "[ ]"; fi) Obsidian (Editor de notas)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "net.davidotek.pupgui2"; then echo "[X]"; else echo "[ ]"; fi) ProtonUp-Qt (Gerenciador de Proton)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "net.lutris.Lutris"; then echo "[X]"; else echo "[ ]"; fi) Lutris (Gerenciador de jogos)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "net.shadps4.shadPS4"; then echo "[X]"; else echo "[ ]"; fi) shadPS4 (Emulador de PS4)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.audacityteam.Audacity"; then echo "[X]"; else echo "[ ]"; fi) Audacity (Editor de áudio)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.blender.Blender"; then echo "[X]"; else echo "[ ]"; fi) Blender (Modelagem 3D)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.cockpit_project.CockpitClient"; then echo "[X]"; else echo "[ ]"; fi) Cockpit Client (Gerenciamento de servidores)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.gimp.GIMP"; then echo "[X]"; else echo "[ ]"; fi) GIMP (Editor de imagens)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.gnome.World.PikaBackup"; then echo "[X]"; else echo "[ ]"; fi) Pika Backup (Backups)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.godotengine.Godot"; then echo "[X]"; else echo "[ ]"; fi) Godot Engine (Game engine)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.kde.kdenlive"; then echo "[X]"; else echo "[ ]"; fi) Kdenlive (Editor de vídeo)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.localsend.localsend_app"; then echo "[X]"; else echo "[ ]"; fi) LocalSend (Compartilhamento de arquivos)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.onlyoffice.desktopeditors"; then echo "[X]"; else echo "[ ]"; fi) OnlyOffice (Suíte de escritório)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.vinegarhq.Sober"; then echo "[X]"; else echo "[ ]"; fi) Sober (Inicializador de jogos Roblox)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.google.AndroidStudio"; then echo "[X]"; else echo "[ ]"; fi) Android Studio (IDE Android)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.sublimehq.SublimeText"; then echo "[X]"; else echo "[ ]"; fi) Sublime Text (Editor de texto)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.termius.Termius"; then echo "[X]"; else echo "[ ]"; fi) Termius (Cliente SSH)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.visualstudio.code"; then echo "[X]"; else echo "[ ]"; fi) VS Code (Editor de código)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.vscodium.codium"; then echo "[X]"; else echo "[ ]"; fi) VSCodium (Editor de código open-source)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "dev.zed.Zed"; then echo "[X]"; else echo "[ ]"; fi) Zed (Editor de código)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.httpie.Httpie"; then echo "[X]"; else echo "[ ]"; fi) HTTPie (Cliente HTTP)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "rest.insomnia.Insomnia"; then echo "[X]"; else echo "[ ]"; fi) Insomnia (Cliente API)"
+        i=$((i+1))
+        
+        echo
+        echo "Pacotes Nixpkgs (Página 2):"
+        echo
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ryubing"; then echo "[X]"; else echo "[ ]"; fi) Ryubing (Emulador de Switch)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "stirling-pdf"; then echo "[X]"; else echo "[ ]"; fi) Stirling PDF (Manipulação de PDF)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "tailscale"; then echo "[X]"; else echo "[ ]"; fi) Tailscale (VPN mesh)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "vimPlugins.LazyVim"; then echo "[X]"; else echo "[ ]"; fi) LazyVim (Framework para Neovim)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "waydroid"; then echo "[X]"; else echo "[ ]"; fi) Waydroid (Android em Wayland)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "winboat"; then echo "[X]"; else echo "[ ]"; fi) Winboat (Gerenciador de Wine)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "yt-dlp"; then echo "[X]"; else echo "[ ]"; fi) yt-dlp (Download de vídeos)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "maven"; then echo "[X]"; else echo "[ ]"; fi) Maven (Gerenciador de build Java)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "javaPackages.compiler.openjdk25"; then echo "[X]"; else echo "[ ]"; fi) OpenJDK 25 (Java Development Kit)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "nodejs_24"; then echo "[X]"; else echo "[ ]"; fi) Node.js 24 (JavaScript runtime)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "oh-my-zsh"; then echo "[X]"; else echo "[ ]"; fi) Oh My Zsh (Framework para Zsh)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "zsh"; then echo "[X]"; else echo "[ ]"; fi) Zsh (Shell)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "pyenv"; then echo "[X]"; else echo "[ ]"; fi) Pyenv (Gerenciador de versões Python)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "zerotierone"; then echo "[X]"; else echo "[ ]"; fi) ZeroTier One (VPN)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "dnsmasq"; then echo "[X]"; else echo "[ ]"; fi) Dnsmasq (Servidor DNS/DHCP)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ffmpegthumbnailer"; then echo "[X]"; else echo "[ ]"; fi) FFmpeg Thumbnailer (Miniaturas de vídeo)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "btrfs-assistant"; then echo "[X]"; else echo "[ ]"; fi) BTRFS Assistant (Gerenciador BTRFS)"
+        i=$((i+1))
+        
+        echo
+        echo "Opções: 1-$((i-1)) para selecionar, P para página anterior, 0 para continuar"
+        read -p "Opção: " choice
+        
+        if [ "$choice" = "0" ]; then
+            return 0
+        elif [ "$choice" = "P" ] || [ "$choice" = "p" ]; then
+            select_packages_page1
+            return $?
+        elif [ "$choice" -ge 1 ] && [ "$choice" -le "$((i-1))" ]; then
+            case $choice in
+                1) pkg="io.github.peazip.PeaZip"; type="flatpak" ;;
+                2) pkg="io.github.radiolamp.mangojuice"; type="flatpak" ;;
+                3) pkg="it.mijorus.gearlever"; type="flatpak" ;;
+                4) pkg="md.obsidian.Obsidian"; type="flatpak" ;;
+                5) pkg="net.davidotek.pupgui2"; type="flatpak" ;;
+                6) pkg="net.lutris.Lutris"; type="flatpak" ;;
+                7) pkg="net.shadps4.shadPS4"; type="flatpak" ;;
+                8) pkg="org.audacityteam.Audacity"; type="flatpak" ;;
+                9) pkg="org.blender.Blender"; type="flatpak" ;;
+                10) pkg="org.cockpit_project.CockpitClient"; type="flatpak" ;;
+                11) pkg="org.gimp.GIMP"; type="flatpak" ;;
+                12) pkg="org.gnome.World.PikaBackup"; type="flatpak" ;;
+                13) pkg="org.godotengine.Godot"; type="flatpak" ;;
+                14) pkg="org.kde.kdenlive"; type="flatpak" ;;
+                15) pkg="org.localsend.localsend_app"; type="flatpak" ;;
+                16) pkg="org.onlyoffice.desktopeditors"; type="flatpak" ;;
+                17) pkg="org.vinegarhq.Sober"; type="flatpak" ;;
+                18) pkg="com.google.AndroidStudio"; type="flatpak" ;;
+                19) pkg="com.sublimehq.SublimeText"; type="flatpak" ;;
+                20) pkg="com.termius.Termius"; type="flatpak" ;;
+                21) pkg="com.visualstudio.code"; type="flatpak" ;;
+                22) pkg="com.vscodium.codium"; type="flatpak" ;;
+                23) pkg="dev.zed.Zed"; type="flatpak" ;;
+                24) pkg="io.httpie.Httpie"; type="flatpak" ;;
+                25) pkg="rest.insomnia.Insomnia"; type="flatpak" ;;
+                26) pkg="ryubing"; type="nixpkgs" ;;
+                27) pkg="stirling-pdf"; type="nixpkgs" ;;
+                28) pkg="tailscale"; type="nixpkgs" ;;
+                29) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
+                30) pkg="waydroid"; type="nixpkgs" ;;
+                31) pkg="winboat"; type="nixpkgs" ;;
+                32) pkg="yt-dlp"; type="nixpkgs" ;;
+                33) pkg="maven"; type="nixpkgs" ;;
+                34) pkg="javaPackages.compiler.openjdk25"; type="nixpkgs" ;;
+                35) pkg="nodejs_24"; type="nixpkgs" ;;
+                36) pkg="oh-my-zsh"; type="nixpkgs" ;;
+                37) pkg="zsh"; type="nixpkgs" ;;
+                38) pkg="pyenv"; type="nixpkgs" ;;
+                39) pkg="zerotierone"; type="nixpkgs" ;;
+                40) pkg="dnsmasq"; type="nixpkgs" ;;
+                41) pkg="ffmpegthumbnailer"; type="nixpkgs" ;;
+                42) pkg="btrfs-assistant"; type="nixpkgs" ;;
+                *) continue ;;
+            esac
+            
+            local temp_file=$(mktemp)
+            
+            if [ "$type" = "flatpak" ]; then
+                if cat "$packages_file" 2>/dev/null | grep -q "$pkg"; then
+                    grep -v "$pkg" "$packages_file" 2>/dev/null > "$temp_file" || true
+                    mv "$temp_file" "$packages_file"
+                else
+                    echo "$pkg" >> "$packages_file"
+                fi
+            else
+                if cat "$nixpkgs_file" 2>/dev/null | grep -q "$pkg"; then
+                    grep -v "$pkg" "$nixpkgs_file" 2>/dev/null > "$temp_file" || true
+                    mv "$temp_file" "$nixpkgs_file"
+                else
+                    echo "$pkg" >> "$nixpkgs_file"
+                fi
+            fi
+            rm -f "$temp_file"
+        fi
+    done
+}
+
+select_packages() {
+    select_packages_page1
 }
 
 detect_disk() {
@@ -1076,6 +1196,18 @@ EOF
 EOF
     fi
 
+    if echo "$nixpkgs_packages" | grep -q "zerotierone"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.zerotierone.enable = true;
+EOF
+    fi
+
+    if echo "$nixpkgs_packages" | grep -q "dnsmasq"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  services.dnsmasq.enable = true;
+EOF
+    fi
+
     if echo "$nixpkgs_packages" | grep -q "tailscale"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.tailscale.enable = true;
@@ -1115,6 +1247,18 @@ EOF
 EOF
     fi
 
+    if echo "$nixpkgs_packages" | grep -q "zsh"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  programs.zsh.enable = true;
+EOF
+    fi
+
+    if echo "$nixpkgs_packages" | grep -q "oh-my-zsh"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  programs.zsh.ohMyZsh.enable = true;
+EOF
+    fi
+
     sudo tee -a "$config_file" > /dev/null << EOF
   environment.systemPackages = with pkgs; [
     vim
@@ -1136,7 +1280,7 @@ EOF
 EOF
 
     for pkg in $nixpkgs_packages; do
-        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ]; then
+        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "zerotierone" ] && [ "$pkg" != "dnsmasq" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ] && [ "$pkg" != "zsh" ] && [ "$pkg" != "oh-my-zsh" ]; then
             sudo tee -a "$config_file" > /dev/null << EOF
     ${pkg}
 EOF
