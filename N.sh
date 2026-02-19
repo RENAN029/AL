@@ -308,30 +308,59 @@ select_packages() {
         local flatpak_selected=$(cat "$packages_file" 2>/dev/null || echo "")
         local nixpkgs_selected=$(cat "$nixpkgs_file" 2>/dev/null || echo "")
         
-        echo "  Flatpak:"
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "app.zen_browser.zen"; then echo "[X]"; else echo "[ ]"; fi) Zen Browser (Navegador web)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.bitwarden.desktop"; then echo "[X]"; else echo "[ ]"; fi) Bitwarden (Gerenciador de senhas)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.discordapp.Discord"; then echo "[X]"; else echo "[ ]"; fi) Discord (Chat e voz)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.obsproject.Studio"; then echo "[X]"; else echo "[ ]"; fi) OBS Studio (Captura e transmissão)"
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.vysp3r.ProtonPlus"; then echo "[X]"; else echo "[ ]"; fi) ProtonPlus (Gerenciador de compatibilidade)"
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.Faugus.faugus-launcher"; then echo "[X]"; else echo "[ ]"; fi) Faugus Launcher (Gerenciador de jogos)"
         i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.peazip.PeaZip"; then echo "[X]"; else echo "[ ]"; fi) PeaZip (Compactador de arquivos)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.radiolamp.mangojuice"; then echo "[X]"; else echo "[ ]"; fi) MangoJuice (Player de música)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "it.mijorus.gearlever"; then echo "[X]"; else echo "[ ]"; fi) Gear Lever (Gerenciador de AppImage)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "md.obsidian.Obsidian"; then echo "[X]"; else echo "[ ]"; fi) Obsidian (Editor de notas)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.audacityteam.Audacity"; then echo "[X]"; else echo "[ ]"; fi) Audacity (Editor de áudio)"
+        i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.gimp.GIMP"; then echo "[X]"; else echo "[ ]"; fi) GIMP (Editor de imagens)"
         i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.kde.kdenlive"; then echo "[X]"; else echo "[ ]"; fi) Kdenlive (Editor de vídeo)"
+        i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.onlyoffice.desktopeditors"; then echo "[X]"; else echo "[ ]"; fi) OnlyOffice (Suíte de escritório)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.vinegarhq.Sober"; then echo "[X]"; else echo "[ ]"; fi) Sober (Inicializador de jogos Roblox)"
         i=$((i+1))
         
         echo
         echo "Pacotes Nixpkgs:"
         echo
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ryubing"; then echo "[X]"; else echo "[ ]"; fi) Ryubing (Emulador de Switch)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "winboat"; then echo "[X]"; else echo "[ ]"; fi) Winboat (Gerenciador de Wine)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "podman"; then echo "[X]"; else echo "[ ]"; fi) Podman (Gerenciador de containers)"
-        i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "docker"; then echo "[X]"; else echo "[ ]"; fi) Docker (Gerenciador de containers)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "fish"; then echo "[X]"; else echo "[ ]"; fi) Fish (Shell)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "gamemode"; then echo "[X]"; else echo "[ ]"; fi) Gamemode (Otimização de jogos)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "gamescope"; then echo "[X]"; else echo "[ ]"; fi) Gamescope (Micro-compositor para jogos)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "mangohud"; then echo "[X]"; else echo "[ ]"; fi) MangoHud (Overlay de desempenho)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "mise"; then echo "[X]"; else echo "[ ]"; fi) Mise (Gerenciador de versões)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "podman"; then echo "[X]"; else echo "[ ]"; fi) Podman (Gerenciador de containers)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ryubing"; then echo "[X]"; else echo "[ ]"; fi) Ryubing (Emulador de Switch)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "tailscale"; then echo "[X]"; else echo "[ ]"; fi) Tailscale (VPN mesh)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "winboat"; then echo "[X]"; else echo "[ ]"; fi) Winboat (Gerenciador de Wine)"
         i=$((i+1))
         
         echo
@@ -342,15 +371,30 @@ select_packages() {
         elif [ "$choice" -ge 1 ] && [ "$choice" -le "$((i-1))" ]; then
             case $choice in
                 1) pkg="app.zen_browser.zen"; type="flatpak" ;;
-                2) pkg="com.vysp3r.ProtonPlus"; type="flatpak" ;;
-                3) pkg="io.github.Faugus.faugus-launcher"; type="flatpak" ;;
-                4) pkg="org.gimp.GIMP"; type="flatpak" ;;
-                5) pkg="org.onlyoffice.desktopeditors"; type="flatpak" ;;
-                6) pkg="ryubing"; type="nixpkgs" ;;
-                7) pkg="winboat"; type="nixpkgs" ;;
-                8) pkg="podman"; type="nixpkgs" ;;
-                9) pkg="docker"; type="nixpkgs" ;;
-                10) pkg="fish"; type="nixpkgs" ;;
+                2) pkg="com.bitwarden.desktop"; type="flatpak" ;;
+                3) pkg="com.discordapp.Discord"; type="flatpak" ;;
+                4) pkg="com.obsproject.Studio"; type="flatpak" ;;
+                5) pkg="com.vysp3r.ProtonPlus"; type="flatpak" ;;
+                6) pkg="io.github.Faugus.faugus-launcher"; type="flatpak" ;;
+                7) pkg="io.github.peazip.PeaZip"; type="flatpak" ;;
+                8) pkg="io.github.radiolamp.mangojuice"; type="flatpak" ;;
+                9) pkg="it.mijorus.gearlever"; type="flatpak" ;;
+                10) pkg="md.obsidian.Obsidian"; type="flatpak" ;;
+                11) pkg="org.audacityteam.Audacity"; type="flatpak" ;;
+                12) pkg="org.gimp.GIMP"; type="flatpak" ;;
+                13) pkg="org.kde.kdenlive"; type="flatpak" ;;
+                14) pkg="org.onlyoffice.desktopeditors"; type="flatpak" ;;
+                15) pkg="org.vinegarhq.Sober"; type="flatpak" ;;
+                16) pkg="docker"; type="nixpkgs" ;;
+                17) pkg="fish"; type="nixpkgs" ;;
+                18) pkg="gamemode"; type="nixpkgs" ;;
+                19) pkg="gamescope"; type="nixpkgs" ;;
+                20) pkg="mangohud"; type="nixpkgs" ;;
+                21) pkg="mise"; type="nixpkgs" ;;
+                22) pkg="podman"; type="nixpkgs" ;;
+                23) pkg="ryubing"; type="nixpkgs" ;;
+                24) pkg="tailscale"; type="nixpkgs" ;;
+                25) pkg="winboat"; type="nixpkgs" ;;
                 *) continue ;;
             esac
             
@@ -531,6 +575,8 @@ create_swap() {
     sudo dd if=/dev/zero of=/mnt/.swapfile bs=1M count=$((swap_size * 1024)) status=progress
     sudo chmod 600 /mnt/.swapfile
     sudo mkswap /mnt/.swapfile
+    echo "Configurando swap no sistema..."
+    sudo swapon /mnt/.swapfile || true
 }
 
 show_summary() {
@@ -545,7 +591,7 @@ show_summary() {
     if [ "$swap" = "0" ]; then
         echo "Swap: Sem swap"
     else
-        echo "Swap: ${swap}GB"
+        echo "Swap: ${swap}GB (arquivo .swapfile)"
     fi
     echo "Filesystem: $(cat "$STATE_DIR/filesystem")"
     echo "Bootloader: $(cat "$STATE_DIR/bootloader")"
@@ -558,8 +604,8 @@ show_summary() {
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
     echo "Flakes: $(cat "$STATE_DIR/flakes")"
     echo "Configurações recomendadas: $(cat "$STATE_DIR/recommended")"
-    echo "Pacotes Flatpak: $(cat "$STATE_DIR/packages" 2>/dev/null | tr '\n' ' ')"
-    echo "Pacotes Nixpkgs: $(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')"
+    echo "Pacotes Flatpak: $(cat "$STATE_DIR/packages" 2>/dev/null | wc -l | tr -d ' ') selecionados"
+    echo "Pacotes Nixpkgs: $(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | wc -l | tr -d ' ') selecionados"
     echo "Disco/Disk: $(cat "$STATE_DIR/disk")"
     echo "Usuário/User: $(cat "$STATE_DIR/username")"
     echo "================================="
@@ -945,6 +991,20 @@ EOF
       dockerCompat = $(if echo "$nixpkgs_packages" | grep -q "docker" || echo "$nixpkgs_packages" | grep -q "podman"; then echo "true"; else echo "false"; fi);
     };
   };
+  services.tailscale = {
+    enable = $(if echo "$nixpkgs_packages" | grep -q "tailscale"; then echo "true"; else echo "false"; fi);
+  };
+  programs = {
+    gamemode = {
+      enable = $(if echo "$nixpkgs_packages" | grep -q "gamemode"; then echo "true"; else echo "false"; fi);
+    };
+    gamescope = {
+      enable = $(if echo "$nixpkgs_packages" | grep -q "gamescope"; then echo "true"; else echo "false"; fi);
+    };
+    fish = {
+      enable = $(if echo "$nixpkgs_packages" | grep -q "fish"; then echo "true"; else echo "false"; fi);
+    };
+  };
   environment.systemPackages = with pkgs; [
     vim
     nano
@@ -964,6 +1024,18 @@ EOF
     starship
 EOF
 
+    if echo "$nixpkgs_packages" | grep -q "mangohud"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+    mangohud
+EOF
+    fi
+
+    if echo "$nixpkgs_packages" | grep -q "mise"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+    mise
+EOF
+    fi
+
     if echo "$nixpkgs_packages" | grep -q "ryubing"; then
         sudo tee -a "$config_file" > /dev/null << EOF
     ryubing
@@ -973,12 +1045,6 @@ EOF
     if echo "$nixpkgs_packages" | grep -q "winboat"; then
         sudo tee -a "$config_file" > /dev/null << EOF
     winboat
-EOF
-    fi
-
-    if echo "$nixpkgs_packages" | grep -q "fish"; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-    fish
 EOF
     fi
 
@@ -1005,8 +1071,6 @@ EOF
     sudo tee -a "$config_file" > /dev/null << EOF
   ];
   programs.firefox.enable = true;
-  programs.starship.enable = true;
-  programs.fish.enable = $(if echo "$nixpkgs_packages" | grep -q "fish"; then echo "true"; else echo "false"; fi);
   nix.settings = {
     auto-optimise-store = true;
     experimental-features = [ "nix-command" "flakes" ];
