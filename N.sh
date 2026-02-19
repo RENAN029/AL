@@ -882,28 +882,41 @@ EOF
     fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
-  systemd.services.flatpak-install = {
+  services.flatpak.enable = true;
+EOF
+
+    sudo tee -a "$config_file" > /dev/null << EOF
+  systemd.services.flatpak-repo = {
     wantedBy = [ "multi-user.target" ];
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
     path = [ pkgs.flatpak ];
     script = ''
-      flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+      flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    '';
+  };
 EOF
 
     if [ -n "$packages" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  systemd.services.flatpak-install = {
+    wantedBy = [ "multi-user.target" ];
+    after = [ "flatpak-repo.service" ];
+    path = [ pkgs.flatpak ];
+    script = ''
+EOF
         for pkg in $packages; do
             if [ -n "$pkg" ]; then
                 sudo tee -a "$config_file" > /dev/null << EOF
-      flatpak install --noninteractive -y flathub $pkg
+      flatpak install --noninteractive -y flathub $pkg || true
 EOF
             fi
         done
+        sudo tee -a "$config_file" > /dev/null << EOF
+    '';
+  };
+EOF
     fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
-    '';
-  };
   environment.systemPackages = with pkgs; [
     vim
     nano
@@ -921,7 +934,6 @@ EOF
     clinfo
     wayland-utils
     starship
-    flatpak
 EOF
 
     case $desktop in
