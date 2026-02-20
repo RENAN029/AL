@@ -1744,12 +1744,20 @@ EOF
     fi
 
     if echo "$nixpkgs_packages" | grep -q "ollama"; then
-        sudo tee -a "$config_file" > /dev/null << EOF
+        if [ "$gpu_driver" = "nvidia" ]; then
+            sudo tee -a "$config_file" > /dev/null << EOF
   services.ollama = {
     enable = true;
-    acceleration = $([ "$gpu_driver" = "nvidia" ] && echo "cuda" || echo "false");
+    acceleration = "cuda";
   };
 EOF
+        else
+            sudo tee -a "$config_file" > /dev/null << EOF
+  services.ollama = {
+    enable = true;
+  };
+EOF
+        fi
     fi
 
     if echo "$nixpkgs_packages" | grep -q "gamemode"; then
