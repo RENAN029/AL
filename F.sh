@@ -566,9 +566,16 @@ discord_installer() {
 
 distrobox_installer() {
     local state_file="$STATE_DIR/distrobox"
+    local handler_state="$STATE_DIR/distrobox_handler"
 
     if [ -f "$state_file" ] || rpm -q distrobox &>/dev/null; then
         if confirm "Distrobox detectado. Desinstalar?"; then
+            # Se handler estiver instalado, perguntar se deseja remover
+            if [ -f "$handler_state" ] || [ -d "$HOME/.local/distrobox-handler" ]; then
+                if confirm "Distrobox Command Handler também detectado. Desinstalar junto?"; then
+                    distrobox_handler_installer  # chama a função que já pergunta sobre desinstalação
+                fi
+            fi
             echo "Desinstalando Distrobox..."
             sudo rpm-ostree uninstall distrobox 2>/dev/null || true
             cleanup_files "$state_file"
@@ -580,6 +587,95 @@ distrobox_installer() {
             sudo rpm-ostree install distrobox
             touch "$state_file"
             echo "Distrobox instalado. Reinicie para aplicar."
+            
+            # Perguntar se quer instalar as configurações recomendadas (handler)
+            if confirm "Deseja aplicar configurações recomendadas do Distrobox (command handler e aliases)?"; then
+                distrobox_handler_installer  # chama a função que instala o handler
+            fi
+        fi
+    fi
+}
+
+distrobox_handler_installer() {
+    local state_file="$STATE_DIR/distrobox_handler"
+    local handler_dir="$HOME/.local/distrobox-handler"
+
+    if [ -f "$state_file" ] || [ -f "$handler_dir/command_not_found_handle" ]; then
+        if confirm "Distrobox Command Handler detectado. Desinstalar?"; then
+            echo "Desinstalando Distrobox Command Handler..."
+            rm -rf "$handler_dir" 2>/dev/null || true
+            sudo rm -f /etc/bash.bashrc.d/99-distrobox-cnf /etc/zsh/zshrc.d/99-distrobox-cnf.zsh /etc/profile.d/distrobox-host-aliases.sh 2>/dev/null || true
+            [ -f "$HOME/.bashrc" ] && grep -v "distrobox-handler" "$HOME/.bashrc" > "$HOME/.bashrc.tmp" && mv "$HOME/.bashrc.tmp" "$HOME/.bashrc"
+            [ -f "$HOME/.zshrc" ] && grep -v "distrobox-handler" "$HOME/.zshrc" > "$HOME/.zshrc.tmp" && mv "$HOME/.zshrc.tmp" "$HOME/.zshrc"
+            cleanup_files "$state_file"
+            echo "Distrobox Command Handler desinstalado."
+        fi
+    else
+        if confirm "Instalar Distrobox Command Handler?"; then
+            echo "Instalando Distrobox Command Handler..."
+            mkdir -p "$handler_dir"
+            echo '#!/bin/bash
+command_not_found_handle() {
+    local cmd="$1"
+    shift
+    if command -v distrobox-host-exec >/dev/null 2>&1; then
+        if distrobox-host-exec which "$cmd" >/dev/null 2>&1; then
+            echo "Command \"$cmd\" not found in container, executing on host..." >&2
+            exec distrobox-host-exec "$cmd" "$@"
+        else
+            echo "bash: $cmd: command not found" >&2
+            return 127
+        fi
+    else
+        echo "bash: $cmd: command not found" >&2
+        return 127
+    fi
+}' > "$handler_dir/command_not_found_handle"
+            echo '#!/bin/bash
+zsh_command_not_found_handler() {
+    local cmd="$1"
+    shift
+    if command -v distrobox-host-exec >/dev/null 2>&1; then
+        if distrobox-host-exec which "$cmd" >/dev/null 2>&1; then
+            echo "Command \"$cmd\" not found in container, executing on host..." >&2
+            exec distrobox-host-exec "$cmd" "$@"
+        else
+            echo "zsh: command not found: $cmd" >&2
+            return 127
+        fi
+    else
+        echo "zsh: command not found: $cmd" >&2
+        return 127
+    fi
+}' > "$handler_dir/zsh_command_not_found_handler"
+            chmod +x "$handler_dir/command_not_found_handle" "$handler_dir/zsh_command_not_found_handler"
+            sudo mkdir -p /etc/bash.bashrc.d
+            echo '# Distrobox Command-Not-Found Handler Integration
+if [ -f "$HOME/.local/distrobox-handler/command_not_found_handle" ]; then
+    source "$HOME/.local/distrobox-handler/command_not_found_handle"
+fi' | sudo tee /etc/bash.bashrc.d/99-distrobox-cnf > /dev/null
+            sudo mkdir -p /etc/zsh/zshrc.d
+            echo '# Distrobox Command-Not-Found Handler Integration for ZSH
+if [ -f "$HOME/.local/distrobox-handler/zsh_command_not_found_handler" ]; then
+    source "$HOME/.local/distrobox-handler/zsh_command_not_found_handler"
+fi' | sudo tee /etc/zsh/zshrc.d/99-distrobox-cnf.zsh > /dev/null
+            echo '# Common host command aliases for distrobox containers
+alias xdg-open="distrobox-host-exec xdg-open"
+alias nautilus="distrobox-host-exec nautilus"
+alias dolphin="distrobox-host-exec dolphin"
+alias htop="distrobox-host-exec htop"
+alias lscpu="distrobox-host-exec lscpu"
+alias lsusb="distrobox-host-exec lsusb"
+alias lspci="distrobox-host-exec lspci"
+alias nmcli="distrobox-host-exec nmcli"
+alias nmtui="distrobox-host-exec nmtui"
+alias flatpak="distrobox-host-exec flatpak"
+alias firefox="distrobox-host-exec firefox"
+alias chromium="distrobox-host-exec chromium"' | sudo tee /etc/profile.d/distrobox-host-aliases.sh > /dev/null
+            [ -f "$HOME/.bashrc" ] && grep -q "distrobox-handler" "$HOME/.bashrc" || echo -e '\nif [ -f "$HOME/.local/distrobox-handler/command_not_found_handle" ]; then\n    source "$HOME/.local/distrobox-handler/command_not_found_handle"\nfi' >> "$HOME/.bashrc"
+            [ -f "$HOME/.zshrc" ] && grep -q "distrobox-handler" "$HOME/.zshrc" || echo -e '\nif [ -f "$HOME/.local/distrobox-handler/zsh_command_not_found_handler" ]; then\n    source "$HOME/.local/distrobox-handler/zsh_command_not_found_handler"\nfi' >> "$HOME/.zshrc"
+            touch "$state_file"
+            echo "Distrobox Command Handler instalado."
         fi
     fi
 }
@@ -1663,59 +1759,6 @@ wifi.backend=iwd" | sudo tee /etc/NetworkManager/conf.d/iwd.conf > /dev/null
     fi
 }
 
-java_openjdk_installer() {
-    local state_file="$STATE_DIR/java_openjdk"
-
-    if [ -f "$state_file" ] || [ -d "/usr/lib/jvm" ]; then
-        if confirm "Java OpenJDK detectado. Desinstalar?"; then
-            echo "Desinstalando Java OpenJDK..."
-            sudo rpm-ostree uninstall java-*-openjdk java-*-openjdk-devel 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Java OpenJDK desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar Java OpenJDK?"; then
-            echo "Instalando Java OpenJDK..."
-            
-            local javas=()
-            local packages=()
-            
-            echo "Selecione as versões do Java para instalar:"
-            echo "1) Java 8 LTS"
-            echo "2) Java 11 LTS"
-            echo "3) Java 17 LTS"
-            echo "4) Java 21 LTS"
-            echo "5) Java 24 Latest"
-            echo "6) Todas as versões"
-            read -p "Escolha (pode ser múltiplo, ex: 1 3 5): " java_choice
-            
-            for choice in $java_choice; do
-                case $choice in
-                    1) javas+=(8) ;;
-                    2) javas+=(11) ;;
-                    3) javas+=(17) ;;
-                    4) javas+=(21) ;;
-                    5) javas+=(24) ;;
-                    6) javas=(8 11 17 21 24) ;;
-                esac
-            done
-            
-            for jav in "${javas[@]}"; do
-                if [ $jav == "8" ]; then
-                    packages+=(java-1.8.0-openjdk java-1.8.0-openjdk-devel)
-                else
-                    packages+=(java-${jav}-openjdk java-${jav}-openjdk-devel)
-                fi
-            done
-            
-            sudo rpm-ostree install "${packages[@]}"
-            
-            touch "$state_file"
-            echo "Java OpenJDK instalado. Reinicie para aplicar."
-        fi
-    fi
-}
-
 kalzium_installer() {
     local state_file="$STATE_DIR/kalzium"
     local pkg_kalzium="org.kde.kalzium"
@@ -2627,6 +2670,27 @@ piracy_installer() {
             xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
             touch "$state_file"
             echo "r/Piracy aberto."
+        fi
+    fi
+}
+
+pnpm_installer() {
+    local state_file="$STATE_DIR/pnpm"
+    local pkg_pnpm="pnpm"
+
+    if [ -f "$state_file" ] || rpm -q pnpm &>/dev/null; then
+        if confirm "PNPM detectado. Desinstalar?"; then
+            echo "Desinstalando PNPM..."
+            sudo rpm-ostree uninstall pnpm 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "PNPM desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar PNPM?"; then
+            echo "Instalando PNPM..."
+            sudo rpm-ostree install pnpm
+            touch "$state_file"
+            echo "PNPM instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -3972,7 +4036,7 @@ main_menu() {
         echo "38) yt-dlp"
         echo "39) Zsh + Oh My Zsh"
         echo "40) Docker"
-        echo "41) Java OpenJDK"
+        echo "41) PNPM"
         echo "42) Ollama"
         echo "43) Portainer"
         echo "44) Stirling PDF"
@@ -4021,7 +4085,7 @@ main_menu() {
             38) clear; yt_dlp_installer ;;
             39) clear; zsh_ohmyzsh_installer ;;
             40) clear; docker_installer ;;
-            41) clear; java_openjdk_installer ;;
+            41) clear; pnpm_installer ;;
             42) clear; ollama_installer ;;
             43) clear; portainer_installer ;;
             44) clear; stirling_pdf_installer ;;
