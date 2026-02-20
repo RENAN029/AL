@@ -487,11 +487,11 @@ toggle_all_packages() {
                         23) pkg="dnsmasq"; type="nixpkgs" ;;
                         24) pkg="neovim"; type="nixpkgs" ;;
                         25) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
-                        26) pkg="fzf"; type="nixpkgs" ;;
-                        27) pkg="bat"; type="nixpkgs" ;;
-                        28) pkg="eza"; type="nixpkgs" ;;
-                        29) pkg="fd"; type="nixpkgs" ;;
-                        30) pkg="ripgrep"; type="nixpkgs" ;;
+                        26) pkg="p7zip"; type="nixpkgs" ;;
+                        27) pkg="gnutar"; type="nixpkgs" ;;
+                        28) pkg="libarchive"; type="nixpkgs" ;;
+                        29) pkg="unrar"; type="nixpkgs" ;;
+                        30) pkg="unar"; type="nixpkgs" ;;
                     esac
                     
                     if [ "$type" = "nixpkgs" ] && ! grep -q "$pkg" "$nixpkgs_file" 2>/dev/null; then
@@ -1019,15 +1019,15 @@ select_packages_page4() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "vimPlugins.LazyVim"; then echo "[X]"; else echo "[ ]"; fi) LazyVim (Framework para Neovim)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "fd"; then echo "[X]"; else echo "[ ]"; fi) Fd (Busca de arquivos)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "p7zip"; then echo "[X]"; else echo "[ ]"; fi) p7zip (Compactador de arquivos)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ripgrep"; then echo "[X]"; else echo "[ ]"; fi) Ripgrep (Busca em arquivos)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "gnutar"; then echo "[X]"; else echo "[ ]"; fi) GNU Tar (Arquivador)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "bat"; then echo "[X]"; else echo "[ ]"; fi) Bat (Visualizador de arquivos)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "libarchive"; then echo "[X]"; else echo "[ ]"; fi) Libarchive (Arquivos multi-formato)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "eza"; then echo "[X]"; else echo "[ ]"; fi) Eza (Listagem de arquivos)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "unrar"; then echo "[X]"; else echo "[ ]"; fi) UnRAR (Extrator RAR)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "fzf"; then echo "[X]"; else echo "[ ]"; fi) Fzf (Buscador fuzzy)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "unar"; then echo "[X]"; else echo "[ ]"; fi) Unar (Extrator universal)"
         i=$((i+1))
         
         echo
@@ -1073,11 +1073,11 @@ select_packages_page4() {
                     8) pkg="dnsmasq"; type="nixpkgs" ;;
                     9) pkg="neovim"; type="nixpkgs" ;;
                     10) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
-                    11) pkg="fd"; type="nixpkgs" ;;
-                    12) pkg="ripgrep"; type="nixpkgs" ;;
-                    13) pkg="bat"; type="nixpkgs" ;;
-                    14) pkg="eza"; type="nixpkgs" ;;
-                    15) pkg="fzf"; type="nixpkgs" ;;
+                    11) pkg="p7zip"; type="nixpkgs" ;;
+                    12) pkg="gnutar"; type="nixpkgs" ;;
+                    13) pkg="libarchive"; type="nixpkgs" ;;
+                    14) pkg="unrar"; type="nixpkgs" ;;
+                    15) pkg="unar"; type="nixpkgs" ;;
                 esac
             fi
             
@@ -2039,7 +2039,7 @@ main() {
     select_recommended_config
     select_username
     detect_disk
-    select_pages
+    select_packages
     show_summary
     partition_disk
     mount_partitions
