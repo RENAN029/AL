@@ -1744,10 +1744,15 @@ EOF
     fi
 
     if echo "$nixpkgs_packages" | grep -q "ollama"; then
+        if [ "$gpu_driver" = "nvidia" ]; then
+            OLLAMA_ACCEL="cuda"
+        else
+            OLLAMA_ACCEL="false"
+        fi
         sudo tee -a "$config_file" > /dev/null << EOF
   services.ollama = {
     enable = true;
-    acceleration = "$(if [ "$gpu_driver" = "nvidia" ]; then echo "cuda"; else echo "false"; fi)";
+    acceleration = ${OLLAMA_ACCEL};
   };
 EOF
     fi
