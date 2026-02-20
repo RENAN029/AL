@@ -51,21 +51,6 @@ check_reboot() {
     fi
 }
 
-acer_manager_installer() {
-    local state_file="$STATE_DIR/acer_manager"
-
-    if [ -f "$state_file" ]; then
-        if confirm "Acer Manager detectado. Desinstalar?"; then
-            cleanup_files "$state_file"
-        fi
-    else
-        if confirm "Instalar Acer Manager?"; then
-            curl -fsSL https://raw.githubusercontent.com/PXDiv/Div-Acer-Manager-Max/refs/heads/main/scripts/remoteSetup.sh -o /tmp/setup.sh && sudo bash /tmp/setup.sh
-            touch "$state_file"
-        fi
-    fi
-}
-
 affinity_installer() {
     local state_file="$STATE_DIR/affinity"
     local appimage_path="$APPIMAGE_DIR/Affinity.AppImage"
@@ -92,27 +77,6 @@ affinity_installer() {
     fi
 }
 
-alpaca_installer() {
-    local state_file="$STATE_DIR/alpaca_studio"
-    local pkg_alpaca="com.jeffser.Alpaca"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q com.jeffser.Alpaca 2>/dev/null; then
-        if confirm "Alpaca detectado. Desinstalar?"; then
-            echo "Desinstalando Alpaca..."
-            flatpak uninstall --user -y $pkg_alpaca 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Alpaca desinstalado."
-        fi
-    else
-        if confirm "Instalar Alpaca?"; then
-            echo "Instalando Alpaca..."
-            flatpak install --user --or-update --noninteractive flathub $pkg_alpaca
-            touch "$state_file"
-            echo "Alpaca instalado."
-        fi
-    fi
-}
-
 android_studio_installer() {
     local state_file="$STATE_DIR/android_studio"
     local pkg_android="com.google.AndroidStudio"
@@ -134,6 +98,47 @@ android_studio_installer() {
     fi
 }
 
+aria2_installer() {
+    local state_file="$STATE_DIR/aria2"
+
+    if [ -f "$state_file" ] || rpm -q aria2 &>/dev/null; then
+        if confirm "aria2 detectado. Desinstalar?"; then
+            echo "Desinstalando aria2..."
+            sudo rpm-ostree uninstall aria2 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "aria2 desinstalado. Reinicie para aplicar."
+        fi
+    else
+        if confirm "Instalar aria2?"; then
+            echo "Instalando aria2..."
+            sudo rpm-ostree install aria2
+            touch "$state_file"
+            echo "aria2 instalado. Reinicie para aplicar."
+        fi
+    fi
+}
+
+alpaca_installer() {
+    local state_file="$STATE_DIR/alpaca_studio"
+    local pkg_alpaca="com.jeffser.Alpaca"
+
+    if [ -f "$state_file" ] || flatpak list --app | grep -q com.jeffser.Alpaca 2>/dev/null; then
+        if confirm "Alpaca detectado. Desinstalar?"; then
+            echo "Desinstalando Alpaca..."
+            flatpak uninstall --user -y $pkg_alpaca 2>/dev/null || true
+            cleanup_files "$state_file"
+            echo "Alpaca desinstalado."
+        fi
+    else
+        if confirm "Instalar Alpaca?"; then
+            echo "Instalando Alpaca..."
+            flatpak install --user --or-update --noninteractive flathub $pkg_alpaca
+            touch "$state_file"
+            echo "Alpaca instalado."
+        fi
+    fi
+}
+
 anydesk_installer() {
     local state_file="$STATE_DIR/anydesk"
     local pkg_anydesk="com.anydesk.Anydesk"
@@ -151,26 +156,6 @@ anydesk_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_anydesk
             touch "$state_file"
             echo "AnyDesk instalado."
-        fi
-    fi
-}
-
-aria2_installer() {
-    local state_file="$STATE_DIR/aria2"
-
-    if [ -f "$state_file" ] || rpm -q aria2 &>/dev/null; then
-        if confirm "aria2 detectado. Desinstalar?"; then
-            echo "Desinstalando aria2..."
-            sudo rpm-ostree uninstall aria2 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "aria2 desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar aria2?"; then
-            echo "Instalando aria2..."
-            sudo rpm-ostree install aria2
-            touch "$state_file"
-            echo "aria2 instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -321,27 +306,6 @@ cachyconfs_installer() {
             sudo sysctl --system
             touch "$state_file"
             echo "CachyOS Configs instalado em /etc/sysctl.d/"
-        fi
-    fi
-}
-
-cargo_installer() {
-    local state_file="$STATE_DIR/cargo"
-    local pkg_cargo="rustup"
-
-    if [ -f "$state_file" ] || rpm -q rustup &>/dev/null; then
-        if confirm "Rustup detectado. Desinstalar?"; then
-            echo "Desinstalando Rustup..."
-            sudo rpm-ostree uninstall rustup 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Rustup desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar Rustup?"; then
-            echo "Instalando Rustup..."
-            sudo rpm-ostree install rustup
-            touch "$state_file"
-            echo "Rustup instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -515,128 +479,6 @@ darktable_installer() {
             echo "Darktable instalado."
         fi
     fi
-}
-
-davinci_resolve_free_installer() {
-    local state_file="$STATE_DIR/davinci_resolve_free"
-    local pkg_unzip="unzip"
-
-    if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ]; then
-        if confirm "DaVinci Resolve Free detectado. Desinstalar?"; then
-            sudo rm -rf /opt/resolve
-            sudo rm -f /usr/share/applications/davinci-resolve.desktop
-            if confirm "Desinstalar também unzip?"; then
-                sudo rpm-ostree uninstall unzip 2>/dev/null || true
-            fi
-            cleanup_files "$state_file"
-            echo "DaVinci Resolve desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar DaVinci Resolve Free?"; then
-            sudo rpm-ostree install unzip
-            local useragent="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-            local releaseinfo=$(curl -s -H "$useragent" "https://www.blackmagicdesign.com/api/support/latest-stable-version/davinci-resolve/linux")
-            local major=$(echo "$releaseinfo" | grep -o '"major":[0-9]*' | cut -d: -f2)
-            local minor=$(echo "$releaseinfo" | grep -o '"minor":[0-9]*' | cut -d: -f2)
-            local releaseNum=$(echo "$releaseinfo" | grep -o '"releaseNum":[0-9]*' | cut -d: -f2)
-            local downloadId=$(echo "$releaseinfo" | grep -o '"downloadId":"[^"]*"' | cut -d'"' -f4)
-            [ "$releaseNum" == "0" ] && filever="${major}.${minor}" || filever="${major}.${minor}.${releaseNum}"
-            local archive_name="DaVinci_Resolve_${filever}_Linux"
-            local reqjson='{"firstname": "Arch", "lastname": "Linux", "email": "someone@archlinux.org", "phone": "202-555-0194", "country": "us", "street": "Bowery 146", "state": "New York", "city": "AUR", "product": "DaVinci Resolve"}'
-            local srcurl=$(curl -s \
-                -H 'Host: www.blackmagicdesign.com' \
-                -H 'Accept: application/json, text/plain, */*' \
-                -H 'Origin: https://www.blackmagicdesign.com' \
-                -H "$useragent" \
-                -H 'Content-Type: application/json;charset=UTF-8' \
-                -H 'Referer: https://www.blackmagicdesign.com/support/download/dfd43085ef224766b06b579ce8a6d097/Linux' \
-                -H 'Accept-Encoding: gzip, deflate, br' \
-                -H 'Accept-Language: en-US,en;q=0.9' \
-                -H 'Authority: www.blackmagicdesign.com' \
-                --data-ascii "$reqjson" \
-                --compressed \
-                "https://www.blackmagicdesign.com/api/register/us/download/${downloadId}")
-            curl -L -o "/tmp/${archive_name}.zip" "$srcurl"
-            cd /tmp
-            unzip "${archive_name}.zip"
-            chmod +x "${archive_name}.run"
-            sudo ./"${archive_name}.run" --appimage-extract-and-run
-            cleanup_files "/tmp/${archive_name}.zip" "/tmp/${archive_name}.run"
-            touch "$state_file"
-            echo "DaVinci Resolve instalado. Reinicie para aplicar."
-        fi
-    fi
-}
-
-davinci_resolve_studio_installer() {
-    local state_file="$STATE_DIR/davinci_resolve_studio"
-    local pkg_unzip="unzip"
-
-    if [ -f "$state_file" ] || [ -f "/opt/resolve/bin/resolve" ]; then
-        if confirm "DaVinci Resolve Studio detectado. Desinstalar?"; then
-            sudo rm -rf /opt/resolve
-            sudo rm -f /usr/share/applications/davinci-resolve.desktop
-            if confirm "Desinstalar também unzip?"; then
-                sudo rpm-ostree uninstall unzip 2>/dev/null || true
-            fi
-            cleanup_files "$state_file"
-            echo "DaVinci Resolve desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar DaVinci Resolve Studio?"; then
-            sudo rpm-ostree install unzip
-            local useragent="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-            local releaseinfo=$(curl -s -H "$useragent" "https://www.blackmagicdesign.com/api/support/latest-stable-version/davinci-resolve-studio/linux")
-            local major=$(echo "$releaseinfo" | grep -o '"major":[0-9]*' | cut -d: -f2)
-            local minor=$(echo "$releaseinfo" | grep -o '"minor":[0-9]*' | cut -d: -f2)
-            local releaseNum=$(echo "$releaseinfo" | grep -o '"releaseNum":[0-9]*' | cut -d: -f2)
-            local downloadId=$(echo "$releaseinfo" | grep -o '"downloadId":"[^"]*"' | cut -d'"' -f4)
-            [ "$releaseNum" == "0" ] && filever="${major}.${minor}" || filever="${major}.${minor}.${releaseNum}"
-            local archive_name="DaVinci_Resolve_Studio_${filever}_Linux"
-            local reqjson='{"firstname": "Arch", "lastname": "Linux", "email": "someone@archlinux.org", "phone": "202-555-0194", "country": "us", "street": "Bowery 146", "state": "New York", "city": "AUR", "product": "DaVinci Resolve Studio"}'
-            local srcurl=$(curl -s \
-                -H 'Host: www.blackmagicdesign.com' \
-                -H 'Accept: application/json, text/plain, */*' \
-                -H 'Origin: https://www.blackmagicdesign.com' \
-                -H "$useragent" \
-                -H 'Content-Type: application/json;charset=UTF-8' \
-                -H 'Referer: https://www.blackmagicdesign.com/support/download/0978e9d6e191491da9f4e6eeeb722351/Linux' \
-                -H 'Accept-Encoding: gzip, deflate, br' \
-                -H 'Accept-Language: en-US,en;q=0.9' \
-                -H 'Authority: www.blackmagicdesign.com' \
-                --data-ascii "$reqjson" \
-                --compressed \
-                "https://www.blackmagicdesign.com/api/register/us/download/${downloadId}")
-            curl -L -o "/tmp/${archive_name}.zip" "$srcurl"
-            cd /tmp
-            unzip "${archive_name}.zip"
-            chmod +x "${archive_name}.run"
-            sudo ./"${archive_name}.run" --appimage-extract-and-run
-            cleanup_files "/tmp/${archive_name}.zip" "/tmp/${archive_name}.run"
-            touch "$state_file"
-            echo "DaVinci Resolve instalado. Reinicie para aplicar."
-        fi
-    fi
-}
-
-davinci_resolve_menu() {
-    while true; do
-        clear
-        echo "=== DaVinci Resolve ==="
-        echo "1) Free"
-        echo "2) Studio"
-        echo "3) Voltar"
-        echo
-        read -p "Selecione uma opção: " opcao
-
-        case $opcao in
-            1) clear; davinci_resolve_free_installer ;;
-            2) clear; davinci_resolve_studio_installer ;;
-            3) return ;;
-            *) echo "Opção inválida." ;;
-        esac
-        read -p "Pressione Enter para continuar..."
-    done
 }
 
 de_cosmic_installer() {
@@ -960,9 +802,14 @@ extra_flatpaks_installer() {
         echo "35) VLC"
         echo "36) Warehouse"
         echo "37) Zen Browser"
-        echo "38) Extra Flatpaks 2"
-        echo "39) Flatpak 3 e Utilitários"
-        echo "40) Voltar"
+        echo "38) Android Studio"
+        echo "39) Gnome Boxes"
+        echo "40) LACT"
+        echo "41) LibreWolf"
+        echo "42) LocalSend"
+        echo "43) LogSEQ"
+        echo "44) Extra Flatpaks 2"
+        echo "45) Voltar"
         echo
         read -p "Selecione uma opção: " flatpak_opcao
 
@@ -1004,9 +851,14 @@ extra_flatpaks_installer() {
             35) clear; vlc_installer ;;
             36) clear; warehouse_installer ;;
             37) clear; zen_browser_installer ;;
-            38) clear; extra_flatpaks_2_installer ;;
-            39) clear; flatpak3_utilitarios_installer ;;
-            40) return ;;
+            38) clear; android_studio_installer ;;
+            39) clear; gnome_boxes_installer ;;
+            40) clear; lact_installer ;;
+            41) clear; librewolf_installer ;;
+            42) clear; localsend_installer ;;
+            43) clear; logseq_installer ;;
+            44) clear; extra_flatpaks_2_installer ;;
+            45) return ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
@@ -1056,7 +908,12 @@ extra_flatpaks_2_installer() {
         echo "37) Stellarium"
         echo "38) Sunshine"
         echo "39) Telegram"
-        echo "40) Voltar"
+        echo "40) Mullvad Browser"
+        echo "41) OpenRGB"
+        echo "42) Oversteer"
+        echo "43) Piper"
+        echo "44) SiriKali"
+        echo "45) Voltar"
         echo
         read -p "Selecione uma opção: " flatpak_opcao
 
@@ -1100,31 +957,16 @@ extra_flatpaks_2_installer() {
             37) clear; stellarium_installer ;;
             38) clear; sunshine_installer ;;
             39) clear; telegram_installer ;;
-            40) return ;;
+            40) clear; mullvad_browser_installer ;;
+            41) clear; openrgb_installer ;;
+            42) clear; oversteer_installer ;;
+            43) clear; piper_installer ;;
+            44) clear; sirikali_installer ;;
+            45) return ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
     done
-}
-
-fastfetch_installer() {
-    local state_file="$STATE_DIR/fastfetch"
-
-    if [ -f "$state_file" ] || rpm -q fastfetch &>/dev/null; then
-        if confirm "fastfetch detectado. Desinstalar?"; then
-            echo "Desinstalando fastfetch..."
-            sudo rpm-ostree uninstall fastfetch 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "fastfetch desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar fastfetch?"; then
-            echo "Instalando fastfetch..."
-            sudo rpm-ostree install fastfetch
-            touch "$state_file"
-            echo "fastfetch instalado. Reinicie para aplicar."
-        fi
-    fi
 }
 
 faugus_launcher_installer() {
@@ -1241,100 +1083,6 @@ flathub_installer() {
         touch "$flathub_state"
         echo "Flathub adicionado."
     fi
-}
-
-flatpak3_utilitarios_installer() {
-    while true; do
-        clear
-        echo "=== Flatpak 3 e Utilitários ==="
-        echo "1) Android Studio"
-        echo "2) Acer Manager"
-        echo "3) Cargo (Rustup)"
-        echo "4) Cockpit Client"
-        echo "5) DaVinci Resolve (Menu)"
-        echo "6) Docker"
-        echo "7) fastfetch"
-        echo "8) Gnome Boxes"
-        echo "9) Java OpenJDK"
-        echo "10) LACT"
-        echo "11) LibreWolf"
-        echo "12) Linux Toys"
-        echo "13) LocalSend"
-        echo "14) LogSEQ"
-        echo "15) Maven"
-        echo "16) Mullvad Browser"
-        echo "17) NVM (Node Version Manager)"
-        echo "18) Ollama"
-        echo "19) OpenRGB"
-        echo "20) Oversteer"
-        echo "21) Pip (Python)"
-        echo "22) Piper"
-        echo "23) PNPM"
-        echo "24) Portainer"
-        echo "25) Powersave"
-        echo "26) PyEnv"
-        echo "27) Sdkman"
-        echo "28) SiriKali"
-        echo "29) Solaar"
-        echo "30) Stirling PDF (Podman)"
-        echo "31) StreamController"
-        echo "32) Sublime Text"
-        echo "33) Termius"
-        echo "34) Thumbnailer"
-        echo "35) Ungoogled Chromium"
-        echo "36) VSCode"
-        echo "37) VSCodium"
-        echo "38) WiVRn"
-        echo "39) Zed"
-        echo "40) Voltar"
-        echo
-        read -p "Selecione uma opção: " flatpak_opcao
-
-        case $flatpak_opcao in
-            1) clear; android_studio_installer ;;
-            2) clear; acer_manager_installer ;;
-            3) clear; cargo_installer ;;
-            4) clear; cockpit_client_installer ;;
-            5) clear; davinci_resolve_menu ;;
-            6) clear; docker_installer ;;
-            7) clear; fastfetch_installer ;;
-            8) clear; gnome_boxes_installer ;;
-            9) clear; java_openjdk_installer ;;
-            10) clear; lact_installer ;;
-            11) clear; librewolf_installer ;;
-            12) clear; linux_toys_installer ;;
-            13) clear; localsend_installer ;;
-            14) clear; logseq_installer ;;
-            15) clear; maven_installer ;;
-            16) clear; mullvad_browser_installer ;;
-            17) clear; nvm_installer ;;
-            18) clear; ollama_installer ;;
-            19) clear; openrgb_installer ;;
-            20) clear; oversteer_installer ;;
-            21) clear; pip_installer ;;
-            22) clear; piper_installer ;;
-            23) clear; pnpm_installer ;;
-            24) clear; portainer_installer ;;
-            25) clear; psaver_installer ;;
-            26) clear; pyenv_installer ;;
-            27) clear; sdkman_installer ;;
-            28) clear; sirikali_installer ;;
-            29) clear; solaar_installer ;;
-            30) clear; stirling_pdf_installer ;;
-            31) clear; streamcontroller_installer ;;
-            32) clear; sublime_text_installer ;;
-            33) clear; termius_installer ;;
-            34) clear; thumbnailer_installer ;;
-            35) clear; ungoogled_chromium_installer ;;
-            36) clear; vscode_installer ;;
-            37) clear; vscodium_installer ;;
-            38) clear; wivrn_installer ;;
-            39) clear; zed_installer ;;
-            40) return ;;
-            *) echo "Opção inválida." ;;
-        esac
-        read -p "Pressione Enter para continuar..."
-    done
 }
 
 flatseal_installer() {
@@ -2157,24 +1905,6 @@ librewolf_installer() {
     fi
 }
 
-linux_toys_installer() {
-    local state_file="$STATE_DIR/linux_toys"
-
-    if [ -f "$state_file" ] || command -v linux-toys &>/dev/null; then
-        if confirm "Linux Toys detectado. Desinstalar?"; then
-            echo "Desinstalação manual necessária. Remova ~/.local/bin/linux-toys"
-            cleanup_files "$state_file"
-        fi
-    else
-        if confirm "Instalar Linux Toys?"; then
-            echo "Instalando Linux Toys..."
-            curl -fsSL https://linux.toys/install.sh | bash
-            touch "$state_file"
-            echo "Linux Toys instalado."
-        fi
-    fi
-}
-
 localsend_installer() {
     local state_file="$STATE_DIR/localsend"
     local pkg_localsend="org.localsend.localsend_app"
@@ -2259,27 +1989,6 @@ mangojuice_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_mangojuice
             touch "$state_file"
             echo "MangoJuice instalado. Reinicie para aplicar."
-        fi
-    fi
-}
-
-maven_installer() {
-    local state_file="$STATE_DIR/maven"
-    local pkg_maven="maven"
-
-    if [ -f "$state_file" ] || rpm -q maven &>/dev/null; then
-        if confirm "Maven detectado. Desinstalar?"; then
-            echo "Desinstalando Maven..."
-            sudo rpm-ostree uninstall maven 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Maven desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar Maven?"; then
-            echo "Instalando Maven..."
-            sudo rpm-ostree install maven
-            touch "$state_file"
-            echo "Maven instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -2548,46 +2257,6 @@ EOF
             echo
             echo "Nvidia Proprietário instalado. Reinicie o sistema para aplicar as alterações."
             echo "Após reiniciar, verifique com: nvidia-smi"
-        fi
-    fi
-}
-
-nvm_installer() {
-    local state_file="$STATE_DIR/nvm"
-
-    if [ -f "$state_file" ] || [ -d "$HOME/.nvm" ]; then
-        if confirm "NVM detectado. Desinstalar?"; then
-            echo "Desinstalando NVM..."
-            rm -rf "$HOME/.nvm"
-            sed -i '/NVM_DIR/d' ~/.bashrc ~/.zshrc ~/.profile 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "NVM desinstalado."
-        fi
-    else
-        if confirm "Instalar NVM (Node Version Manager)?"; then
-            echo "Instalando NVM..."
-            
-            sudo rpm-ostree install nodejs npm
-            
-            export NVM_DIR="$HOME/.nvm"
-            git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
-            cd "$NVM_DIR"
-            git checkout $(git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1))
-            cd
-            
-            echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.bashrc
-            echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.bashrc
-            echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> ~/.bashrc
-            
-            if [ -f ~/.zshrc ]; then
-                echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshrc
-                echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.zshrc
-            fi
-            
-            npm i --global yarn
-            
-            touch "$state_file"
-            echo "NVM instalado."
         fi
     fi
 }
@@ -2923,27 +2592,6 @@ pinta_installer() {
     fi
 }
 
-pip_installer() {
-    local state_file="$STATE_DIR/pip"
-    local pkg_pip="python-pip"
-
-    if [ -f "$state_file" ] || rpm -q python-pip &>/dev/null; then
-        if confirm "Pip detectado. Desinstalar?"; then
-            echo "Desinstalando Pip..."
-            sudo rpm-ostree uninstall python-pip 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Pip desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar Pip?"; then
-            echo "Instalando Pip..."
-            sudo rpm-ostree install python-pip
-            touch "$state_file"
-            echo "Pip instalado. Reinicie para aplicar."
-        fi
-    fi
-}
-
 piper_installer() {
     local state_file="$STATE_DIR/piper"
     local pkg_piper="org.freedesktop.Piper"
@@ -2979,27 +2627,6 @@ piracy_installer() {
             xdg-open "$url" 2>/dev/null || open "$url" 2>/dev/null || echo "Abra manualmente: $url"
             touch "$state_file"
             echo "r/Piracy aberto."
-        fi
-    fi
-}
-
-pnpm_installer() {
-    local state_file="$STATE_DIR/pnpm"
-    local pkg_pnpm="pnpm"
-
-    if [ -f "$state_file" ] || rpm -q pnpm &>/dev/null; then
-        if confirm "PNPM detectado. Desinstalar?"; then
-            echo "Desinstalando PNPM..."
-            sudo rpm-ostree uninstall pnpm 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "PNPM desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar PNPM?"; then
-            echo "Instalando PNPM..."
-            sudo rpm-ostree install pnpm
-            touch "$state_file"
-            echo "PNPM instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -3183,74 +2810,6 @@ protonup_installer() {
     fi
 }
 
-psaver_installer() {
-    local state_file="$STATE_DIR/psaver"
-
-    if [ -f "$state_file" ] || [ -f "/etc/systemd/system/powersave" ]; then
-        if confirm "Powersave detectado. Desinstalar?"; then
-            echo "Desinstalando Powersave..."
-            sudo systemctl stop powersave 2>/dev/null || true
-            sudo systemctl disable powersave 2>/dev/null || true
-            sudo rm -f /etc/systemd/system/powersave /usr/local/bin/powersave.sh 2>/dev/null || true
-            sudo sed -i '/powersave/d' /etc/default/grub 2>/dev/null || true
-            sudo rm -f /etc/default/grub.d/powersave.cfg 2>/dev/null || true
-            sudo mkdir -p /boot/grub 2>/dev/null || true
-            sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Powersave desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar Powersave?"; then
-            echo "Instalando Powersave..."
-            echo '#!/bin/bash
-set -e
-
-CPU_GOV="powersave"
-SCHEDULER="none"
-ENERGY_PERF="power"
-CPU_MAX="100"
-CPU_MIN="0"
-
-apply_settings() {
-    echo "$CPU_GOV" | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1 || true
-    echo "$ENERGY_PERF" | tee /sys/devices/system/cpu/cpu*/power/energy_performance_preference >/dev/null 2>&1 || true
-
-    if [ -f /sys/devices/system/cpu/intel_pstate/max_perf_pct ]; then
-        echo "$CPU_MAX" | tee /sys/devices/system/cpu/intel_pstate/max_perf_pct >/dev/null
-        echo "$CPU_MIN" | tee /sys/devices/system/cpu/intel_pstate/min_perf_pct >/dev/null
-    fi
-
-    if [ -f /sys/block/sda/queue/scheduler ]; then
-        echo "$SCHEDULER" | tee /sys/block/sd*/queue/scheduler >/dev/null 2>&1 || true
-    fi
-}
-
-apply_settings
-exit 0' | sudo tee /usr/local/bin/powersave.sh >/dev/null
-            sudo chmod +x /usr/local/bin/powersave.sh
-            echo '[Unit]
-Description=Power Save Settings
-After=multi-user.target
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/powersave.sh
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target' | sudo tee /etc/systemd/system/powersave >/dev/null
-            sudo systemctl enable powersave
-            sudo systemctl start powersave
-            sudo mkdir -p /etc/default/grub.d
-            echo 'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} intel_pstate=passive"' | sudo tee /etc/default/grub.d/powersave.cfg >/dev/null
-            sudo mkdir -p /boot/grub 2>/dev/null || true
-            sudo grub-mkconfig -o /boot/grub/grub.cfg
-            touch "$state_file"
-            echo "Powersave instalado. Reinicie para aplicar."
-        fi
-    fi
-}
-
 pwgraph_installer() {
     local state_file="$STATE_DIR/pwgraph"
     local pkg_pwgraph="org.rncbc.qpwgraph"
@@ -3268,51 +2827,6 @@ pwgraph_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_pwgraph
             touch "$state_file"
             echo "QPWGraph instalado."
-        fi
-    fi
-}
-
-pyenv_installer() {
-    local state_file="$STATE_DIR/pyenv"
-
-    if [ -f "$state_file" ] || [ -d "$HOME/.pyenv" ]; then
-        if confirm "PyEnv detectado. Desinstalar?"; then
-            echo "Desinstalando PyEnv..."
-            rm -rf "$HOME/.pyenv"
-            sed -i '/PYENV_ROOT/d' ~/.bashrc ~/.zshrc ~/.profile 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "PyEnv desinstalado."
-        fi
-    else
-        if confirm "Instalar PyEnv?"; then
-            echo "Instalando PyEnv..."
-            
-            local packages=()
-            if [[ "$ID_LIKE" =~ (rhel|fedora) ]] || [[ "$ID" =~ (fedora) ]]; then
-                packages=(make gcc patch zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel tk-devel libffi-devel xz-devel libuuid-devel gdbm-libs libnsl2)
-            fi
-            
-            if [ ${#packages[@]} -gt 0 ]; then
-                sudo rpm-ostree install "${packages[@]}"
-            fi
-            
-            curl -fsSL https://pyenv.run | bash
-            
-            echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
-            echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-            echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc
-            
-            if [ -f ~/.zshrc ]; then
-                echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
-                echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
-                echo 'eval "$(pyenv init - zsh)"' >> ~/.zshrc
-            fi
-            
-            git clone https://github.com/pyenv/pyenv-virtualenv.git $(pyenv root)/plugins/pyenv-virtualenv
-            echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
-            
-            touch "$state_file"
-            echo "PyEnv instalado."
         fi
     fi
 }
@@ -3607,30 +3121,6 @@ s3drive_installer() {
             flatpak install --or-update --user --noninteractive flathub $pkg_s3drive
             touch "$state_file"
             echo "S3Drive instalado."
-        fi
-    fi
-}
-
-sdkman_installer() {
-    local state_file="$STATE_DIR/sdkman"
-    local pkg_unzip="unzip zip"
-
-    if [ -f "$state_file" ] || [ -d "$HOME/.sdkman" ]; then
-        if confirm "Sdkman detectado. Desinstalar?"; then
-            rm -rf "$HOME/.sdkman"
-            sed -i '/SDKMAN/d' ~/.bashrc
-            [ -f ~/.zshrc ] && sed -i '/SDKMAN/d' ~/.zshrc
-            [ -f ~/.config/fish/config.fish ] && sed -i '/SDKMAN/d' ~/.config/fish/config.fish
-            if confirm "Desinstalar também unzip e zip?"; then
-                sudo rpm-ostree uninstall unzip zip 2>/dev/null || true
-            fi
-            cleanup_files "$state_file"
-        fi
-    else
-        if confirm "Instalar Sdkman?"; then
-            sudo rpm-ostree install unzip zip
-            curl -s "https://get.sdkman.io" | bash
-            touch "$state_file"
         fi
     fi
 }
@@ -3937,7 +3427,7 @@ stirling_pdf_installer() {
     else
         if confirm "Instalar Stirling PDF (via Docker)?"; then
             if ! command -v docker &>/dev/null; then
-                echo "Docker não encontrado. Instale o Docker primeiro (opção Docker no menu Flatpak 3 e Utilitários)."
+                echo "Docker não encontrado. Instale o Docker primeiro (opção Docker no menu principal)."
                 return 1
             fi
             
@@ -4014,27 +3504,6 @@ streamcontroller_installer() {
     fi
 }
 
-sublime_text_installer() {
-    local state_file="$STATE_DIR/sublime"
-    local pkg_sublime="com.sublimehq.SublimeText"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q com.sublimehq.SublimeText 2>/dev/null; then
-        if confirm "Sublime Text detectado. Desinstalar?"; then
-            echo "Desinstalando Sublime Text..."
-            flatpak uninstall --user -y $pkg_sublime 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Sublime Text desinstalado."
-        fi
-    else
-        if confirm "Instalar Sublime Text?"; then
-            echo "Instalando Sublime Text..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_sublime
-            touch "$state_file"
-            echo "Sublime Text instalado."
-        fi
-    fi
-}
-
 sunshine_installer() {
     local state_file="$STATE_DIR/sunshine"
     local pkg_sunshine="dev.lizardbyte.app.Sunshine"
@@ -4078,27 +3547,6 @@ telegram_installer() {
     fi
 }
 
-termius_installer() {
-    local state_file="$STATE_DIR/termius"
-    local pkg_termius="com.termius.Termius"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q com.termius.Termius 2>/dev/null; then
-        if confirm "Termius detectado. Desinstalar?"; then
-            echo "Desinstalando Termius..."
-            flatpak uninstall --user -y $pkg_termius 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Termius desinstalado."
-        fi
-    else
-        if confirm "Instalar Termius?"; then
-            echo "Instalando Termius..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_termius
-            touch "$state_file"
-            echo "Termius instalado."
-        fi
-    fi
-}
-
 terra_installer() {
     local state_file="$STATE_DIR/terra"
 
@@ -4115,27 +3563,6 @@ terra_installer() {
             sudo rpm-ostree install -y terra-release
             touch "$state_file"
             echo "Terra repository instalado."
-        fi
-    fi
-}
-
-thumbnailer_installer() {
-    local state_file="$STATE_DIR/thumbnailer"
-    local pkg_thumbnailer="ffmpegthumbnailer"
-
-    if [ -f "$state_file" ] || rpm -q ffmpegthumbnailer &>/dev/null; then
-        if confirm "Thumbnailer detectado. Desinstalar?"; then
-            echo "Desinstalando Thumbnailer..."
-            sudo rpm-ostree uninstall ffmpegthumbnailer 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Thumbnailer desinstalado. Reinicie para aplicar."
-        fi
-    else
-        if confirm "Instalar Thumbnailer?"; then
-            echo "Instalando Thumbnailer..."
-            sudo rpm-ostree install ffmpegthumbnailer
-            touch "$state_file"
-            echo "Thumbnailer instalado. Reinicie para aplicar."
         fi
     fi
 }
@@ -4361,27 +3788,6 @@ winboat_installer() {
     fi
 }
 
-wivrn_installer() {
-    local state_file="$STATE_DIR/wivrn"
-    local pkg_wivrn="io.github.wivrn.wivrn"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q io.github.wivrn.wivrn 2>/dev/null; then
-        if confirm "WiVRn detectado. Desinstalar?"; then
-            echo "Desinstalando WiVRn..."
-            flatpak uninstall --user -y $pkg_wivrn 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "WiVRn desinstalado."
-        fi
-    else
-        if confirm "Instalar WiVRn?"; then
-            echo "Instalando WiVRn..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_wivrn
-            touch "$state_file"
-            echo "WiVRn instalado."
-        fi
-    fi
-}
-
 xpadneo_installer() {
     local state_file="$STATE_DIR/xpadneo"
 
@@ -4422,27 +3828,6 @@ yt_dlp_installer() {
             sudo rpm-ostree install yt-dlp
             touch "$state_file"
             echo "yt-dlp instalado. Reinicie para aplicar."
-        fi
-    fi
-}
-
-zed_installer() {
-    local state_file="$STATE_DIR/zed"
-    local pkg_zed="dev.zed.Zed"
-
-    if [ -f "$state_file" ] || flatpak list --app | grep -q dev.zed.Zed 2>/dev/null; then
-        if confirm "Zed detectado. Desinstalar?"; then
-            echo "Desinstalando Zed..."
-            flatpak uninstall --user -y $pkg_zed 2>/dev/null || true
-            cleanup_files "$state_file"
-            echo "Zed desinstalado."
-        fi
-    else
-        if confirm "Instalar Zed?"; then
-            echo "Instalando Zed..."
-            flatpak install --or-update --user --noninteractive flathub $pkg_zed
-            touch "$state_file"
-            echo "Zed instalado."
         fi
     fi
 }
@@ -4586,7 +3971,12 @@ main_menu() {
         echo "37) Xpadneo (Xbox Controller)"
         echo "38) yt-dlp"
         echo "39) Zsh + Oh My Zsh"
-        echo "40) Sair"
+        echo "40) Docker"
+        echo "41) Java OpenJDK"
+        echo "42) Ollama"
+        echo "43) Portainer"
+        echo "44) Stirling PDF"
+        echo "45) Sair"
         echo
         read -p "Selecione uma opção: " opcao
 
@@ -4630,7 +4020,12 @@ main_menu() {
             37) clear; xpadneo_installer ;;
             38) clear; yt_dlp_installer ;;
             39) clear; zsh_ohmyzsh_installer ;;
-            40) clear; check_reboot; exit 0 ;;
+            40) clear; docker_installer ;;
+            41) clear; java_openjdk_installer ;;
+            42) clear; ollama_installer ;;
+            43) clear; portainer_installer ;;
+            44) clear; stirling_pdf_installer ;;
+            45) clear; check_reboot; exit 0 ;;
             *) echo "Opção inválida." ;;
         esac
         read -p "Pressione Enter para continuar..."
