@@ -214,12 +214,36 @@ select_desktop() {
             *) echo "Opção inválida"; sleep 2 ;;
         esac
     done
-    case $de_opt in
-        1) echo "cosmic" > "$STATE_DIR/desktop" ;;
-        2) echo "gnome" > "$STATE_DIR/desktop" ;;
-        3) echo "plasma" > "$STATE_DIR/desktop" ;;
-        4) echo "hyprland" > "$STATE_DIR/desktop" ;;
-        5) echo "none" > "$STATE_DIR/desktop" ;;
+    
+    if [ "$de_opt" = "4" ]; then
+        select_hyprland_variant
+    else
+        case $de_opt in
+            1) echo "cosmic" > "$STATE_DIR/desktop" ;;
+            2) echo "gnome" > "$STATE_DIR/desktop" ;;
+            3) echo "plasma" > "$STATE_DIR/desktop" ;;
+            5) echo "none" > "$STATE_DIR/desktop" ;;
+        esac
+    fi
+}
+
+select_hyprland_variant() {
+    while true; do
+        clear
+        echo "=== VARIANTE DO HYPRLAND / HYPRLAND VARIANT ==="
+        echo "1) Dank Linux (configuração completa estilo Omarchy)"
+        echo "2) Configuração Personalizada (minimalista azul/preto)"
+        read -p "Opção: " hypr_opt
+        case $hypr_opt in
+            1|2) break ;;
+            *) echo "Opção inválida"; sleep 2 ;;
+        esac
+    done
+    
+    echo "hyprland" > "$STATE_DIR/desktop"
+    case $hypr_opt in
+        1) echo "dank" > "$STATE_DIR/hypr_variant" ;;
+        2) echo "custom" > "$STATE_DIR/hypr_variant" ;;
     esac
 }
 
@@ -1282,6 +1306,9 @@ show_summary() {
     echo "Bootloader: $(cat "$STATE_DIR/bootloader")"
     echo "Kernel: $(cat "$STATE_DIR/kernel")"
     echo "Desktop: $(cat "$STATE_DIR/desktop")"
+    if [ -f "$STATE_DIR/hypr_variant" ]; then
+        echo "Hyprland Variant: $(cat "$STATE_DIR/hypr_variant")"
+    fi
     echo "GPU Driver: $(cat "$STATE_DIR/gpu_driver")"
     echo "Bluetooth: $(cat "$STATE_DIR/bluetooth")"
     echo "CUPS: $(cat "$STATE_DIR/cups")"
@@ -1318,6 +1345,7 @@ generate_config() {
     local bootloader=$(cat "$STATE_DIR/bootloader")
     local kernel=$(cat "$STATE_DIR/kernel")
     local desktop=$(cat "$STATE_DIR/desktop")
+    local hypr_variant=$(cat "$STATE_DIR/hypr_variant" 2>/dev/null || echo "")
     local bluetooth=$(cat "$STATE_DIR/bluetooth")
     local cups=$(cat "$STATE_DIR/cups")
     local trim=$(cat "$STATE_DIR/trim")
@@ -1485,19 +1513,621 @@ EOF
 EOF
                 ;;
             hyprland)
-                sudo tee -a "$config_file" > /dev/null << EOF
+                if [ "$hypr_variant" = "dank" ]; then
+                    sudo tee -a "$config_file" > /dev/null << EOF
   programs.hyprland = {
     enable = true;
     withUWSM = true;
     xwayland.enable = true;
   };
-  services.displayManager.sddm.enable = true;
-  services.displayManager.sddm.wayland.enable = true;
+  
+  # SDDM como display manager
+  services.displayManager.sddm = {
+    enable = true;
+    wayland.enable = true;
+    theme = "breeze";
+    settings = {
+      Theme = {
+        Current = "breeze";
+        Font = "JetBrainsMono Nerd Font,10,-1,5,50,0,0,0,0,0";
+      };
+    };
+  };
+  
+  # Portal para integração
   xdg.portal = {
     enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
   };
+  
+  # Pacotes essenciais para o Dank Linux
+  environment.systemPackages = with pkgs; [
+    # Hyprland essentials
+    waybar
+    rofi
+    alacritty
+    superfile
+    mako
+    swaylock
+    swayidle
+    wl-clipboard
+    grim
+    slurp
+    swappy
+    
+    # Shell tools
+    starship
+    zoxide
+    fzf
+    fd
+    ripgrep
+    bat
+    eza
+    
+    # Temas e ícones
+    papirus-icon-theme
+    breeze-qt5
+    breeze-gtk
+  ];
+  
+  # Configuração do Waybar com tema azul/preto
+  home.file = {
+    ".config/waybar/config" = {
+      source = pkgs.writeText "waybar-config" ''
+        {
+          "layer": "top",
+          "position": "top",
+          "height": 30,
+          "spacing": 4,
+          "modules-left": ["hyprland/workspaces"],
+          "modules-center": ["hyprland/window"],
+          "modules-right": ["pulseaudio", "network", "battery", "clock"],
+          "clock": {
+            "format": "{:%H:%M}",
+            "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
+            "calendar": {
+              "mode" : "month",
+              "mode-mon-col" : 3,
+              "weeks-pos" : "right",
+              "on-scroll" : 1,
+              "format": {
+                "months": "<span color='#7aa2f7'><b>{}</b></span>",
+                "days": "<span color='#c0caf5'>{}</span>",
+                "weeks": "<span color='#bb9af7'><b>W{}</b></span>",
+                "weekdays": "<span color='#7dcfff'><b>{}</b></span>",
+                "today": "<span color='#f7768e'><b><u>{}</u></b></span>"
+              }
+            }
+          }
+        }
+      '';
+    };
+    ".config/waybar/style.css" = {
+      source = pkgs.writeText "waybar-style" ''
+        * {
+          border: none;
+          border-radius: 0;
+          font-family: "JetBrainsMono Nerd Font";
+          font-size: 14px;
+          min-height: 0;
+        }
+        
+        window#waybar {
+          background: rgba(26, 27, 38, 0.9);
+          color: #c0caf5;
+        }
+        
+        #workspaces button {
+          padding: 0 8px;
+          background: transparent;
+          color: #c0caf5;
+          border-bottom: 2px solid transparent;
+        }
+        
+        #workspaces button.focused {
+          border-bottom: 2px solid #7aa2f7;
+          color: #7aa2f7;
+        }
+        
+        #workspaces button.urgent {
+          border-bottom: 2px solid #f7768e;
+          color: #f7768e;
+        }
+        
+        #window {
+          margin: 0 20px;
+        }
+        
+        #pulseaudio, #network, #battery, #clock {
+          padding: 0 10px;
+        }
+        
+        #pulseaudio {
+          color: #9d7cd8;
+        }
+        
+        #network {
+          color: #7dcfff;
+        }
+        
+        #battery {
+          color: #9ece6a;
+        }
+        
+        #clock {
+          color: #e0af68;
+        }
+      '';
+    };
+    
+    # Configuração do Alacritty com tema Tokyo Night
+    ".config/alacritty/alacritty.toml" = {
+      source = pkgs.writeText "alacritty-config" ''
+        [env]
+        TERM = "alacritty"
+        
+        [window]
+        padding = { x = 5, y = 5 }
+        opacity = 0.95
+        
+        [font]
+        size = 11
+        normal = { family = "JetBrainsMono Nerd Font", style = "Regular" }
+        bold = { family = "JetBrainsMono Nerd Font", style = "Bold" }
+        italic = { family = "JetBrainsMono Nerd Font", style = "Italic" }
+        
+        [colors]
+        primary = { background = "#1a1b26", foreground = "#c0caf5" }
+        normal = {
+          black = "#15161e"
+          red = "#f7768e"
+          green = "#9ece6a"
+          yellow = "#e0af68"
+          blue = "#7aa2f7"
+          magenta = "#bb9af7"
+          cyan = "#7dcfff"
+          white = "#a9b1d6"
+        }
+        bright = {
+          black = "#414868"
+          red = "#f7768e"
+          green = "#9ece6a"
+          yellow = "#e0af68"
+          blue = "#7aa2f7"
+          magenta = "#bb9af7"
+          cyan = "#7dcfff"
+          white = "#c0caf5"
+        }
+      '';
+    };
+    
+    # Configuração do Rofi com tema azul/preto
+    ".config/rofi/config.rasi" = {
+      source = pkgs.writeText "rofi-config" ''
+        @theme "fancy"
+        
+        configuration {
+          modi: "drun,run,window";
+          show-icons: true;
+          icon-theme: "Papirus";
+          drun-display-format: "{name}";
+          font: "JetBrainsMono Nerd Font 11";
+        }
+        
+        @theme "fancy"
+        
+        * {
+          background-color: #1a1b26;
+          text-color: #c0caf5;
+          border-color: #7aa2f7;
+          selected-background: #7aa2f7;
+          selected-text-color: #1a1b26;
+        }
+        
+        window {
+          width: 600px;
+          border: 2px;
+          border-color: #7aa2f7;
+          background-color: #1a1b26;
+          border-radius: 10px;
+        }
+        
+        mainbox {
+          padding: 10px;
+          background-color: #1a1b26;
+        }
+        
+        inputbar {
+          padding: 5px;
+          background-color: #24283b;
+          border-radius: 5px;
+        }
+        
+        listview {
+          lines: 8;
+          padding: 5px;
+        }
+        
+        element {
+          padding: 5px;
+          border-radius: 5px;
+        }
+        
+        element selected {
+          background-color: #7aa2f7;
+          text-color: #1a1b26;
+        }
+        
+        element-icon {
+          size: 24px;
+        }
+        
+        element-text {
+          margin: 0 10px;
+        }
+      '';
+    };
+    
+    # Configuração do Starship prompt
+    ".config/starship.toml" = {
+      source = pkgs.writeText "starship-config" ''
+        format = "$all"
+        
+        [directory]
+        style = "cyan"
+        
+        [git_branch]
+        style = "purple"
+        
+        [git_status]
+        style = "green"
+        
+        [nodejs]
+        style = "yellow"
+        
+        [rust]
+        style = "red"
+        
+        [cmd_duration]
+        style = "bright-black"
+        
+        [character]
+        success_symbol = "[➜](bold green)"
+        error_symbol = "[✗](bold red)"
+      '';
+    };
+    
+    # Keybindings do Hyprland
+    ".config/hypr/bindings.conf" = {
+      source = pkgs.writeText "hypr-bindings" ''
+        # Super + Return - Terminal
+        bind = SUPER, Return, exec, alacritty
+        
+        # Super + Shift + B - Browser
+        bind = SUPER SHIFT, B, exec, firefox
+        
+        # Super + Shift + F - File manager
+        bind = SUPER SHIFT, F, exec, superfile
+        
+        # Super + Shift + N - Neovim
+        bind = SUPER SHIFT, N, exec, alacritty -e nvim
+        
+        # Super + Space - Application launcher
+        bind = SUPER, Space, exec, rofi -show drun
+        
+        # Super + Alt + Space - Power menu
+        bind = SUPER ALT, Space, exec, rofi -show power-menu
+        
+        # Super + Q - Close window
+        bind = SUPER, Q, killactive,
+        
+        # Super + V - Toggle floating
+        bind = SUPER, V, togglefloating,
+        
+        # Super + F - Fullscreen
+        bind = SUPER, F, fullscreen,
+        
+        # Super + J - Toggle split
+        bind = SUPER, J, togglesplit,
+        
+        # Super + Arrow - Move focus
+        bind = SUPER, left, movefocus, l
+        bind = SUPER, right, movefocus, r
+        bind = SUPER, up, movefocus, u
+        bind = SUPER, down, movefocus, d
+        
+        # Super + Shift + Arrow - Swap windows
+        bind = SUPER SHIFT, left, movewindow, l
+        bind = SUPER SHIFT, right, movewindow, r
+        bind = SUPER SHIFT, up, movewindow, u
+        bind = SUPER SHIFT, down, movewindow, d
+        
+        # Super + 1-9 - Switch workspace
+        bind = SUPER, 1, workspace, 1
+        bind = SUPER, 2, workspace, 2
+        bind = SUPER, 3, workspace, 3
+        bind = SUPER, 4, workspace, 4
+        bind = SUPER, 5, workspace, 5
+        bind = SUPER, 6, workspace, 6
+        bind = SUPER, 7, workspace, 7
+        bind = SUPER, 8, workspace, 8
+        bind = SUPER, 9, workspace, 9
+        
+        # Super + Shift + 1-9 - Move to workspace
+        bind = SUPER SHIFT, 1, movetoworkspace, 1
+        bind = SUPER SHIFT, 2, movetoworkspace, 2
+        bind = SUPER SHIFT, 3, movetoworkspace, 3
+        bind = SUPER SHIFT, 4, movetoworkspace, 4
+        bind = SUPER SHIFT, 5, movetoworkspace, 5
+        bind = SUPER SHIFT, 6, movetoworkspace, 6
+        bind = SUPER SHIFT, 7, movetoworkspace, 7
+        bind = SUPER SHIFT, 8, movetoworkspace, 8
+        bind = SUPER SHIFT, 9, movetoworkspace, 9
+        
+        # Super + S - Scratchpad
+        bind = SUPER, S, togglespecialworkspace,
+        bind = SUPER SHIFT, S, movetoworkspace, special
+        
+        # Print - Screenshot
+        bind = , Print, exec, grim -g "$(slurp)" - | swappy -f -
+        bind = SHIFT, Print, exec, grim - | wl-copy
+        
+        # Media keys
+        bindel = , XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
+        bindel = , XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+        bindl = , XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+        bindl = , XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
+        
+        # Brightness
+        bindel = , XF86MonBrightnessUp, exec, brightnessctl s 10%+
+        bindel = , XF86MonBrightnessDown, exec, brightnessctl s 10%-
+      '';
+    };
+    
+    # Configuração principal do Hyprland
+    ".config/hypr/hyprland.conf" = {
+      source = pkgs.writeText "hyprland-config" ''
+        source = ~/.config/hypr/bindings.conf
+        
+        monitor = ,preferred,auto,1
+        
+        exec-once = waybar & mako & /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+        
+        env = XCURSOR_SIZE,24
+        
+        input {
+          kb_layout = $xkb_layout
+          kb_variant = $xkb_variant
+          follow_mouse = 1
+          touchpad {
+            natural_scroll = false
+          }
+          sensitivity = 0
+        }
+        
+        general {
+          gaps_in = 5
+          gaps_out = 10
+          border_size = 2
+          col.active_border = rgba(7aa2f7ff)
+          col.inactive_border = rgba(24283bff)
+          layout = dwindle
+        }
+        
+        decoration {
+          rounding = 10
+          blur {
+            enabled = true
+            size = 5
+            passes = 2
+          }
+          drop_shadow = yes
+          shadow_range = 4
+          shadow_render_power = 3
+          col.shadow = rgba(1a1b26ee)
+        }
+        
+        animations {
+          enabled = yes
+          bezier = myBezier, 0.05, 0.9, 0.1, 1.05
+          animation = windows, 1, 7, myBezier
+          animation = windowsOut, 1, 7, default, popin 80%
+          animation = border, 1, 10, default
+          animation = fade, 1, 7, default
+          animation = workspaces, 1, 6, default
+        }
+        
+        dwindle {
+          pseudotile = yes
+          preserve_split = yes
+        }
+        
+        master {
+          new_is_master = true
+        }
+        
+        gestures {
+          workspace_swipe = true
+        }
+        
+        misc {
+          force_default_wallpaper = 0
+        }
+        
+        windowrule = float, ^(pavucontrol)$
+        windowrule = float, ^(blueman-manager)$
+        windowrule = float, ^(nm-connection-editor)$
+        windowrule = float, title:Open File
+      '';
+    };
 EOF
+                else
+                    # Configuração customizada minimalista azul/preto
+                    sudo tee -a "$config_file" > /dev/null << EOF
+  programs.hyprland = {
+    enable = true;
+    withUWSM = true;
+    xwayland.enable = true;
+  };
+  
+  services.displayManager.sddm = {
+    enable = true;
+    wayland.enable = true;
+    theme = "breeze";
+  };
+  
+  xdg.portal = {
+    enable = true;
+    extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
+  };
+  
+  environment.systemPackages = with pkgs; [
+    waybar
+    rofi
+    alacritty
+    superfile
+    mako
+    wl-clipboard
+    grim
+    slurp
+  ];
+  
+  # Configuração minimalista com tons azul/preto
+  home.file = {
+    ".config/waybar/config" = {
+      source = pkgs.writeText "waybar-config" ''
+        {
+          "layer": "top",
+          "position": "top",
+          "height": 28,
+          "spacing": 2,
+          "modules-left": ["hyprland/workspaces"],
+          "modules-center": ["clock"],
+          "modules-right": ["pulseaudio", "battery"],
+          "clock": {
+            "format": "{:%H:%M}"
+          }
+        }
+      '';
+    };
+    ".config/waybar/style.css" = {
+      source = pkgs.writeText "waybar-style" ''
+        * {
+          font-family: "JetBrainsMono Nerd Font";
+          font-size: 13px;
+        }
+        
+        window#waybar {
+          background: #0a0a0f;
+          color: #ffffff;
+        }
+        
+        #workspaces button {
+          padding: 0 5px;
+          background: transparent;
+          color: #ffffff;
+        }
+        
+        #workspaces button.focused {
+          background: #2d5c9e;
+        }
+        
+        #clock, #pulseaudio, #battery {
+          padding: 0 8px;
+        }
+      '';
+    };
+    ".config/alacritty/alacritty.toml" = {
+      source = pkgs.writeText "alacritty-config" ''
+        [window]
+        padding = { x = 5, y = 5 }
+        
+        [font]
+        size = 11
+        normal = { family = "JetBrainsMono Nerd Font" }
+        
+        [colors]
+        primary = { background = "#0a0a0f", foreground = "#ffffff" }
+        normal = {
+          black = "#0a0a0f"
+          red = "#ff5555"
+          green = "#50fa7b"
+          yellow = "#f1fa8c"
+          blue = "#2d5c9e"
+          magenta = "#bd93f9"
+          cyan = "#8be9fd"
+          white = "#f8f8f2"
+        }
+      '';
+    };
+    ".config/rofi/config.rasi" = {
+      source = pkgs.writeText "rofi-config" ''
+        configuration {
+          font: "JetBrainsMono Nerd Font 11";
+        }
+        
+        * {
+          background-color: #0a0a0f;
+          text-color: #ffffff;
+          selected-background: #2d5c9e;
+        }
+        
+        window {
+          width: 500px;
+          border: 1px;
+          border-color: #2d5c9e;
+        }
+        
+        element selected {
+          background-color: #2d5c9e;
+        }
+      '';
+    };
+    ".config/hypr/hyprland.conf" = {
+      source = pkgs.writeText "hyprland-config" ''
+        monitor = ,preferred,auto,1
+        
+        exec-once = waybar & mako
+        
+        input {
+          kb_layout = $xkb_layout
+          follow_mouse = 1
+        }
+        
+        general {
+          gaps_in = 3
+          gaps_out = 5
+          border_size = 1
+          col.active_border = rgb(2d5c9e)
+          col.inactive_border = rgb(333333)
+          layout = dwindle
+        }
+        
+        decoration {
+          rounding = 5
+        }
+        
+        bind = SUPER, Return, exec, alacritty
+        bind = SUPER, Space, exec, rofi -show drun
+        bind = SUPER, Q, killactive,
+        bind = SUPER, F, fullscreen,
+        bind = SUPER, left, movefocus, l
+        bind = SUPER, right, movefocus, r
+        bind = SUPER, up, movefocus, u
+        bind = SUPER, down, movefocus, d
+        bind = SUPER, 1, workspace, 1
+        bind = SUPER, 2, workspace, 2
+        bind = SUPER, 3, workspace, 3
+        bind = SUPER, 4, workspace, 4
+        bind = SUPER SHIFT, 1, movetoworkspace, 1
+        bind = SUPER SHIFT, 2, movetoworkspace, 2
+        bind = SUPER SHIFT, 3, movetoworkspace, 3
+        bind = SUPER SHIFT, 4, movetoworkspace, 4
+      '';
+    };
+  };
+EOF
+                fi
                 ;;
         esac
     fi
@@ -1852,7 +2482,7 @@ EOF
     options = "--delete-older-than 5d";
   };
   fonts.packages = with pkgs; [
-    nerd-fonts.adwaita-mono
+    nerd-fonts.jetbrains-mono
     noto-fonts
     noto-fonts-cjk-sans
     noto-fonts-color-emoji
