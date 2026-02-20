@@ -1747,7 +1747,7 @@ EOF
         sudo tee -a "$config_file" > /dev/null << EOF
   services.ollama = {
     enable = true;
-    acceleration = "$(if [ "$gpu_driver" = "nvidia" ]; then echo "cuda"; else echo "none"; fi)";
+    acceleration = "$(if [ "$gpu_driver" = "nvidia" ]; then echo "cuda"; else echo "false"; fi)";
   };
 EOF
     fi
