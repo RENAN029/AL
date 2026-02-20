@@ -1190,6 +1190,7 @@ partition_disk() {
         sudo parted $disk -- mkpart primary 512MB 100%
         sudo mkfs.ext4 -F -L NIXBOOT ${disk}1
     fi
+    
     if [ "$encryption" = "yes" ]; then
         sudo cryptsetup luksFormat ${disk}2
         sudo cryptsetup open ${disk}2 cryptroot
@@ -1207,6 +1208,12 @@ partition_disk() {
             sudo mkfs.ext4 -F -L NIXROOT ${disk}2
         fi
     fi
+    
+    # Aguardar o sistema atualizar os dispositivos de bloco
+    echo "Aguardando atualização dos dispositivos de bloco..."
+    sleep 3
+    sudo udevadm settle
+    sudo partprobe || true
 }
 
 setup_btrfs_subvolumes() {
@@ -1215,9 +1222,19 @@ setup_btrfs_subvolumes() {
     if [ "$encryption" = "yes" ]; then
         root_dev="/dev/mapper/cryptroot"
     else
+        # Aguardar o label aparecer
+        for i in {1..10}; do
+            if [ -e "/dev/disk/by-label/NIXROOT" ]; then
+                break
+            fi
+            echo "Aguardando label NIXROOT aparecer... ($i/10)"
+            sleep 1
+            sudo udevadm settle
+        done
         root_dev="/dev/disk/by-label/NIXROOT"
     fi
-    echo "Criando subvolumes btrfs com compressão zstd..."
+    
+    echo "Montando $root_dev para criar subvolumes..."
     sudo mount $root_dev /mnt
     sudo btrfs subvolume create /mnt/@
     sudo btrfs subvolume create /mnt/@home
@@ -1232,6 +1249,9 @@ setup_btrfs_subvolumes() {
 mount_partitions() {
     local encryption=$(cat "$STATE_DIR/encryption")
     local fs=$(cat "$STATE_DIR/filesystem")
+    
+    echo "Preparando montagem das partições..."
+    
     if [ "$encryption" = "yes" ]; then
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
@@ -1239,14 +1259,36 @@ mount_partitions() {
             sudo mount /dev/mapper/cryptroot /mnt
         fi
     else
+        # Aguardar o label aparecer
+        for i in {1..10}; do
+            if [ -e "/dev/disk/by-label/NIXROOT" ]; then
+                break
+            fi
+            echo "Aguardando label NIXROOT aparecer... ($i/10)"
+            sleep 1
+            sudo udevadm settle
+        done
+        
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
             sudo mount /dev/disk/by-label/NIXROOT /mnt
         fi
     fi
+    
+    # Aguardar o label do boot aparecer
+    for i in {1..10}; do
+        if [ -e "/dev/disk/by-label/NIXBOOT" ]; then
+            break
+        fi
+        echo "Aguardando label NIXBOOT aparecer... ($i/10)"
+        sleep 1
+        sudo udevadm settle
+    done
+    
     sudo mkdir -p /mnt/boot
     sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot
+    echo "Partições montadas com sucesso!"
 }
 
 create_swap() {
