@@ -477,21 +477,21 @@ toggle_all_packages() {
                 
                 for num in {16..30}; do
                     case $num in
-                        16) pkg="xpadneo"; type="nixpkgs" ;;
-                        17) pkg="rtl88xxau-aircrack"; type="nixpkgs" ;;
-                        18) pkg="broadcom_sta"; type="nixpkgs" ;;
-                        19) pkg="nvidia_x11_legacy470"; type="nixpkgs" ;;
-                        20) pkg="waydroid"; type="nixpkgs" ;;
-                        21) pkg="winboat"; type="nixpkgs" ;;
-                        22) pkg="ryubing"; type="nixpkgs" ;;
-                        23) pkg="yt-dlp"; type="nixpkgs" ;;
-                        24) pkg="aria2"; type="nixpkgs" ;;
-                        25) pkg="ffmpegthumbnailer"; type="nixpkgs" ;;
-                        26) pkg="btrfs-assistant"; type="nixpkgs" ;;
-                        27) pkg="dnsmasq"; type="nixpkgs" ;;
-                        28) pkg="neovim"; type="nixpkgs" ;;
-                        29) pkg="lunarvim"; type="nixpkgs" ;;
-                        30) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
+                        16) pkg="waydroid"; type="nixpkgs" ;;
+                        17) pkg="winboat"; type="nixpkgs" ;;
+                        18) pkg="ryubing"; type="nixpkgs" ;;
+                        19) pkg="yt-dlp"; type="nixpkgs" ;;
+                        20) pkg="aria2"; type="nixpkgs" ;;
+                        21) pkg="ffmpegthumbnailer"; type="nixpkgs" ;;
+                        22) pkg="btrfs-assistant"; type="nixpkgs" ;;
+                        23) pkg="dnsmasq"; type="nixpkgs" ;;
+                        24) pkg="neovim"; type="nixpkgs" ;;
+                        25) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
+                        26) pkg="p7zip"; type="nixpkgs" ;;
+                        27) pkg="gnutar"; type="nixpkgs" ;;
+                        28) pkg="libarchive"; type="nixpkgs" ;;
+                        29) pkg="unrar"; type="nixpkgs" ;;
+                        30) pkg="unar"; type="nixpkgs" ;;
                     esac
                     
                     if [ "$type" = "nixpkgs" ] && ! grep -q "$pkg" "$nixpkgs_file" 2>/dev/null; then
@@ -964,7 +964,6 @@ select_packages_page4() {
         local i=1
         local flatpak_selected=$(cat "$packages_file" 2>/dev/null || echo "")
         local nixpkgs_selected=$(cat "$nixpkgs_file" 2>/dev/null || echo "")
-        local gpu_driver=$(cat "$STATE_DIR/gpu_driver")
         
         echo "Pacotes Flatpak (15):"
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.kde.kalendar"; then echo "[X]"; else echo "[ ]"; fi) Kalendar (Calendário)"
@@ -1000,18 +999,6 @@ select_packages_page4() {
         
         echo
         echo "Pacotes Nixpkgs (15):"
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "xpadneo"; then echo "[X]"; else echo "[ ]"; fi) xpadneo (Driver para controles Xbox)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "rtl88xxau-aircrack"; then echo "[X]"; else echo "[ ]"; fi) RTL88xxau (Driver Wi-Fi)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "broadcom_sta"; then echo "[X]"; else echo "[ ]"; fi) Broadcom STA (Driver Wi-Fi)"
-        i=$((i+1))
-        
-        if [ "$gpu_driver" = "nvidia" ]; then
-            echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "nvidia_x11_legacy470"; then echo "[X]"; else echo "[ ]"; fi) NVIDIA Legacy 470 (Driver para GPUs antigas)"
-            i=$((i+1))
-        fi
-        
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "waydroid"; then echo "[X]"; else echo "[ ]"; fi) Waydroid (Android em Wayland)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "winboat"; then echo "[X]"; else echo "[ ]"; fi) Winboat (Gerenciador de Wine)"
@@ -1030,9 +1017,17 @@ select_packages_page4() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "neovim"; then echo "[X]"; else echo "[ ]"; fi) Neovim (Editor de texto)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "lunarvim"; then echo "[X]"; else echo "[ ]"; fi) LunarVim (IDE para Neovim)"
-        i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "vimPlugins.LazyVim"; then echo "[X]"; else echo "[ ]"; fi) LazyVim (Framework para Neovim)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "p7zip"; then echo "[X]"; else echo "[ ]"; fi) p7zip (Compactador de arquivos)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "gnutar"; then echo "[X]"; else echo "[ ]"; fi) GNU Tar (Arquivador)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "libarchive"; then echo "[X]"; else echo "[ ]"; fi) Libarchive (Arquivos multi-formato)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "unrar"; then echo "[X]"; else echo "[ ]"; fi) UnRAR (Extrator RAR)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "unar"; then echo "[X]"; else echo "[ ]"; fi) Unar (Extrator universal)"
         i=$((i+1))
         
         echo
@@ -1067,25 +1062,22 @@ select_packages_page4() {
                 esac
             else
                 local nix_index=$((choice - total_flatpak))
-                if [ "$gpu_driver" = "nvidia" ] && [ "$nix_index" -gt 3 ]; then
-                    nix_index=$((nix_index + 1))
-                fi
                 case $nix_index in
-                    1) pkg="xpadneo"; type="nixpkgs" ;;
-                    2) pkg="rtl88xxau-aircrack"; type="nixpkgs" ;;
-                    3) pkg="broadcom_sta"; type="nixpkgs" ;;
-                    4) [ "$gpu_driver" = "nvidia" ] && pkg="nvidia_x11_legacy470"; type="nixpkgs" ;;
-                    5) pkg="waydroid"; type="nixpkgs" ;;
-                    6) pkg="winboat"; type="nixpkgs" ;;
-                    7) pkg="ryubing"; type="nixpkgs" ;;
-                    8) pkg="yt-dlp"; type="nixpkgs" ;;
-                    9) pkg="aria2"; type="nixpkgs" ;;
-                    10) pkg="ffmpegthumbnailer"; type="nixpkgs" ;;
-                    11) pkg="btrfs-assistant"; type="nixpkgs" ;;
-                    12) pkg="dnsmasq"; type="nixpkgs" ;;
-                    13) pkg="neovim"; type="nixpkgs" ;;
-                    14) pkg="lunarvim"; type="nixpkgs" ;;
-                    15) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
+                    1) pkg="waydroid"; type="nixpkgs" ;;
+                    2) pkg="winboat"; type="nixpkgs" ;;
+                    3) pkg="ryubing"; type="nixpkgs" ;;
+                    4) pkg="yt-dlp"; type="nixpkgs" ;;
+                    5) pkg="aria2"; type="nixpkgs" ;;
+                    6) pkg="ffmpegthumbnailer"; type="nixpkgs" ;;
+                    7) pkg="btrfs-assistant"; type="nixpkgs" ;;
+                    8) pkg="dnsmasq"; type="nixpkgs" ;;
+                    9) pkg="neovim"; type="nixpkgs" ;;
+                    10) pkg="vimPlugins.LazyVim"; type="nixpkgs" ;;
+                    11) pkg="p7zip"; type="nixpkgs" ;;
+                    12) pkg="gnutar"; type="nixpkgs" ;;
+                    13) pkg="libarchive"; type="nixpkgs" ;;
+                    14) pkg="unrar"; type="nixpkgs" ;;
+                    15) pkg="unar"; type="nixpkgs" ;;
                 esac
             fi
             
@@ -1745,14 +1737,6 @@ EOF
 EOF
     fi
 
-    if echo "$nixpkgs_packages" | grep -q "openvpn"; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  services.openvpn.servers = {
-    config = '';
-  '';
-EOF
-    fi
-
     if echo "$nixpkgs_packages" | grep -q "forgejo"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.forgejo.enable = true;
@@ -1760,12 +1744,20 @@ EOF
     fi
 
     if echo "$nixpkgs_packages" | grep -q "ollama"; then
-        sudo tee -a "$config_file" > /dev/null << EOF
+        if [ "$gpu_driver" = "nvidia" ]; then
+            sudo tee -a "$config_file" > /dev/null << EOF
   services.ollama = {
     enable = true;
-    acceleration = "$(if [ "$gpu_driver" = "nvidia" ]; then echo "cuda"; else echo "false"; fi)";
+    acceleration = "cuda";
   };
 EOF
+        else
+            sudo tee -a "$config_file" > /dev/null << EOF
+  services.ollama = {
+    enable = true;
+  };
+EOF
+        fi
     fi
 
     if echo "$nixpkgs_packages" | grep -q "gamemode"; then
@@ -1811,7 +1803,7 @@ EOF
 EOF
 
     for pkg in $nixpkgs_packages; do
-        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "zerotierone" ] && [ "$pkg" != "dnsmasq" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "wireguard-tools" ] && [ "$pkg" != "cockpit" ] && [ "$pkg" != "openssh" ] && [ "$pkg" != "openvpn" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ] && [ "$pkg" != "zsh" ] && [ "$pkg" != "oh-my-zsh" ]; then
+        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "zerotierone" ] && [ "$pkg" != "dnsmasq" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "wireguard-tools" ] && [ "$pkg" != "cockpit" ] && [ "$pkg" != "openssh" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ] && [ "$pkg" != "zsh" ] && [ "$pkg" != "oh-my-zsh" ]; then
             sudo tee -a "$config_file" > /dev/null << EOF
     ${pkg}
 EOF
