@@ -1239,7 +1239,6 @@ setup_btrfs_subvolumes() {
     echo "Montando $root_dev para criar subvolumes..."
     sudo mount $root_dev /mnt
     
-    # Criar subvolumes conforme documentação oficial
     echo "Criando subvolumes btrfs..."
     sudo btrfs subvolume create /mnt/@
     sudo btrfs subvolume create /mnt/@home
@@ -1247,7 +1246,6 @@ setup_btrfs_subvolumes() {
     
     sudo umount /mnt
     
-    # Montar com as opções corretas
     echo "Montando subvolumes com compressão zstd..."
     sudo mount -o compress=zstd,subvol=@ $root_dev /mnt
     sudo mkdir -p /mnt/{home,nix}
@@ -1265,7 +1263,6 @@ mount_partitions() {
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
-            # Ext4 com criptografia
             sudo mount /dev/mapper/cryptroot /mnt
         fi
     else
@@ -1281,7 +1278,6 @@ mount_partitions() {
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
-            # Ext4 padrão
             echo "Montando partição ext4..."
             sudo mount /dev/disk/by-label/NIXROOT /mnt
         fi
@@ -1311,46 +1307,26 @@ create_swap() {
     local swap_size_mb=$((swap_size * 1024))
     
     echo "Criando arquivo swap de ${swap_size}G (${swap_size_mb}MB)..."
+    SWAP_PATH="/mnt/.swapfile"
     
     if [ "$fs" = "btrfs" ]; then
         echo "Sistema de arquivos BTRFS detectado, criando swapfile com opções específicas..."
-        SWAP_PATH="/mnt/.swapfile"
-        
-        # Criar arquivo com tamanho correto
         sudo touch $SWAP_PATH
-        
-        # Desabilitar copy-on-write para o swapfile (essencial no btrfs)
         sudo chattr +C $SWAP_PATH
-        
-        # Alocar espaço usando dd para garantir tamanho exato
-        echo "Alocando ${swap_size}G com dd..."
-        sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$swap_size_mb status=progress
-        
-        sudo chmod 600 $SWAP_PATH
-        sudo mkswap $SWAP_PATH
-        SWAP_PATH="/.swapfile"
-    else
-        # ext4 - método tradicional
-        echo "Sistema de arquivos EXT4 detectado, criando swapfile..."
-        SWAP_PATH="/mnt/.swapfile"
-        
-        # Usar dd para garantir tamanho exato
-        echo "Alocando ${swap_size}G com dd..."
-        sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$swap_size_mb status=progress
-        
-        sudo chmod 600 $SWAP_PATH
-        sudo mkswap $SWAP_PATH
-        SWAP_PATH="/.swapfile"
     fi
     
-    # Verificar tamanho real do arquivo
-    local actual_size=$(sudo du -b /mnt/${SWAP_PATH} | cut -f1)
+    echo "Alocando ${swap_size}G com dd..."
+    sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$swap_size_mb status=progress
+    
+    sudo chmod 600 $SWAP_PATH
+    sudo mkswap $SWAP_PATH
+    
+    local actual_size=$(sudo du -b $SWAP_PATH | cut -f1)
     local expected_size=$((swap_size_mb * 1024 * 1024))
     echo "Tamanho esperado: ${expected_size} bytes, tamanho real: ${actual_size} bytes"
     
-    # Ativar swap temporariamente
-    sudo swapon /mnt/${SWAP_PATH} 2>/dev/null || echo "Aviso: não foi possível ativar swap agora, será ativado na inicialização"
-    echo "Swap configurado em ${SWAP_PATH}"
+    sudo swapon $SWAP_PATH 2>/dev/null || echo "Aviso: não foi possível ativar swap agora"
+    echo "Swap configurado em /.swapfile"
 }
 
 show_summary() {
@@ -1393,7 +1369,7 @@ show_summary() {
 generate_config() {
     clear
     echo "=== GERANDO CONFIGURAÇÃO ==="
-    sudo nixos-generate-config --root /mnt
+    sudo nios-generate-config --root /mnt
     local lang=$(cat "$STATE_DIR/lang")
     local console_keymap=$(cat "$STATE_DIR/console_keymap")
     local xkb_layout=$(cat "$STATE_DIR/xkb_layout")
@@ -1422,12 +1398,10 @@ generate_config() {
     local nixpkgs_packages=$(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')
     local config_file="/mnt/etc/nixos/configuration.nix"
     
-    # Para btrfs, modificar o hardware-configuration.nix para incluir opções de compressão
     if [ "$fs" = "btrfs" ]; then
         local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
         if [ -f "$hw_config" ]; then
             sudo cp "$hw_config" "${hw_config}.backup"
-            # Adicionar opções de compressão aos mounts
             sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
             sudo sed -i '/fileSystems."\/home".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
             sudo sed -i '/fileSystems."\/nix".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
@@ -1718,10 +1692,8 @@ EOF
 EOF
     fi
 
-    # Configurações específicas do sistema de arquivos
     if [ "$fs" = "btrfs" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  # Configurações BTRFS
   boot.supportedFilesystems = [ "btrfs" ];
   services.btrfs.autoScrub = {
     enable = true;
@@ -1922,19 +1894,7 @@ EOF
     done
 
     case $desktop in
-        gnome)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-        plasma)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-        cosmic)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-        hyprland)
+        gnome|plasma|cosmic|hyprland)
             sudo tee -a "$config_file" > /dev/null << EOF
 EOF
             ;;
@@ -1947,7 +1907,6 @@ EOF
 
     sudo tee -a "$config_file" > /dev/null << EOF
   ];
-  # Firefox não é mais instalado por padrão
   nix.settings = {
     auto-optimise-store = true;
     experimental-features = [ "nix-command" "flakes" ];
