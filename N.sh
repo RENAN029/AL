@@ -1308,14 +1308,11 @@ create_swap() {
     fi
     
     local fs=$(cat "$STATE_DIR/filesystem")
-    local encryption=$(cat "$STATE_DIR/encryption")
     
     echo "Criando arquivo swap de ${swap_size}G..."
     
     if [ "$fs" = "btrfs" ]; then
-        # Para btrfs, criar swapfile diretamente na raiz com as configurações corretas
         echo "Sistema de arquivos BTRFS detectado, criando swapfile com opções específicas..."
-        
         SWAP_PATH="/mnt/.swapfile"
         
         # Criar arquivo com tamanho correto
@@ -1334,7 +1331,7 @@ create_swap() {
         sudo mkswap $SWAP_PATH
         SWAP_PATH="/.swapfile"
     else
-        # ext4 - método tradicional e mais simples
+        # ext4 - método tradicional
         echo "Sistema de arquivos EXT4 detectado, criando swapfile..."
         SWAP_PATH="/mnt/.swapfile"
         
@@ -1948,7 +1945,7 @@ EOF
 
     sudo tee -a "$config_file" > /dev/null << EOF
   ];
-  programs.firefox.enable = true;
+  # Firefox não é mais instalado por padrão
   nix.settings = {
     auto-optimise-store = true;
     experimental-features = [ "nix-command" "flakes" ];
