@@ -1369,7 +1369,7 @@ show_summary() {
 generate_config() {
     clear
     echo "=== GERANDO CONFIGURAÇÃO ==="
-    sudo nios-generate-config --root /mnt
+    sudo nixos-generate-config --root /mnt
     local lang=$(cat "$STATE_DIR/lang")
     local console_keymap=$(cat "$STATE_DIR/console_keymap")
     local xkb_layout=$(cat "$STATE_DIR/xkb_layout")
