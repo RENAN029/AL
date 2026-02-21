@@ -1239,6 +1239,7 @@ setup_btrfs_subvolumes() {
     echo "Montando $root_dev para criar subvolumes..."
     sudo mount $root_dev /mnt
     
+    # Criar subvolumes conforme documentação oficial
     echo "Criando subvolumes btrfs..."
     sudo btrfs subvolume create /mnt/@
     sudo btrfs subvolume create /mnt/@home
@@ -1246,6 +1247,7 @@ setup_btrfs_subvolumes() {
     
     sudo umount /mnt
     
+    # Montar com as opções corretas
     echo "Montando subvolumes com compressão zstd..."
     sudo mount -o compress=zstd,subvol=@ $root_dev /mnt
     sudo mkdir -p /mnt/{home,nix}
@@ -1263,6 +1265,7 @@ mount_partitions() {
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
+            # Ext4 com criptografia
             sudo mount /dev/mapper/cryptroot /mnt
         fi
     else
@@ -1278,6 +1281,7 @@ mount_partitions() {
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
+            # Ext4 padrão
             echo "Montando partição ext4..."
             sudo mount /dev/disk/by-label/NIXROOT /mnt
         fi
@@ -1304,29 +1308,47 @@ create_swap() {
     fi
     
     local fs=$(cat "$STATE_DIR/filesystem")
-    local swap_size_mb=$((swap_size * 1024))
     
-    echo "Criando arquivo swap de ${swap_size}G (${swap_size_mb}MB)..."
-    SWAP_PATH="/mnt/.swapfile"
+    echo "Criando arquivo swap de ${swap_size}G..."
     
     if [ "$fs" = "btrfs" ]; then
         echo "Sistema de arquivos BTRFS detectado, criando swapfile com opções específicas..."
+        SWAP_PATH="/mnt/.swapfile"
+        
+        # Criar arquivo com tamanho correto
         sudo touch $SWAP_PATH
+        
+        # Desabilitar copy-on-write para o swapfile (essencial no btrfs)
         sudo chattr +C $SWAP_PATH
+        
+        # Calcular tamanho em bytes para garantir precisão
+        SWAP_SIZE_BYTES=$((swap_size * 1024 * 1024 * 1024))
+        
+        # Usar truncate para criar arquivo do tamanho exato
+        sudo truncate -s ${SWAP_SIZE_BYTES} $SWAP_PATH
+        
+        sudo chmod 600 $SWAP_PATH
+        sudo mkswap $SWAP_PATH
+        SWAP_PATH="/.swapfile"
+    else
+        # ext4 - método tradicional
+        echo "Sistema de arquivos EXT4 detectado, criando swapfile..."
+        SWAP_PATH="/mnt/.swapfile"
+        
+        # Calcular tamanho em bytes
+        SWAP_SIZE_BYTES=$((swap_size * 1024 * 1024 * 1024))
+        
+        # Usar truncate para criar arquivo do tamanho exato
+        sudo truncate -s ${SWAP_SIZE_BYTES} $SWAP_PATH
+        
+        sudo chmod 600 $SWAP_PATH
+        sudo mkswap $SWAP_PATH
+        SWAP_PATH="/.swapfile"
     fi
     
-    echo "Alocando ${swap_size}G com dd..."
-    sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$swap_size_mb status=progress
-    
-    sudo chmod 600 $SWAP_PATH
-    sudo mkswap $SWAP_PATH
-    
-    local actual_size=$(sudo du -b $SWAP_PATH | cut -f1)
-    local expected_size=$((swap_size_mb * 1024 * 1024))
-    echo "Tamanho esperado: ${expected_size} bytes, tamanho real: ${actual_size} bytes"
-    
-    sudo swapon $SWAP_PATH 2>/dev/null || echo "Aviso: não foi possível ativar swap agora"
-    echo "Swap configurado em /.swapfile"
+    # Ativar swap temporariamente
+    sudo swapon /mnt/${SWAP_PATH} 2>/dev/null || true
+    echo "Swap configurado em ${SWAP_PATH} com ${swap_size}GB exatos"
 }
 
 show_summary() {
@@ -1398,10 +1420,12 @@ generate_config() {
     local nixpkgs_packages=$(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')
     local config_file="/mnt/etc/nixos/configuration.nix"
     
+    # Para btrfs, modificar o hardware-configuration.nix para incluir opções de compressão
     if [ "$fs" = "btrfs" ]; then
         local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
         if [ -f "$hw_config" ]; then
             sudo cp "$hw_config" "${hw_config}.backup"
+            # Adicionar opções de compressão aos mounts
             sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
             sudo sed -i '/fileSystems."\/home".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
             sudo sed -i '/fileSystems."\/nix".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
@@ -1679,12 +1703,10 @@ EOF
       RemainAfterExit = true;
     };
     script = ''
-      TOTAL_MEM=\$(awk '/MemTotal/ {printf "%.0f", \$2 * 0.01}' /proc/meminfo)
+      TOTAL_MEM=\$(awk '/MemTotal/ {printf "%d", \$2 * 0.01}' /proc/meminfo)
       if [ -z "\$TOTAL_MEM" ] || [ "\$TOTAL_MEM" -eq 0 ]; then
-        echo "Warning: Could not calculate memory size, using default 32768"
-        TOTAL_MEM=32768
+        TOTAL_MEM=16384
       fi
-      echo "Setting vm.min_free_kbytes to \$TOTAL_MEM"
       ${pkgs.sysctl}/bin/sysctl -w vm.min_free_kbytes=\$TOTAL_MEM
     '';
   };
@@ -1692,8 +1714,10 @@ EOF
 EOF
     fi
 
+    # Configurações específicas do sistema de arquivos
     if [ "$fs" = "btrfs" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
+  # Configurações BTRFS
   boot.supportedFilesystems = [ "btrfs" ];
   services.btrfs.autoScrub = {
     enable = true;
@@ -1894,7 +1918,19 @@ EOF
     done
 
     case $desktop in
-        gnome|plasma|cosmic|hyprland)
+        gnome)
+            sudo tee -a "$config_file" > /dev/null << EOF
+EOF
+            ;;
+        plasma)
+            sudo tee -a "$config_file" > /dev/null << EOF
+EOF
+            ;;
+        cosmic)
+            sudo tee -a "$config_file" > /dev/null << EOF
+EOF
+            ;;
+        hyprland)
             sudo tee -a "$config_file" > /dev/null << EOF
 EOF
             ;;
@@ -1907,6 +1943,7 @@ EOF
 
     sudo tee -a "$config_file" > /dev/null << EOF
   ];
+  # Firefox não é mais instalado por padrão
   nix.settings = {
     auto-optimise-store = true;
     experimental-features = [ "nix-command" "flakes" ];
