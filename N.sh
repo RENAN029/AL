@@ -159,28 +159,6 @@ select_kernel() {
     esac
 }
 
-select_swap_size() {
-    while true; do
-        clear
-        echo "=== TAMANHO DO SWAP / SWAP SIZE ==="
-        echo "1) 2GB"
-        echo "2) 4GB"
-        echo "3) 8GB"
-        echo "4) Sem swap"
-        read -p "Opção: " swap_opt
-        case $swap_opt in
-            1|2|3|4) break ;;
-            *) echo "Opção inválida"; sleep 2 ;;
-        esac
-    done
-    case $swap_opt in
-        1) echo "2" > "$STATE_DIR/swap" ;;
-        2) echo "4" > "$STATE_DIR/swap" ;;
-        3) echo "8" > "$STATE_DIR/swap" ;;
-        4) echo "0" > "$STATE_DIR/swap" ;;
-    esac
-}
-
 select_gpu_drivers() {
     while true; do
         clear
@@ -284,7 +262,6 @@ select_recommended_config() {
     echo "- Kernel otimizado (BBR, sysctl, parâmetros)"
     echo "- earlyOOM para evitar travamentos"
     echo "- ananicy para priorização de processos"
-    echo "- zram para compressão de memória"
     echo "- Gerenciamento de memória otimizado"
     echo "- Regras udev para dispositivos"
     echo
@@ -1297,36 +1274,6 @@ mount_partitions() {
     echo "Partições montadas com sucesso!"
 }
 
-create_swap() {
-    local swap_size=$(cat "$STATE_DIR/swap")
-    if [ "$swap_size" = "0" ]; then
-        return
-    fi
-    
-    local fs=$(cat "$STATE_DIR/filesystem")
-    
-    echo "Criando arquivo swap de ${swap_size}G..."
-    SWAP_PATH="/mnt/.swapfile"
-    
-    if [ "$fs" = "btrfs" ]; then
-        echo "Sistema de arquivos BTRFS detectado, criando swapfile..."
-        sudo truncate -s 0 $SWAP_PATH
-        sudo fallocate -l ${swap_size}G $SWAP_PATH || {
-            echo "fallocate falhou, usando dd..."
-            sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$((swap_size * 1024)) status=progress
-        }
-        sudo chattr +C $SWAP_PATH
-    else
-        echo "Sistema de arquivos EXT4 detectado, criando swapfile..."
-        sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$((swap_size * 1024)) status=progress
-    fi
-    
-    sudo chmod 600 $SWAP_PATH
-    sudo mkswap $SWAP_PATH
-    sudo swapon $SWAP_PATH 2>/dev/null || true
-    echo "Swap configurado com sucesso!"
-}
-
 show_summary() {
     clear
     echo "=== RESUMO DA INSTALAÇÃO / INSTALLATION SUMMARY ==="
@@ -1335,12 +1282,6 @@ show_summary() {
     echo "Fuso/Timezone: $(cat "$STATE_DIR/timezone")"
     echo "Hostname: $(cat "$STATE_DIR/hostname")"
     echo "Tipo/Type: $(cat "$STATE_DIR/device_type")"
-    local swap=$(cat "$STATE_DIR/swap")
-    if [ "$swap" = "0" ]; then
-        echo "Swap: Sem swap"
-    else
-        echo "Swap: ${swap}GB (arquivo .swapfile)"
-    fi
     echo "Filesystem: $(cat "$STATE_DIR/filesystem")"
     echo "Bootloader: $(cat "$STATE_DIR/bootloader")"
     echo "Kernel: $(cat "$STATE_DIR/kernel")"
@@ -1387,7 +1328,6 @@ generate_config() {
     local encryption=$(cat "$STATE_DIR/encryption")
     local firewall=$(cat "$STATE_DIR/firewall")
     local gpu_driver=$(cat "$STATE_DIR/gpu_driver")
-    local swap_size=$(cat "$STATE_DIR/swap")
     local disk=$(cat "$STATE_DIR/disk")
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
@@ -1668,23 +1608,6 @@ EOF
     KERNEL=="hpet", GROUP="audio"
     DEVPATH=="/devices/virtual/misc/cpu_dma_latency", OWNER="root", GROUP="audio", MODE="0660"
   '';
-  systemd.services.set-min-free-mem = {
-    description = "Set vm.min_free_kbytes dynamically";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "local-fs.target" ];
-    serviceConfig = {
-      User = "root";
-      RemainAfterExit = true;
-    };
-    script = ''
-      TOTAL_MEM=\$(awk '/MemTotal/ {printf "%.0f", \$2 * 0.01}' /proc/meminfo)
-      if [ -z "\$TOTAL_MEM" ] || [ "\$TOTAL_MEM" -eq 0 ]; then
-        exit 0
-      fi
-      sysctl -w vm.min_free_kbytes=\$TOTAL_MEM
-    '';
-  };
-  zramSwap.enable = true;
 EOF
     fi
 
@@ -1700,6 +1623,9 @@ EOF
     fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
+  zramSwap.enable = true;
+  boot.kernel.sysctl."vm.swappiness" = 10;
+  
   users.mutableUsers = false;
   users.users.root.hashedPassword = "!";
   users.users.$username = {
@@ -1721,14 +1647,6 @@ EOF
     }
   ];
 EOF
-
-    if [ "$swap_size" != "0" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  swapDevices = [{
-    device = "/.swapfile";
-  }];
-EOF
-    fi
 
     if [ "$encryption" = "yes" ] && [ -n "$luks_uuid" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
@@ -1890,7 +1808,19 @@ EOF
     done
 
     case $desktop in
-        gnome|plasma|cosmic|hyprland)
+        gnome)
+            sudo tee -a "$config_file" > /dev/null << EOF
+EOF
+            ;;
+        plasma)
+            sudo tee -a "$config_file" > /dev/null << EOF
+EOF
+            ;;
+        cosmic)
+            sudo tee -a "$config_file" > /dev/null << EOF
+EOF
+            ;;
+        hyprland)
             sudo tee -a "$config_file" > /dev/null << EOF
 EOF
             ;;
@@ -1977,6 +1907,11 @@ generate_flake() {
           system = "x86_64-linux";
           modules = [
             ./configuration.nix
+            # Descomente os módulos abaixo se tiver descomentado os inputs correspondentes:
+            # nix-flatpak.nixosModules.nix-flatpak
+            # lanzaboote.nixosModules.lanzaboote
+            # preload-ng.nixosModules.default
+            # { services.preload-ng.enable = true; }
           ];
         };
       };
@@ -1999,7 +1934,17 @@ EOF
     echo
     echo "PARA ATIVAR O FLAKE APÓS A INSTALAÇÃO:"
     echo
-    echo "1. Após reiniciar, use: sudo nixos-rebuild switch --flake /etc/nixos#$hostname"
+    echo "1. Após reiniciar, edite o arquivo /etc/nixos/flake.nix"
+    echo "   e descomente as linhas dos inputs e módulos que deseja usar"
+    echo
+    echo "2. No arquivo /etc/nixos/configuration.nix, descomente as linhas"
+    echo "   relacionadas aos módulos que você ativou no flake.nix"
+    echo
+    echo "3. Execute para ativar:"
+    echo "   sudo nixos-rebuild switch --flake /etc/nixos#$hostname"
+    echo
+    echo "4. Para atualizar as entradas do flake:"
+    echo "   sudo nix flake update --flake /etc/nixos"
     echo
     echo "NOTA: Os experimental-features 'nix-command' e 'flakes'"
     echo "já estão habilitados no configuration.nix gerado."
@@ -2087,7 +2032,6 @@ main() {
     select_filesystem
     select_bootloader
     select_kernel
-    select_swap_size
     select_gpu_drivers
     select_desktop
     select_bluetooth
@@ -2102,7 +2046,6 @@ main() {
     show_summary
     partition_disk
     mount_partitions
-    create_swap
     generate_config
     generate_flake
     review_configs
