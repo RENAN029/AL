@@ -1308,8 +1308,9 @@ create_swap() {
     fi
     
     local fs=$(cat "$STATE_DIR/filesystem")
+    local swap_size_mb=$((swap_size * 1024))
     
-    echo "Criando arquivo swap de ${swap_size}G..."
+    echo "Criando arquivo swap de ${swap_size}G (${swap_size_mb}MB)..."
     
     if [ "$fs" = "btrfs" ]; then
         echo "Sistema de arquivos BTRFS detectado, criando swapfile com opções específicas..."
@@ -1321,11 +1322,9 @@ create_swap() {
         # Desabilitar copy-on-write para o swapfile (essencial no btrfs)
         sudo chattr +C $SWAP_PATH
         
-        # Alocar espaço usando fallocate (mais rápido) ou dd como fallback
-        if ! sudo fallocate -l ${swap_size}G $SWAP_PATH; then
-            echo "fallocate falhou, usando dd..."
-            sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$((swap_size * 1024)) status=progress
-        fi
+        # Alocar espaço usando dd para garantir tamanho exato
+        echo "Alocando ${swap_size}G com dd..."
+        sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$swap_size_mb status=progress
         
         sudo chmod 600 $SWAP_PATH
         sudo mkswap $SWAP_PATH
@@ -1335,20 +1334,22 @@ create_swap() {
         echo "Sistema de arquivos EXT4 detectado, criando swapfile..."
         SWAP_PATH="/mnt/.swapfile"
         
-        # Para ext4, podemos usar dd ou fallocate (fallocate é mais rápido)
-        if command -v fallocate >/dev/null 2>&1; then
-            sudo fallocate -l ${swap_size}G $SWAP_PATH
-        else
-            sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$((swap_size * 1024)) status=progress
-        fi
+        # Usar dd para garantir tamanho exato
+        echo "Alocando ${swap_size}G com dd..."
+        sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$swap_size_mb status=progress
         
         sudo chmod 600 $SWAP_PATH
         sudo mkswap $SWAP_PATH
         SWAP_PATH="/.swapfile"
     fi
     
+    # Verificar tamanho real do arquivo
+    local actual_size=$(sudo du -b $SWAP_PATH | cut -f1)
+    local expected_size=$((swap_size_mb * 1024 * 1024))
+    echo "Tamanho esperado: ${expected_size} bytes, tamanho real: ${actual_size} bytes"
+    
     # Ativar swap temporariamente
-    sudo swapon /mnt/${SWAP_PATH} 2>/dev/null || true
+    sudo swapon /mnt/${SWAP_PATH} 2>/dev/null || echo "Aviso: não foi possível ativar swap agora, será ativado na inicialização"
     echo "Swap configurado em ${SWAP_PATH}"
 }
 
@@ -1704,12 +1705,13 @@ EOF
       RemainAfterExit = true;
     };
     script = ''
-      TOTAL_MEM=$(awk '/MemTotal/ {printf "%.0f", $2 * 0.01}' /proc/meminfo)
-      if [ -z "$TOTAL_MEM" ] || [ "$TOTAL_MEM" -eq 0 ]; then
-        echo "Failed to calculate memory size" >&2
-        exit 1
+      TOTAL_MEM=\$(awk '/MemTotal/ {printf "%.0f", \$2 * 0.01}' /proc/meminfo)
+      if [ -z "\$TOTAL_MEM" ] || [ "\$TOTAL_MEM" -eq 0 ]; then
+        echo "Warning: Could not calculate memory size, using default 32768"
+        TOTAL_MEM=32768
       fi
-      sysctl -w vm.min_free_kbytes=$TOTAL_MEM
+      echo "Setting vm.min_free_kbytes to \$TOTAL_MEM"
+      ${pkgs.sysctl}/bin/sysctl -w vm.min_free_kbytes=\$TOTAL_MEM
     '';
   };
   zramSwap.enable = true;
