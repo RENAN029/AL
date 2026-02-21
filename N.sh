@@ -1344,7 +1344,7 @@ create_swap() {
     fi
     
     # Verificar tamanho real do arquivo
-    local actual_size=$(sudo du -b $SWAP_PATH | cut -f1)
+    local actual_size=$(sudo du -b /mnt/${SWAP_PATH} | cut -f1)
     local expected_size=$((swap_size_mb * 1024 * 1024))
     echo "Tamanho esperado: ${expected_size} bytes, tamanho real: ${actual_size} bytes"
     
