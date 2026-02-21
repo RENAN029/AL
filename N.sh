@@ -1209,7 +1209,6 @@ partition_disk() {
         fi
     fi
     
-    # Aguardar o sistema atualizar os dispositivos de bloco
     echo "Aguardando atualização dos dispositivos de bloco..."
     sleep 3
     sudo udevadm settle
@@ -1222,7 +1221,6 @@ setup_btrfs_subvolumes() {
     if [ "$encryption" = "yes" ]; then
         root_dev="/dev/mapper/cryptroot"
     else
-        # Aguardar o label aparecer
         for i in {1..10}; do
             if [ -e "/dev/disk/by-label/NIXROOT" ]; then
                 break
@@ -1259,7 +1257,6 @@ mount_partitions() {
             sudo mount /dev/mapper/cryptroot /mnt
         fi
     else
-        # Aguardar o label aparecer
         for i in {1..10}; do
             if [ -e "/dev/disk/by-label/NIXROOT" ]; then
                 break
@@ -1276,7 +1273,6 @@ mount_partitions() {
         fi
     fi
     
-    # Aguardar o label do boot aparecer
     for i in {1..10}; do
         if [ -e "/dev/disk/by-label/NIXBOOT" ]; then
             break
@@ -1296,14 +1292,27 @@ create_swap() {
     if [ "$swap_size" = "0" ]; then
         return
     fi
+    
+    local fs=$(cat "$STATE_DIR/filesystem")
+    local swap_path="/mnt/.swapfile"
+    
     echo "Criando arquivo swap de ${swap_size}G..."
-    if [ ! -f /mnt/.swapfile ]; then
-        sudo dd if=/dev/zero of=/mnt/.swapfile bs=1M count=$((swap_size * 1024)) status=progress
-        sudo chmod 600 /mnt/.swapfile
-        sudo mkswap /mnt/.swapfile
+    
+    if [ "$fs" = "btrfs" ]; then
+        echo "Sistema de arquivos BTRFS detectado, criando swapfile com opções específicas..."
+        sudo touch $swap_path
+        sudo chattr +C $swap_path || true
+        sudo fallocate -l ${swap_size}G $swap_path
+    else
+        if [ ! -f $swap_path ]; then
+            sudo dd if=/dev/zero of=$swap_path bs=1M count=$((swap_size * 1024)) status=progress
+        fi
     fi
+    
+    sudo chmod 600 $swap_path
+    sudo mkswap $swap_path
     echo "Configurando swap no sistema..."
-    sudo swapon /mnt/.swapfile 2>/dev/null || true
+    sudo swapon $swap_path 2>/dev/null || true
 }
 
 show_summary() {
@@ -1683,7 +1692,9 @@ EOF
 
     if [ "$swap_size" != "0" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  swapDevices = [ { device = "/.swapfile"; } ];
+  swapDevices = [{
+    device = "/.swapfile";
+  }];
 EOF
     fi
 
