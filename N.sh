@@ -1197,9 +1197,9 @@ partition_disk() {
         local uuid=$(sudo blkid -s UUID -o value ${disk}2)
         echo "$uuid" > "$STATE_DIR/luks_uuid"
         if [ "$fs" = "btrfs" ]; then
-            sudo mkfs.btrfs /dev/mapper/cryptroot
+            sudo mkfs.btrfs -f /dev/mapper/cryptroot
         else
-            sudo mkfs.ext4 /dev/mapper/cryptroot
+            sudo mkfs.ext4 -F /dev/mapper/cryptroot
         fi
     else
         if [ "$fs" = "btrfs" ]; then
@@ -1218,30 +1218,52 @@ partition_disk() {
 setup_btrfs_subvolumes() {
     local root_dev
     local encryption=$(cat "$STATE_DIR/encryption")
+    
     if [ "$encryption" = "yes" ]; then
         root_dev="/dev/mapper/cryptroot"
     else
         for i in {1..10}; do
             if [ -e "/dev/disk/by-label/NIXROOT" ]; then
+                root_dev="/dev/disk/by-label/NIXROOT"
                 break
             fi
             echo "Aguardando label NIXROOT aparecer... ($i/10)"
             sleep 1
             sudo udevadm settle
         done
-        root_dev="/dev/disk/by-label/NIXROOT"
+        if [ -z "$root_dev" ]; then
+            root_dev="/dev/disk/by-label/NIXROOT"
+        fi
     fi
     
     echo "Montando $root_dev para criar subvolumes..."
     sudo mount $root_dev /mnt
+    
+    # Criar subvolumes conforme documentação oficial
+    echo "Criando subvolumes btrfs..."
     sudo btrfs subvolume create /mnt/@
     sudo btrfs subvolume create /mnt/@home
     sudo btrfs subvolume create /mnt/@nix
+    
+    # Subvolume opcional para swap se necessário
+    local swap_size=$(cat "$STATE_DIR/swap")
+    if [ "$swap_size" != "0" ]; then
+        sudo btrfs subvolume create /mnt/@swap
+    fi
+    
     sudo umount /mnt
+    
+    # Montar com as opções corretas
+    echo "Montando subvolumes com compressão zstd..."
     sudo mount -o compress=zstd,subvol=@ $root_dev /mnt
     sudo mkdir -p /mnt/{home,nix}
     sudo mount -o compress=zstd,subvol=@home $root_dev /mnt/home
     sudo mount -o compress=zstd,noatime,subvol=@nix $root_dev /mnt/nix
+    
+    if [ "$swap_size" != "0" ]; then
+        sudo mkdir -p /mnt/.swapvol
+        sudo mount -o noatime,subvol=@swap $root_dev /mnt/.swapvol
+    fi
 }
 
 mount_partitions() {
@@ -1294,25 +1316,55 @@ create_swap() {
     fi
     
     local fs=$(cat "$STATE_DIR/filesystem")
-    local swap_path="/mnt/.swapfile"
     
     echo "Criando arquivo swap de ${swap_size}G..."
     
     if [ "$fs" = "btrfs" ]; then
+        # Para btrfs, criar swapfile no subvolume apropriado com as configurações corretas
         echo "Sistema de arquivos BTRFS detectado, criando swapfile com opções específicas..."
-        sudo touch $swap_path
-        sudo chattr +C $swap_path || true
-        sudo fallocate -l ${swap_size}G $swap_path
-    else
-        if [ ! -f $swap_path ]; then
-            sudo dd if=/dev/zero of=$swap_path bs=1M count=$((swap_size * 1024)) status=progress
+        
+        # Verificar se temos um subvolume separado para swap
+        if [ -d "/mnt/.swapvol" ]; then
+            SWAP_PATH="/mnt/.swapvol/swapfile"
+        else
+            SWAP_PATH="/mnt/.swapfile"
         fi
+        
+        # Criar arquivo com tamanho correto
+        sudo touch $SWAP_PATH
+        
+        # Desabilitar copy-on-write para o swapfile (essencial no btrfs)
+        sudo chattr +C $SWAP_PATH
+        
+        # Alocar espaço
+        sudo fallocate -l ${swap_size}G $SWAP_PATH || sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$((swap_size * 1024)) status=progress
+        
+        sudo chmod 600 $SWAP_PATH
+        sudo mkswap $SWAP_PATH
+        
+        # Se usamos subvolume separado, ajustar o path para o mount correto
+        if [ -d "/mnt/.swapvol" ]; then
+            # Mover para o local final e ajustar montagem
+            sudo mkdir -p /mnt/swap
+            sudo mount --move /mnt/.swapvol /mnt/swap
+            SWAP_PATH="/swap/swapfile"
+        else
+            SWAP_PATH="/.swapfile"
+        fi
+    else
+        # ext4 - método tradicional
+        SWAP_PATH="/mnt/.swapfile"
+        if [ ! -f $SWAP_PATH ]; then
+            sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$((swap_size * 1024)) status=progress
+        fi
+        sudo chmod 600 $SWAP_PATH
+        sudo mkswap $SWAP_PATH
+        SWAP_PATH="/.swapfile"
     fi
     
-    sudo chmod 600 $swap_path
-    sudo mkswap $swap_path
-    echo "Configurando swap no sistema..."
-    sudo swapon $swap_path 2>/dev/null || true
+    # Ativar swap temporariamente
+    sudo swapon /mnt/${SWAP_PATH} 2>/dev/null || true
+    echo "Swap configurado em ${SWAP_PATH}"
 }
 
 show_summary() {
@@ -1383,6 +1435,17 @@ generate_config() {
     local flatpak_packages=$(cat "$STATE_DIR/packages" 2>/dev/null | tr '\n' ' ')
     local nixpkgs_packages=$(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')
     local config_file="/mnt/etc/nixos/configuration.nix"
+    
+    # Primeiro, vamos corrigir o hardware-configuration.nix para incluir as opções de montagem corretas
+    local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
+    if [ -f "$hw_config" ] && [ "$fs" = "btrfs" ]; then
+        # Backup do arquivo original
+        sudo cp "$hw_config" "${hw_config}.backup"
+        
+        # Modificar as opções de montagem para incluir compressão
+        sudo sed -i 's|\(options = \[\)|\1 "compress=zstd"|g' "$hw_config"
+        sudo sed -i 's|\(/nix.*options = \[\)|\1 "compress=zstd" "noatime"|g' "$hw_config"
+    fi
     
     sudo tee "$config_file" > /dev/null << EOF
 { config, pkgs, lib, ... }:
@@ -1667,6 +1730,19 @@ EOF
 EOF
     fi
 
+    # Adicionar configurações específicas do BTRFS se selecionado
+    if [ "$fs" = "btrfs" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  # Configurações BTRFS
+  boot.supportedFilesystems = [ "btrfs" ];
+  services.btrfs.autoScrub = {
+    enable = true;
+    interval = "monthly";
+    fileSystems = [ "/" ];
+  };
+EOF
+    fi
+
     sudo tee -a "$config_file" > /dev/null << EOF
   users.mutableUsers = false;
   users.users.root.hashedPassword = "!";
@@ -1691,11 +1767,19 @@ EOF
 EOF
 
     if [ "$swap_size" != "0" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
+        if [ "$fs" = "btrfs" ] && [ -d "/mnt/swap" ]; then
+            sudo tee -a "$config_file" > /dev/null << EOF
+  swapDevices = [{
+    device = "/swap/swapfile";
+  }];
+EOF
+        else
+            sudo tee -a "$config_file" > /dev/null << EOF
   swapDevices = [{
     device = "/.swapfile";
   }];
 EOF
+        fi
     fi
 
     if [ "$encryption" = "yes" ] && [ -n "$luks_uuid" ]; then
@@ -1704,12 +1788,6 @@ EOF
     device = "/dev/disk/by-uuid/$luks_uuid";
     preLVM = true;
   };
-EOF
-    fi
-
-    if [ "$fs" = "btrfs" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  boot.supportedFilesystems = [ "btrfs" ];
 EOF
     fi
 
