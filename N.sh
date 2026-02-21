@@ -1245,12 +1245,6 @@ setup_btrfs_subvolumes() {
     sudo btrfs subvolume create /mnt/@home
     sudo btrfs subvolume create /mnt/@nix
     
-    # Subvolume opcional para swap se necessário
-    local swap_size=$(cat "$STATE_DIR/swap")
-    if [ "$swap_size" != "0" ]; then
-        sudo btrfs subvolume create /mnt/@swap
-    fi
-    
     sudo umount /mnt
     
     # Montar com as opções corretas
@@ -1259,11 +1253,6 @@ setup_btrfs_subvolumes() {
     sudo mkdir -p /mnt/{home,nix}
     sudo mount -o compress=zstd,subvol=@home $root_dev /mnt/home
     sudo mount -o compress=zstd,noatime,subvol=@nix $root_dev /mnt/nix
-    
-    if [ "$swap_size" != "0" ]; then
-        sudo mkdir -p /mnt/.swapvol
-        sudo mount -o noatime,subvol=@swap $root_dev /mnt/.swapvol
-    fi
 }
 
 mount_partitions() {
@@ -1324,15 +1313,10 @@ create_swap() {
     echo "Criando arquivo swap de ${swap_size}G..."
     
     if [ "$fs" = "btrfs" ]; then
-        # Para btrfs, criar swapfile no subvolume apropriado com as configurações corretas
+        # Para btrfs, criar swapfile diretamente na raiz com as configurações corretas
         echo "Sistema de arquivos BTRFS detectado, criando swapfile com opções específicas..."
         
-        # Verificar se temos um subvolume separado para swap
-        if [ -d "/mnt/.swapvol" ]; then
-            SWAP_PATH="/mnt/.swapvol/swapfile"
-        else
-            SWAP_PATH="/mnt/.swapfile"
-        fi
+        SWAP_PATH="/mnt/.swapfile"
         
         # Criar arquivo com tamanho correto
         sudo touch $SWAP_PATH
@@ -1340,21 +1324,15 @@ create_swap() {
         # Desabilitar copy-on-write para o swapfile (essencial no btrfs)
         sudo chattr +C $SWAP_PATH
         
-        # Alocar espaço
-        sudo fallocate -l ${swap_size}G $SWAP_PATH || sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$((swap_size * 1024)) status=progress
+        # Alocar espaço usando fallocate (mais rápido) ou dd como fallback
+        if ! sudo fallocate -l ${swap_size}G $SWAP_PATH; then
+            echo "fallocate falhou, usando dd..."
+            sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$((swap_size * 1024)) status=progress
+        fi
         
         sudo chmod 600 $SWAP_PATH
         sudo mkswap $SWAP_PATH
-        
-        # Se usamos subvolume separado, ajustar o path para o mount correto
-        if [ -d "/mnt/.swapvol" ]; then
-            # Mover para o local final e ajustar montagem
-            sudo mkdir -p /mnt/swap
-            sudo mount --move /mnt/.swapvol /mnt/swap
-            SWAP_PATH="/swap/swapfile"
-        else
-            SWAP_PATH="/.swapfile"
-        fi
+        SWAP_PATH="/.swapfile"
     else
         # ext4 - método tradicional e mais simples
         echo "Sistema de arquivos EXT4 detectado, criando swapfile..."
@@ -1446,16 +1424,15 @@ generate_config() {
     local nixpkgs_packages=$(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')
     local config_file="/mnt/etc/nixos/configuration.nix"
     
-    # Para ext4, não precisamos modificar o hardware-configuration.nix,
-    # mas vamos garantir que está tudo correto
+    # Para btrfs, modificar o hardware-configuration.nix para incluir opções de compressão
     if [ "$fs" = "btrfs" ]; then
-        # Backup do arquivo original para btrfs
         local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
         if [ -f "$hw_config" ]; then
             sudo cp "$hw_config" "${hw_config}.backup"
-            # Modificar as opções de montagem para incluir compressão
-            sudo sed -i 's|\(options = \[\)|\1 "compress=zstd"|g' "$hw_config"
-            sudo sed -i 's|\(/nix.*options = \[\)|\1 "compress=zstd" "noatime"|g' "$hw_config"
+            # Adicionar opções de compressão aos mounts
+            sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
+            sudo sed -i '/fileSystems."\/home".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
+            sudo sed -i '/fileSystems."\/nix".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
         fi
     fi
     
@@ -1753,11 +1730,6 @@ EOF
     fileSystems = [ "/" ];
   };
 EOF
-    else
-        # Ext4 não precisa de configurações especiais, mas garantimos que as ferramentas estão disponíveis
-        sudo tee -a "$config_file" > /dev/null << EOF
-  # Ferramentas para ext4 (já inclusas no sistema base via e2fsprogs)
-EOF
     fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
@@ -1784,20 +1756,11 @@ EOF
 EOF
 
     if [ "$swap_size" != "0" ]; then
-        if [ "$fs" = "btrfs" ] && [ -d "/mnt/swap" ]; then
-            sudo tee -a "$config_file" > /dev/null << EOF
-  swapDevices = [{
-    device = "/swap/swapfile";
-  }];
-EOF
-        else
-            # Para ext4, o caminho padrão é /.swapfile
-            sudo tee -a "$config_file" > /dev/null << EOF
+        sudo tee -a "$config_file" > /dev/null << EOF
   swapDevices = [{
     device = "/.swapfile";
   }];
 EOF
-        fi
     fi
 
     if [ "$encryption" = "yes" ] && [ -n "$luks_uuid" ]; then
