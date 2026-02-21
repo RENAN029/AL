@@ -1239,7 +1239,6 @@ setup_btrfs_subvolumes() {
     echo "Montando $root_dev para criar subvolumes..."
     sudo mount $root_dev /mnt
     
-    # Criar subvolumes conforme documentação oficial
     echo "Criando subvolumes btrfs..."
     sudo btrfs subvolume create /mnt/@
     sudo btrfs subvolume create /mnt/@home
@@ -1247,7 +1246,6 @@ setup_btrfs_subvolumes() {
     
     sudo umount /mnt
     
-    # Montar com as opções corretas
     echo "Montando subvolumes com compressão zstd..."
     sudo mount -o compress=zstd,subvol=@ $root_dev /mnt
     sudo mkdir -p /mnt/{home,nix}
@@ -1265,7 +1263,6 @@ mount_partitions() {
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
-            # Ext4 com criptografia
             sudo mount /dev/mapper/cryptroot /mnt
         fi
     else
@@ -1281,7 +1278,6 @@ mount_partitions() {
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
-            # Ext4 padrão
             echo "Montando partição ext4..."
             sudo mount /dev/disk/by-label/NIXROOT /mnt
         fi
@@ -1310,45 +1306,25 @@ create_swap() {
     local fs=$(cat "$STATE_DIR/filesystem")
     
     echo "Criando arquivo swap de ${swap_size}G..."
+    SWAP_PATH="/mnt/.swapfile"
     
     if [ "$fs" = "btrfs" ]; then
-        echo "Sistema de arquivos BTRFS detectado, criando swapfile com opções específicas..."
-        SWAP_PATH="/mnt/.swapfile"
-        
-        # Criar arquivo com tamanho correto
-        sudo touch $SWAP_PATH
-        
-        # Desabilitar copy-on-write para o swapfile (essencial no btrfs)
+        echo "Sistema de arquivos BTRFS detectado, criando swapfile..."
+        sudo truncate -s 0 $SWAP_PATH
+        sudo fallocate -l ${swap_size}G $SWAP_PATH || {
+            echo "fallocate falhou, usando dd..."
+            sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$((swap_size * 1024)) status=progress
+        }
         sudo chattr +C $SWAP_PATH
-        
-        # Calcular tamanho em bytes para garantir precisão
-        SWAP_SIZE_BYTES=$((swap_size * 1024 * 1024 * 1024))
-        
-        # Usar truncate para criar arquivo do tamanho exato
-        sudo truncate -s ${SWAP_SIZE_BYTES} $SWAP_PATH
-        
-        sudo chmod 600 $SWAP_PATH
-        sudo mkswap $SWAP_PATH
-        SWAP_PATH="/.swapfile"
     else
-        # ext4 - método tradicional
         echo "Sistema de arquivos EXT4 detectado, criando swapfile..."
-        SWAP_PATH="/mnt/.swapfile"
-        
-        # Calcular tamanho em bytes
-        SWAP_SIZE_BYTES=$((swap_size * 1024 * 1024 * 1024))
-        
-        # Usar truncate para criar arquivo do tamanho exato
-        sudo truncate -s ${SWAP_SIZE_BYTES} $SWAP_PATH
-        
-        sudo chmod 600 $SWAP_PATH
-        sudo mkswap $SWAP_PATH
-        SWAP_PATH="/.swapfile"
+        sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$((swap_size * 1024)) status=progress
     fi
     
-    # Ativar swap temporariamente
-    sudo swapon /mnt/${SWAP_PATH} 2>/dev/null || true
-    echo "Swap configurado em ${SWAP_PATH} com ${swap_size}GB exatos"
+    sudo chmod 600 $SWAP_PATH
+    sudo mkswap $SWAP_PATH
+    sudo swapon $SWAP_PATH 2>/dev/null || true
+    echo "Swap configurado com sucesso!"
 }
 
 show_summary() {
@@ -1420,12 +1396,10 @@ generate_config() {
     local nixpkgs_packages=$(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')
     local config_file="/mnt/etc/nixos/configuration.nix"
     
-    # Para btrfs, modificar o hardware-configuration.nix para incluir opções de compressão
     if [ "$fs" = "btrfs" ]; then
         local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
         if [ -f "$hw_config" ]; then
             sudo cp "$hw_config" "${hw_config}.backup"
-            # Adicionar opções de compressão aos mounts
             sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
             sudo sed -i '/fileSystems."\/home".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
             sudo sed -i '/fileSystems."\/nix".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
@@ -1703,21 +1677,19 @@ EOF
       RemainAfterExit = true;
     };
     script = ''
-      TOTAL_MEM=\$(awk '/MemTotal/ {printf "%d", \$2 * 0.01}' /proc/meminfo)
+      TOTAL_MEM=\$(awk '/MemTotal/ {printf "%.0f", \$2 * 0.01}' /proc/meminfo)
       if [ -z "\$TOTAL_MEM" ] || [ "\$TOTAL_MEM" -eq 0 ]; then
-        TOTAL_MEM=16384
+        exit 0
       fi
-      ${pkgs.sysctl}/bin/sysctl -w vm.min_free_kbytes=\$TOTAL_MEM
+      sysctl -w vm.min_free_kbytes=\$TOTAL_MEM
     '';
   };
   zramSwap.enable = true;
 EOF
     fi
 
-    # Configurações específicas do sistema de arquivos
     if [ "$fs" = "btrfs" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  # Configurações BTRFS
   boot.supportedFilesystems = [ "btrfs" ];
   services.btrfs.autoScrub = {
     enable = true;
@@ -1918,19 +1890,7 @@ EOF
     done
 
     case $desktop in
-        gnome)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-        plasma)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-        cosmic)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-        hyprland)
+        gnome|plasma|cosmic|hyprland)
             sudo tee -a "$config_file" > /dev/null << EOF
 EOF
             ;;
@@ -1943,7 +1903,6 @@ EOF
 
     sudo tee -a "$config_file" > /dev/null << EOF
   ];
-  # Firefox não é mais instalado por padrão
   nix.settings = {
     auto-optimise-store = true;
     experimental-features = [ "nix-command" "flakes" ];
@@ -2018,11 +1977,6 @@ generate_flake() {
           system = "x86_64-linux";
           modules = [
             ./configuration.nix
-            # Descomente os módulos abaixo se tiver descomentado os inputs correspondentes:
-            # nix-flatpak.nixosModules.nix-flatpak
-            # lanzaboote.nixosModules.lanzaboote
-            # preload-ng.nixosModules.default
-            # { services.preload-ng.enable = true; }
           ];
         };
       };
@@ -2045,17 +1999,7 @@ EOF
     echo
     echo "PARA ATIVAR O FLAKE APÓS A INSTALAÇÃO:"
     echo
-    echo "1. Após reiniciar, edite o arquivo /etc/nixos/flake.nix"
-    echo "   e descomente as linhas dos inputs e módulos que deseja usar"
-    echo
-    echo "2. No arquivo /etc/nixos/configuration.nix, descomente as linhas"
-    echo "   relacionadas aos módulos que você ativou no flake.nix"
-    echo
-    echo "3. Execute para ativar:"
-    echo "   sudo nixos-rebuild switch --flake /etc/nixos#$hostname"
-    echo
-    echo "4. Para atualizar as entradas do flake:"
-    echo "   sudo nix flake update --flake /etc/nixos"
+    echo "1. Após reiniciar, use: sudo nixos-rebuild switch --flake /etc/nixos#$hostname"
     echo
     echo "NOTA: Os experimental-features 'nix-command' e 'flakes'"
     echo "já estão habilitados no configuration.nix gerado."
