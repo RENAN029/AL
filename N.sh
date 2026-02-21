@@ -1276,6 +1276,7 @@ mount_partitions() {
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
+            # Ext4 com criptografia
             sudo mount /dev/mapper/cryptroot /mnt
         fi
     else
@@ -1291,6 +1292,8 @@ mount_partitions() {
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
+            # Ext4 padrão
+            echo "Montando partição ext4..."
             sudo mount /dev/disk/by-label/NIXROOT /mnt
         fi
     fi
@@ -1316,6 +1319,7 @@ create_swap() {
     fi
     
     local fs=$(cat "$STATE_DIR/filesystem")
+    local encryption=$(cat "$STATE_DIR/encryption")
     
     echo "Criando arquivo swap de ${swap_size}G..."
     
@@ -1352,11 +1356,17 @@ create_swap() {
             SWAP_PATH="/.swapfile"
         fi
     else
-        # ext4 - método tradicional
+        # ext4 - método tradicional e mais simples
+        echo "Sistema de arquivos EXT4 detectado, criando swapfile..."
         SWAP_PATH="/mnt/.swapfile"
-        if [ ! -f $SWAP_PATH ]; then
+        
+        # Para ext4, podemos usar dd ou fallocate (fallocate é mais rápido)
+        if command -v fallocate >/dev/null 2>&1; then
+            sudo fallocate -l ${swap_size}G $SWAP_PATH
+        else
             sudo dd if=/dev/zero of=$SWAP_PATH bs=1M count=$((swap_size * 1024)) status=progress
         fi
+        
         sudo chmod 600 $SWAP_PATH
         sudo mkswap $SWAP_PATH
         SWAP_PATH="/.swapfile"
@@ -1436,15 +1446,17 @@ generate_config() {
     local nixpkgs_packages=$(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')
     local config_file="/mnt/etc/nixos/configuration.nix"
     
-    # Primeiro, vamos corrigir o hardware-configuration.nix para incluir as opções de montagem corretas
-    local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
-    if [ -f "$hw_config" ] && [ "$fs" = "btrfs" ]; then
-        # Backup do arquivo original
-        sudo cp "$hw_config" "${hw_config}.backup"
-        
-        # Modificar as opções de montagem para incluir compressão
-        sudo sed -i 's|\(options = \[\)|\1 "compress=zstd"|g' "$hw_config"
-        sudo sed -i 's|\(/nix.*options = \[\)|\1 "compress=zstd" "noatime"|g' "$hw_config"
+    # Para ext4, não precisamos modificar o hardware-configuration.nix,
+    # mas vamos garantir que está tudo correto
+    if [ "$fs" = "btrfs" ]; then
+        # Backup do arquivo original para btrfs
+        local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
+        if [ -f "$hw_config" ]; then
+            sudo cp "$hw_config" "${hw_config}.backup"
+            # Modificar as opções de montagem para incluir compressão
+            sudo sed -i 's|\(options = \[\)|\1 "compress=zstd"|g' "$hw_config"
+            sudo sed -i 's|\(/nix.*options = \[\)|\1 "compress=zstd" "noatime"|g' "$hw_config"
+        fi
     fi
     
     sudo tee "$config_file" > /dev/null << EOF
@@ -1730,7 +1742,7 @@ EOF
 EOF
     fi
 
-    # Adicionar configurações específicas do BTRFS se selecionado
+    # Configurações específicas do sistema de arquivos
     if [ "$fs" = "btrfs" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
   # Configurações BTRFS
@@ -1740,6 +1752,11 @@ EOF
     interval = "monthly";
     fileSystems = [ "/" ];
   };
+EOF
+    else
+        # Ext4 não precisa de configurações especiais, mas garantimos que as ferramentas estão disponíveis
+        sudo tee -a "$config_file" > /dev/null << EOF
+  # Ferramentas para ext4 (já inclusas no sistema base via e2fsprogs)
 EOF
     fi
 
@@ -1774,6 +1791,7 @@ EOF
   }];
 EOF
         else
+            # Para ext4, o caminho padrão é /.swapfile
             sudo tee -a "$config_file" > /dev/null << EOF
   swapDevices = [{
     device = "/.swapfile";
