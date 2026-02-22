@@ -262,6 +262,7 @@ select_recommended_config() {
     echo "- Kernel otimizado (BBR, sysctl, parâmetros)"
     echo "- earlyOOM para evitar travamentos"
     echo "- ananicy para priorização de processos"
+    echo "- zram para compressão de memória"
     echo "- Gerenciamento de memória otimizado"
     echo "- Regras udev para dispositivos"
     echo
@@ -412,14 +413,14 @@ toggle_all_packages() {
                         20) pkg="maven"; type="nixpkgs" ;;
                         21) pkg="timeshift"; type="nixpkgs" ;;
                         22) pkg="snapper"; type="nixpkgs" ;;
-                        23) pkg="rustup"; type="nixpkgs" ;;
-                        24) pkg="alacritty"; type="nixpkgs" ;;
-                        25) pkg="pyenv"; type="nixpkgs" ;;
-                        26) pkg="davinci-resolve"; type="nixpkgs" ;;
-                        27) pkg="stirling-pdf"; type="nixpkgs" ;;
-                        28) pkg="figma-linux"; type="nixpkgs" ;;
-                        29) pkg="smartmontools"; type="nixpkgs" ;;
-                        30) pkg="f3"; type="nixpkgs" ;;
+                        23) pkg="alacritty"; type="nixpkgs" ;;
+                        24) pkg="pyenv"; type="nixpkgs" ;;
+                        25) pkg="davinci-resolve"; type="nixpkgs" ;;
+                        26) pkg="stirling-pdf"; type="nixpkgs" ;;
+                        27) pkg="figma-linux"; type="nixpkgs" ;;
+                        28) pkg="smartmontools"; type="nixpkgs" ;;
+                        29) pkg="f3"; type="nixpkgs" ;;
+                        30) pkg="rustup"; type="nixpkgs" ;;
                     esac
                     
                     if [ "$type" = "nixpkgs" ] && ! grep -q "$pkg" "$nixpkgs_file" 2>/dev/null; then
@@ -840,8 +841,6 @@ select_packages_page3() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "snapper"; then echo "[X]"; else echo "[ ]"; fi) Snapper (Gerenciador de snapshots)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "rustup"; then echo "[X]"; else echo "[ ]"; fi) Rustup (Gerenciador Rust)"
-        i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "alacritty"; then echo "[X]"; else echo "[ ]"; fi) Alacritty (Terminal GPU)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "pyenv"; then echo "[X]"; else echo "[ ]"; fi) Pyenv (Gerenciador de versões Python)"
@@ -855,6 +854,8 @@ select_packages_page3() {
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "smartmontools"; then echo "[X]"; else echo "[ ]"; fi) Smartmontools (Monitoramento de disco)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "f3"; then echo "[X]"; else echo "[ ]"; fi) F3 (Teste de integridade de flash)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "rustup"; then echo "[X]"; else echo "[ ]"; fi) Rustup (Gerenciador Rust)"
         i=$((i+1))
         
         echo
@@ -894,14 +895,14 @@ select_packages_page3() {
                 20) pkg="maven"; type="nixpkgs" ;;
                 21) pkg="timeshift"; type="nixpkgs" ;;
                 22) pkg="snapper"; type="nixpkgs" ;;
-                23) pkg="rustup"; type="nixpkgs" ;;
-                24) pkg="alacritty"; type="nixpkgs" ;;
-                25) pkg="pyenv"; type="nixpkgs" ;;
-                26) pkg="davinci-resolve"; type="nixpkgs" ;;
-                27) pkg="stirling-pdf"; type="nixpkgs" ;;
-                28) pkg="figma-linux"; type="nixpkgs" ;;
-                29) pkg="smartmontools"; type="nixpkgs" ;;
-                30) pkg="f3"; type="nixpkgs" ;;
+                23) pkg="alacritty"; type="nixpkgs" ;;
+                24) pkg="pyenv"; type="nixpkgs" ;;
+                25) pkg="davinci-resolve"; type="nixpkgs" ;;
+                26) pkg="stirling-pdf"; type="nixpkgs" ;;
+                27) pkg="figma-linux"; type="nixpkgs" ;;
+                28) pkg="smartmontools"; type="nixpkgs" ;;
+                29) pkg="f3"; type="nixpkgs" ;;
+                30) pkg="rustup"; type="nixpkgs" ;;
                 *) continue ;;
             esac
             
@@ -1467,7 +1468,6 @@ EOF
     LC_PAPER = "pt_BR.UTF-8";
     LC_TELEPHONE = "pt_BR.UTF-8";
     LC_TIME = "pt_BR.UTF-8";
-    LC_COLLATE = "pt_BR.UTF-8";
   };
 EOF
     fi
@@ -1477,8 +1477,15 @@ EOF
   services.xserver.enable = true;
   services.xserver.xkb = {
     layout = "$xkb_layout";
+EOF
+
+    if [ -n "$xkb_variant" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
     variant = "$xkb_variant";
-    options = "ctrl:nocaps";
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
   };
 EOF
 
@@ -1499,12 +1506,6 @@ EOF
   programs.dconf.profiles.user.databases = [
     {
       settings = {
-        "org/gnome/desktop/interface" = {
-          color-scheme = "prefer-dark";
-        };
-        "org/gnome/desktop/input-sources" = {
-          xkb-options = [ "ctrl:nocaps" ];
-        };
         "org/gnome/mutter" = {
           experimental-features = [
             "scale-monitor-framebuffer"
@@ -1526,9 +1527,8 @@ EOF
   };
   services.desktopManager.plasma6.enable = true;
   environment.plasma6.excludePackages = with pkgs.kdePackages; [
-    plasma-browser-integration
-    konsole
-    elisa
+    kate
+    plasma-systemmonitor
   ];
 EOF
                 ;;
@@ -1537,10 +1537,9 @@ EOF
   services.desktopManager.cosmic.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
   environment.cosmic.excludePackages = with pkgs; [
+    cosmic-player
     cosmic-edit
   ];
-  environment.sessionVariables.COSMIC_DATA_CONTROL_ENABLED = 1;
-  services.system76-scheduler.enable = true;
 EOF
                 ;;
             hyprland)
@@ -1550,12 +1549,15 @@ EOF
     withUWSM = true;
     xwayland.enable = true;
   };
-  services.displayManager.sddm.enable = true;
-  services.displayManager.sddm.wayland.enable = true;
+  services.displayManager.sddm = {
+    enable = true;
+    wayland.enable = true;
+  };
   xdg.portal = {
     enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
   };
+  environment.sessionVariables.NIXOS_OZONE_WL = "1";
 EOF
                 ;;
         esac
@@ -1618,24 +1620,9 @@ EOF
     enable32Bit = true;
 EOF
 
-    if [ "$gpu_driver" = "intel-amd" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-    extraPackages = with pkgs; [
-      intel-media-driver
-      intel-compute-runtime
-      vpl-gpu-rt
-      vaapiVdpau
-      libvdpau-va-gl
-    ];
-EOF
-    fi
-
-    sudo tee -a "$config_file" > /dev/null << EOF
-  };
-EOF
-
     if [ "$gpu_driver" = "nvidia" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
+  };
   services.xserver.videoDrivers = [ "nvidia" ];
   hardware.nvidia = {
     modesetting.enable = true;
@@ -1643,18 +1630,33 @@ EOF
     open = true;
     nvidiaSettings = true;
     package = config.boot.kernelPackages.nvidiaPackages.latest;
-    prime = {
-      offload.enable = $([ "$device_type" = "laptop" ] && echo "true" || echo "false");
-    };
   };
 EOF
     elif [ "$gpu_driver" = "intel-amd" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  services.xserver.videoDrivers = [ "modesetting" ];
-  environment.sessionVariables = {
-    LIBVA_DRIVER_NAME = "iHD";
-    VDPAU_DRIVER = "va_gl";
+    extraPackages = with pkgs; [
+      intel-compute-runtime
+      intel-media-driver
+      vpl-gpu-rt
+      amdvlk
+      mesa.opencl
+    ];
+    extraPackages32 = with pkgs; [
+      driversi686Linux.amdvlk
+    ];
   };
+  services.xserver.videoDrivers = [ "modesetting" ];
+  environment.variables = {
+    AMD_VULKAN_ICD = "RADV";
+    LIBVA_DRIVER_NAME = "iHD";
+  };
+  boot.kernelParams = [
+    "amdgpu.si_support=1"
+    "radeon.si_support=0"
+    "amdgpu.cik_support=1"
+    "radeon.cik_support=0"
+  ];
+  hardware.firmware = [ pkgs.linux-firmware ];
 EOF
     fi
 
@@ -1866,22 +1868,6 @@ EOF
 EOF
     fi
 
-    if echo "$nixpkgs_packages" | grep -q "timeshift"; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  services.timeshift = {
-    enable = true;
-  };
-EOF
-    fi
-
-    if echo "$nixpkgs_packages" | grep -q "snapper"; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  services.snapper = {
-    enable = true;
-  };
-EOF
-    fi
-
     sudo tee -a "$config_file" > /dev/null << EOF
   environment.systemPackages = with pkgs; [
     pciutils
@@ -1892,13 +1878,10 @@ EOF
     file
     clinfo
     wayland-utils
-    vulkan-tools
-    libva-utils
-    vdpauinfo
 EOF
 
     for pkg in $nixpkgs_packages; do
-        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "zerotierone" ] && [ "$pkg" != "dnsmasq" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "wireguard-tools" ] && [ "$pkg" != "cockpit" ] && [ "$pkg" != "openssh" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ] && [ "$pkg" != "zsh" ] && [ "$pkg" != "oh-my-zsh" ] && [ "$pkg" != "timeshift" ] && [ "$pkg" != "snapper" ]; then
+        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "zerotierone" ] && [ "$pkg" != "dnsmasq" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "wireguard-tools" ] && [ "$pkg" != "cockpit" ] && [ "$pkg" != "openssh" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ] && [ "$pkg" != "zsh" ] && [ "$pkg" != "oh-my-zsh" ]; then
             sudo tee -a "$config_file" > /dev/null << EOF
     ${pkg}
 EOF
@@ -1908,50 +1891,18 @@ EOF
     case $desktop in
         gnome)
             sudo tee -a "$config_file" > /dev/null << EOF
-    gnome-tweaks
-    gnome-disk-utility
-    gnome-software
-    gnomeExtensions.appindicator
-    sysprof
 EOF
             ;;
         plasma)
             sudo tee -a "$config_file" > /dev/null << EOF
-    kdePackages.dolphin
-    kdePackages.ark
-    kdePackages.kate
-    kdePackages.kdenlive
-    kdePackages.kcalc
-    kdePackages.spectacle
 EOF
             ;;
         cosmic)
             sudo tee -a "$config_file" > /dev/null << EOF
-    cosmic-term
-    cosmic-files
-    cosmic-store
-    cosmic-edit
 EOF
             ;;
         hyprland)
             sudo tee -a "$config_file" > /dev/null << EOF
-    kitty
-    waybar
-    rofi-wayland
-    swaylock
-    swayidle
-    wlogout
-    mako
-    dunst
-    grim
-    slurp
-    wl-clipboard
-    swappy
-    thunar
-    firefox
-    nwg-look
-    qt5ct
-    qt6ct
 EOF
             ;;
     esac
@@ -1985,8 +1936,6 @@ EOF
     liberation_ttf
     cantarell-fonts
     poppins
-    fira-code
-    fira-code-symbols
   ];
   hardware.enableAllFirmware = true;
   hardware.firmware = [ pkgs.linux-firmware ];
