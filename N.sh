@@ -1346,9 +1346,15 @@ generate_config() {
         local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
         if [ -f "$hw_config" ]; then
             sudo cp "$hw_config" "${hw_config}.backup"
-            sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
+            sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
             sudo sed -i '/fileSystems."\/home".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
             sudo sed -i '/fileSystems."\/nix".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
+        fi
+    else
+        local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
+        if [ -f "$hw_config" ]; then
+            sudo cp "$hw_config" "${hw_config}.backup"
+            sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "noatime"|' "$hw_config"
         fi
     fi
     
@@ -1439,7 +1445,22 @@ EOF
   };
   networking.hostName = "$hostname";
   networking.networkmanager.enable = true;
-  networking.wireless.iwd.enable = true;
+  networking.networkmanager.wifi.backend = "iwd";
+  networking.networkmanager.wifi.powersave = $([ "$device_type" = "laptop" ] && echo "true" || echo "false");
+  networking.wireless.iwd = {
+    enable = true;
+    settings = {
+      Network = {
+        EnableIPv6 = true;
+      };
+      Settings = {
+        AutoConnect = true;
+      };
+      General = {
+        ControlPortOverNL80211 = false;
+      };
+    };
+  };
   networking.firewall = {
     enable = $firewall;
     allowedTCPPorts = [ 53317 ];
@@ -1451,6 +1472,12 @@ EOF
       { from = 1714; to = 1764; }
     ];
   };
+  networking.timeServers = options.networking.timeServers.default ++ [
+    "a.st1.ntp.br"
+    "b.st1.ntp.br"
+    "c.st1.ntp.br"
+  ];
+  services.ntp.enable = true;
   time.timeZone = "$timezone";
   i18n.defaultLocale = "$lang";
 EOF
@@ -1589,7 +1616,112 @@ EOF
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
+    jack.enable = true;
+    wireplumber = {
+      enable = true;
+      configPackages = [
+        (pkgs.writeTextDir "share/wireplumber/wireplumber.conf.d/10-bluez.conf" ''
+          monitor.bluez.properties = {
+            bluez5.enable-sbc-xq = true
+            bluez5.enable-msbc = true
+            bluez5.enable-hw-volume = true
+            bluez5.roles = [hsp_hs hsp_ag hfp_hf hfp_ag]
+          }
+        '')
+      ];
+      extraConfig."11-bluetooth-policy" = {
+        "wireplumber.settings" = {
+          "bluetooth.autoswitch-to-headset-profile" = false;
+        };
+      };
+      extraConfig."99-disable-suspend" = {
+        "monitor.alsa.rules" = [
+          {
+            matches = [
+              { "node.name" = "~alsa_input.*"; }
+              { "node.name" = "~alsa_output.*"; }
+            ];
+            actions = {
+              update-props = {
+                "session.suspend-timeout-seconds" = 0;
+              };
+            };
+          }
+        ];
+      };
+    };
+    extraConfig.pipewire."10-airplay" = {
+      "context.modules" = [
+        {
+          name = "libpipewire-module-raop-discover";
+          args = {
+            "raop.latency.ms" = 500;
+          };
+        }
+      ];
+    };
+    extraConfig.pipewire."91-null-sinks" = {
+      "context.objects" = [
+        {
+          factory = "spa-node-factory";
+          args = {
+            "factory.name" = "support.node.driver";
+            "node.name" = "Dummy-Driver";
+            "priority.driver" = 8000;
+          };
+        }
+        {
+          factory = "adapter";
+          args = {
+            "factory.name" = "support.null-audio-sink";
+            "node.name" = "Microphone-Proxy";
+            "node.description" = "Microphone";
+            "media.class" = "Audio/Source/Virtual";
+            "audio.position" = "MONO";
+          };
+        }
+        {
+          factory = "adapter";
+          args = {
+            "factory.name" = "support.null-audio-sink";
+            "node.name" = "Main-Output-Proxy";
+            "node.description" = "Main Output";
+            "media.class" = "Audio/Sink";
+            "audio.position" = "FL,FR";
+          };
+        }
+      ];
+    };
+    extraConfig.pipewire."92-low-latency" = {
+      "context.properties" = {
+        "default.clock.rate" = 48000;
+        "default.clock.quantum" = 32;
+        "default.clock.min-quantum" = 32;
+        "default.clock.max-quantum" = 32;
+      };
+    };
+    extraConfig.pipewire-pulse."92-low-latency" = {
+      "context.properties" = [
+        {
+          name = "libpipewire-module-protocol-pulse";
+          args = { };
+        }
+      ];
+      "pulse.properties" = {
+        "pulse.min.req" = "32/48000";
+        "pulse.default.req" = "32/48000";
+        "pulse.max.req" = "32/48000";
+        "pulse.min.quantum" = "32/48000";
+        "pulse.max.quantum" = "32/48000";
+      };
+      "stream.properties" = {
+        "node.latency" = "32/48000";
+        "resample.quality" = 1;
+      };
+    };
   };
+  services.pulseaudio.enable = false;
+  environment.systemPackages = with pkgs; [ pwvucontrol pavucontrol ];
 EOF
 
     if [ "$bluetooth" = "yes" ]; then
@@ -1610,7 +1742,6 @@ EOF
     };
   };
   services.blueman.enable = true;
-  hardware.pulseaudio.enable = false;
   environment.systemPackages = with pkgs; [ bluetuith ];
 EOF
     fi
@@ -1638,7 +1769,10 @@ EOF
 
     if [ "$trim" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  services.fstrim.enable = true;
+  services.fstrim = {
+    enable = true;
+    interval = "weekly";
+  };
 EOF
     fi
 
@@ -1675,9 +1809,12 @@ EOF
     rocmPackages.clr
     rocmPackages.rocblas
     rocmPackages.hipblas
+    vaapiVdpau
+    libvdpau-va-gl
   ];
   environment.variables = {
     ROC_ENABLE_PRE_VEGA = "1";
+    LIBVA_DRIVER_NAME = "iHD";
   };
   systemd.tmpfiles.rules = let
     rocmEnv = pkgs.symlinkJoin {
@@ -1690,6 +1827,9 @@ EOF
     legacySupport.enable = true;
     initrd.enable = true;
   };
+  boot.kernelParams = [
+    "i915.force_probe=46a8"
+  ];
 EOF
     fi
 
@@ -1732,6 +1872,23 @@ EOF
     KERNEL=="hpet", GROUP="audio"
     DEVPATH=="/devices/virtual/misc/cpu_dma_latency", OWNER="root", GROUP="audio", MODE="0660"
   '';
+  systemd.services.set-min-free-mem = {
+    description = "Set vm.min_free_kbytes dynamically";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "local-fs.target" ];
+    serviceConfig = {
+      User = "root";
+      RemainAfterExit = true;
+    };
+    script = ''
+      TOTAL_MEM=$(awk '/MemTotal/ {printf "%.0f", $2 * 0.01}' /proc/meminfo)
+      if [ -z "$TOTAL_MEM" ] || [ "$TOTAL_MEM" -eq 0 ]; then
+        echo "Failed to calculate memory size" >&2
+        exit 1
+      fi
+      ${pkgs.sysctl}/bin/sysctl -w vm.min_free_kbytes=$TOTAL_MEM
+    '';
+  };
 EOF
     fi
 
@@ -1924,6 +2081,10 @@ EOF
     file
     clinfo
     wayland-utils
+    networkmanagerapplet
+    nmap
+    iw
+    wirelesstools
 EOF
 
     for pkg in $nixpkgs_packages; do
@@ -1974,6 +2135,31 @@ EOF
     dates = "weekly";
     options = "--delete-older-than 5d";
   };
+  system.autoUpgrade = {
+    enable = true;
+    allowReboot = false;
+  };
+  systemd.services.nixos-flake-update = {
+    description = "Update NixOS flake inputs";
+    serviceConfig = {
+      Type = "oneshot";
+      User = "root";
+      WorkingDirectory = "/etc/nixos";
+      ExecStart = "${pkgs.nixVersions.stable}/bin/nix flake update";
+    };
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+  };
+  systemd.timers.nixos-flake-update = {
+    description = "Daily NixOS flake update timer";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "daily";
+      OnBootSec = "15min";
+      Persistent = true;
+      RandomizedDelaySec = "1h";
+    };
+  };
   fonts.packages = with pkgs; [
     nerd-fonts.adwaita-mono
     noto-fonts
@@ -2003,18 +2189,14 @@ generate_flake() {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
-    
-    # Opcionais - Descomente se quiser usar:
-    # lanzaboote = {
-    #   url = "github:nix-community/lanzaboote/v0.4.3";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
-    # nix-flatpak.url = "github:gmodena/nix-flatpak";
-    # preload-ng.url = "github:miguel-b-p/preload-ng";
-    # hyprland.url = "github:hyprwm/Hyprland";
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote/v0.4.3";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, ... } @ inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, nix-flatpak, lanzaboote, ... } @ inputs:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
@@ -2034,11 +2216,8 @@ generate_flake() {
           system = "x86_64-linux";
           modules = [
             ./configuration.nix
-            # Descomente os módulos abaixo se tiver descomentado os inputs correspondentes:
-            # nix-flatpak.nixosModules.nix-flatpak
-            # lanzaboote.nixosModules.lanzaboote
-            # preload-ng.nixosModules.default
-            # { services.preload-ng.enable = true; }
+            nix-flatpak.nixosModules.nix-flatpak
+            lanzaboote.nixosModules.lanzaboote
           ];
         };
       };
@@ -2046,9 +2225,11 @@ generate_flake() {
   nixConfig = {
     extra-substituters = [
       "https://nixpkgs.cachix.org"
+      "https://hyprland.cachix.org"
     ];
     extra-trusted-public-keys = [
       "nixpkgs.cachix.org-1:q91R6hxbwFvDqTSDKwDAV4T5PxqXGxswD8vhONFMeOE="
+      "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
     ];
   };
 }
