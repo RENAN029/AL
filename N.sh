@@ -410,10 +410,10 @@ toggle_all_packages() {
                         18) pkg="cockpit"; type="nixpkgs" ;;
                         19) pkg="forgejo"; type="nixpkgs" ;;
                         20) pkg="maven"; type="nixpkgs" ;;
-                        21) pkg="timeshift"; type="nixpkgs" ;;
-                        22) pkg="snapper"; type="nixpkgs" ;;
-                        23) pkg="alacritty"; type="nixpkgs" ;;
-                        24) pkg="rustup"; type="nixpkgs" ;;
+                        21) pkg="nodejs_24"; type="nixpkgs" ;;
+                        22) pkg="javaPackages.compiler.openjdk25"; type="nixpkgs" ;;
+                        23) pkg="rustup"; type="nixpkgs" ;;
+                        24) pkg="python3"; type="nixpkgs" ;;
                         25) pkg="pyenv"; type="nixpkgs" ;;
                         26) pkg="davinci-resolve"; type="nixpkgs" ;;
                         27) pkg="stirling-pdf"; type="nixpkgs" ;;
@@ -836,13 +836,13 @@ select_packages_page3() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "maven"; then echo "[X]"; else echo "[ ]"; fi) Maven (Gerenciador de build Java)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "timeshift"; then echo "[X]"; else echo "[ ]"; fi) Timeshift (Backup do sistema)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "nodejs_24"; then echo "[X]"; else echo "[ ]"; fi) Node.js 24 (JavaScript runtime)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "snapper"; then echo "[X]"; else echo "[ ]"; fi) Snapper (Gerenciador de snapshots)"
-        i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "alacritty"; then echo "[X]"; else echo "[ ]"; fi) Alacritty (Terminal GPU acelerado)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "javaPackages.compiler.openjdk25"; then echo "[X]"; else echo "[ ]"; fi) OpenJDK 25 (Java Development Kit)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "rustup"; then echo "[X]"; else echo "[ ]"; fi) Rustup (Gerenciador Rust)"
+        i=$((i+1))
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "python3"; then echo "[X]"; else echo "[ ]"; fi) Python 3 (Linguagem de programação)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "pyenv"; then echo "[X]"; else echo "[ ]"; fi) Pyenv (Gerenciador de versões Python)"
         i=$((i+1))
@@ -892,10 +892,10 @@ select_packages_page3() {
                 18) pkg="cockpit"; type="nixpkgs" ;;
                 19) pkg="forgejo"; type="nixpkgs" ;;
                 20) pkg="maven"; type="nixpkgs" ;;
-                21) pkg="timeshift"; type="nixpkgs" ;;
-                22) pkg="snapper"; type="nixpkgs" ;;
-                23) pkg="alacritty"; type="nixpkgs" ;;
-                24) pkg="rustup"; type="nixpkgs" ;;
+                21) pkg="nodejs_24"; type="nixpkgs" ;;
+                22) pkg="javaPackages.compiler.openjdk25"; type="nixpkgs" ;;
+                23) pkg="rustup"; type="nixpkgs" ;;
+                24) pkg="python3"; type="nixpkgs" ;;
                 25) pkg="pyenv"; type="nixpkgs" ;;
                 26) pkg="davinci-resolve"; type="nixpkgs" ;;
                 27) pkg="stirling-pdf"; type="nixpkgs" ;;
@@ -1175,6 +1175,7 @@ partition_disk() {
         local uuid=$(sudo blkid -s UUID -o value ${disk}2)
         echo "$uuid" > "$STATE_DIR/luks_uuid"
         
+        # Adicionar módulos de aceleração AES ao initrd
         echo "aesni_intel" >> "$STATE_DIR/initrd_modules" 2>/dev/null || echo "aesni_intel" > "$STATE_DIR/initrd_modules"
         echo "cryptd" >> "$STATE_DIR/initrd_modules" 2>/dev/null || true
         
@@ -1346,15 +1347,9 @@ generate_config() {
         local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
         if [ -f "$hw_config" ]; then
             sudo cp "$hw_config" "${hw_config}.backup"
-            sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
+            sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
             sudo sed -i '/fileSystems."\/home".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
             sudo sed -i '/fileSystems."\/nix".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
-        fi
-    else
-        local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
-        if [ -f "$hw_config" ]; then
-            sudo cp "$hw_config" "${hw_config}.backup"
-            sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "noatime"|' "$hw_config"
         fi
     fi
     
@@ -1445,22 +1440,7 @@ EOF
   };
   networking.hostName = "$hostname";
   networking.networkmanager.enable = true;
-  networking.networkmanager.wifi.backend = "iwd";
-  networking.networkmanager.wifi.powersave = $([ "$device_type" = "laptop" ] && echo "true" || echo "false");
-  networking.wireless.iwd = {
-    enable = true;
-    settings = {
-      Network = {
-        EnableIPv6 = true;
-      };
-      Settings = {
-        AutoConnect = true;
-      };
-      General = {
-        ControlPortOverNL80211 = false;
-      };
-    };
-  };
+  networking.wireless.iwd.enable = true;
   networking.firewall = {
     enable = $firewall;
     allowedTCPPorts = [ 53317 ];
@@ -1472,12 +1452,6 @@ EOF
       { from = 1714; to = 1764; }
     ];
   };
-  networking.timeServers = options.networking.timeServers.default ++ [
-    "a.st1.ntp.br"
-    "b.st1.ntp.br"
-    "c.st1.ntp.br"
-  ];
-  services.ntp.enable = true;
   time.timeZone = "$timezone";
   i18n.defaultLocale = "$lang";
 EOF
@@ -1521,59 +1495,24 @@ EOF
                 sudo tee -a "$config_file" > /dev/null << EOF
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
-  services.gnome.core-apps.enable = false;
-  services.gnome.core-developer-tools.enable = false;
-  services.gnome.games.enable = false;
   environment.gnome.excludePackages = with pkgs; [
-    gnome-tour
-    gnome-user-docs
     totem
     epiphany
     geary
     gnome-music
-    gnome-photos
-    gnome-terminal
-  ];
-  programs.dconf.profiles.user.databases = [
-    {
-      lockAll = true;
-      settings = {
-        "org/gnome/desktop/interface" = {
-          color-scheme = "prefer-dark";
-        };
-        "org/gnome/desktop/input-sources" = {
-          xkb-options = [ "ctrl:nocaps" ];
-        };
-        "org/gnome/mutter" = {
-          experimental-features = [
-            "scale-monitor-framebuffer"
-            "variable-refresh-rate"
-            "xwayland-native-scaling"
-            "autoclose-xwayland"
-          ];
-        };
-      };
-    }
-  ];
-  environment.systemPackages = with pkgs; [
-    gnome-tweaks
-    gnomeExtensions.appindicator
-    gnomeExtensions.blur-my-shell
-    gnomeExtensions.just-perfection
+    gnome-tour
+    gnome-user-docs
   ];
 EOF
                 ;;
             plasma)
                 sudo tee -a "$config_file" > /dev/null << EOF
-  services.displayManager.sddm = {
-    enable = true;
-    wayland.enable = true;
-  };
+  services.displayManager.sddm.enable = true;
+  services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
   environment.plasma6.excludePackages = with pkgs.kdePackages; [
-    plasma-browser-integration
-    konsole
-    elisa
+    kate
+    plasma-systemmonitor
   ];
 EOF
                 ;;
@@ -1585,8 +1524,6 @@ EOF
     cosmic-player
     cosmic-edit
   ];
-  environment.sessionVariables.COSMIC_DATA_CONTROL_ENABLED = 1;
-  services.system76-scheduler.enable = true;
 EOF
                 ;;
             hyprland)
@@ -1596,10 +1533,8 @@ EOF
     withUWSM = true;
     xwayland.enable = true;
   };
-  services.displayManager.sddm = {
-    enable = true;
-    wayland.enable = true;
-  };
+  services.displayManager.sddm.enable = true;
+  services.displayManager.sddm.wayland.enable = true;
   xdg.portal = {
     enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
@@ -1616,112 +1551,7 @@ EOF
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
-    jack.enable = true;
-    wireplumber = {
-      enable = true;
-      configPackages = [
-        (pkgs.writeTextDir "share/wireplumber/wireplumber.conf.d/10-bluez.conf" ''
-          monitor.bluez.properties = {
-            bluez5.enable-sbc-xq = true
-            bluez5.enable-msbc = true
-            bluez5.enable-hw-volume = true
-            bluez5.roles = [hsp_hs hsp_ag hfp_hf hfp_ag]
-          }
-        '')
-      ];
-      extraConfig."11-bluetooth-policy" = {
-        "wireplumber.settings" = {
-          "bluetooth.autoswitch-to-headset-profile" = false;
-        };
-      };
-      extraConfig."99-disable-suspend" = {
-        "monitor.alsa.rules" = [
-          {
-            matches = [
-              { "node.name" = "~alsa_input.*"; }
-              { "node.name" = "~alsa_output.*"; }
-            ];
-            actions = {
-              update-props = {
-                "session.suspend-timeout-seconds" = 0;
-              };
-            };
-          }
-        ];
-      };
-    };
-    extraConfig.pipewire."10-airplay" = {
-      "context.modules" = [
-        {
-          name = "libpipewire-module-raop-discover";
-          args = {
-            "raop.latency.ms" = 500;
-          };
-        }
-      ];
-    };
-    extraConfig.pipewire."91-null-sinks" = {
-      "context.objects" = [
-        {
-          factory = "spa-node-factory";
-          args = {
-            "factory.name" = "support.node.driver";
-            "node.name" = "Dummy-Driver";
-            "priority.driver" = 8000;
-          };
-        }
-        {
-          factory = "adapter";
-          args = {
-            "factory.name" = "support.null-audio-sink";
-            "node.name" = "Microphone-Proxy";
-            "node.description" = "Microphone";
-            "media.class" = "Audio/Source/Virtual";
-            "audio.position" = "MONO";
-          };
-        }
-        {
-          factory = "adapter";
-          args = {
-            "factory.name" = "support.null-audio-sink";
-            "node.name" = "Main-Output-Proxy";
-            "node.description" = "Main Output";
-            "media.class" = "Audio/Sink";
-            "audio.position" = "FL,FR";
-          };
-        }
-      ];
-    };
-    extraConfig.pipewire."92-low-latency" = {
-      "context.properties" = {
-        "default.clock.rate" = 48000;
-        "default.clock.quantum" = 32;
-        "default.clock.min-quantum" = 32;
-        "default.clock.max-quantum" = 32;
-      };
-    };
-    extraConfig.pipewire-pulse."92-low-latency" = {
-      "context.properties" = [
-        {
-          name = "libpipewire-module-protocol-pulse";
-          args = { };
-        }
-      ];
-      "pulse.properties" = {
-        "pulse.min.req" = "32/48000";
-        "pulse.default.req" = "32/48000";
-        "pulse.max.req" = "32/48000";
-        "pulse.min.quantum" = "32/48000";
-        "pulse.max.quantum" = "32/48000";
-      };
-      "stream.properties" = {
-        "node.latency" = "32/48000";
-        "resample.quality" = 1;
-      };
-    };
   };
-  services.pulseaudio.enable = false;
-  environment.systemPackages = with pkgs; [ pwvucontrol pavucontrol ];
 EOF
 
     if [ "$bluetooth" = "yes" ]; then
@@ -1731,18 +1561,10 @@ EOF
     settings = {
       General = {
         Experimental = true;
-        Enable = "Source,Sink,Media,Socket";
-      };
-      LE = {
-        MinConnectionInterval = 16;
-        MaxConnectionInterval = 16;
-        ConnectionLatency = 10;
-        ConnectionSupervisionTimeout = 100;
       };
     };
   };
   services.blueman.enable = true;
-  environment.systemPackages = with pkgs; [ bluetuith ];
 EOF
     fi
 
@@ -1759,7 +1581,7 @@ EOF
   };
   services.printing = {
     enable = true;
-    drivers = with pkgs; [ gutenprint cups-filters cups-browsed hplip brlaser ];
+    drivers = with pkgs; [ gutenprint cups-filters cups-browsed ];
     browsing = true;
     defaultShared = true;
     openFirewall = true;
@@ -1769,18 +1591,12 @@ EOF
 
     if [ "$trim" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  services.fstrim = {
-    enable = true;
-    interval = "weekly";
-  };
+  services.fstrim.enable = true;
 EOF
     fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;
-  };
+  hardware.graphics.enable = true;
 EOF
 
     if [ "$gpu_driver" = "nvidia" ]; then
@@ -1792,10 +1608,6 @@ EOF
     open = true;
     nvidiaSettings = true;
     package = config.boot.kernelPackages.nvidiaPackages.latest;
-    forceFullCompositionPipeline = true;
-  };
-  environment.sessionVariables = {
-    NIXOS_OZONE_WL = "1";
   };
 EOF
     elif [ "$gpu_driver" = "intel-amd" ]; then
@@ -1805,30 +1617,6 @@ EOF
     intel-compute-runtime
     intel-media-driver
     vpl-gpu-rt
-    mesa.opencl
-    rocmPackages.clr
-    rocmPackages.rocblas
-    rocmPackages.hipblas
-    vaapiVdpau
-    libvdpau-va-gl
-  ];
-  environment.variables = {
-    ROC_ENABLE_PRE_VEGA = "1";
-    LIBVA_DRIVER_NAME = "iHD";
-  };
-  systemd.tmpfiles.rules = let
-    rocmEnv = pkgs.symlinkJoin {
-      name = "rocm-combined";
-      paths = with pkgs.rocmPackages; [ rocblas hipblas clr ];
-    };
-  in [ "L+    /opt/rocm   -    -    -     -    ${rocmEnv}" ];
-  hardware.amdgpu = {
-    opencl.enable = true;
-    legacySupport.enable = true;
-    initrd.enable = true;
-  };
-  boot.kernelParams = [
-    "i915.force_probe=46a8"
   ];
 EOF
     fi
@@ -1838,7 +1626,6 @@ EOF
   powerManagement.enable = true;
   services.thermald.enable = true;
   services.tlp.enable = false;
-  services.auto-cpufreq.enable = true;
 EOF
     else
         sudo tee -a "$config_file" > /dev/null << EOF
@@ -1872,23 +1659,6 @@ EOF
     KERNEL=="hpet", GROUP="audio"
     DEVPATH=="/devices/virtual/misc/cpu_dma_latency", OWNER="root", GROUP="audio", MODE="0660"
   '';
-  systemd.services.set-min-free-mem = {
-    description = "Set vm.min_free_kbytes dynamically";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "local-fs.target" ];
-    serviceConfig = {
-      User = "root";
-      RemainAfterExit = true;
-    };
-    script = ''
-      TOTAL_MEM=$(awk '/MemTotal/ {printf "%.0f", $2 * 0.01}' /proc/meminfo)
-      if [ -z "$TOTAL_MEM" ] || [ "$TOTAL_MEM" -eq 0 ]; then
-        echo "Failed to calculate memory size" >&2
-        exit 1
-      fi
-      ${pkgs.sysctl}/bin/sysctl -w vm.min_free_kbytes=$TOTAL_MEM
-    '';
-  };
 EOF
     fi
 
@@ -2059,18 +1829,6 @@ EOF
 EOF
     fi
 
-    if echo "$nixpkgs_packages" | grep -q "timeshift"; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  services.timeshift.enable = true;
-EOF
-    fi
-
-    if echo "$nixpkgs_packages" | grep -q "snapper"; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  services.snapper.enable = true;
-EOF
-    fi
-
     sudo tee -a "$config_file" > /dev/null << EOF
   environment.systemPackages = with pkgs; [
     pciutils
@@ -2081,14 +1839,10 @@ EOF
     file
     clinfo
     wayland-utils
-    networkmanagerapplet
-    nmap
-    iw
-    wirelesstools
 EOF
 
     for pkg in $nixpkgs_packages; do
-        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "zerotierone" ] && [ "$pkg" != "dnsmasq" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "wireguard-tools" ] && [ "$pkg" != "cockpit" ] && [ "$pkg" != "openssh" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ] && [ "$pkg" != "zsh" ] && [ "$pkg" != "oh-my-zsh" ] && [ "$pkg" != "timeshift" ] && [ "$pkg" != "snapper" ]; then
+        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "zerotierone" ] && [ "$pkg" != "dnsmasq" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "wireguard-tools" ] && [ "$pkg" != "cockpit" ] && [ "$pkg" != "openssh" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ] && [ "$pkg" != "zsh" ] && [ "$pkg" != "oh-my-zsh" ]; then
             sudo tee -a "$config_file" > /dev/null << EOF
     ${pkg}
 EOF
@@ -2135,31 +1889,6 @@ EOF
     dates = "weekly";
     options = "--delete-older-than 5d";
   };
-  system.autoUpgrade = {
-    enable = true;
-    allowReboot = false;
-  };
-  systemd.services.nixos-flake-update = {
-    description = "Update NixOS flake inputs";
-    serviceConfig = {
-      Type = "oneshot";
-      User = "root";
-      WorkingDirectory = "/etc/nixos";
-      ExecStart = "${pkgs.nixVersions.stable}/bin/nix flake update";
-    };
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
-  };
-  systemd.timers.nixos-flake-update = {
-    description = "Daily NixOS flake update timer";
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnCalendar = "daily";
-      OnBootSec = "15min";
-      Persistent = true;
-      RandomizedDelaySec = "1h";
-    };
-  };
   fonts.packages = with pkgs; [
     nerd-fonts.adwaita-mono
     noto-fonts
@@ -2189,14 +1918,18 @@ generate_flake() {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
-    lanzaboote = {
-      url = "github:nix-community/lanzaboote/v0.4.3";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    nix-flatpak.url = "github:gmodena/nix-flatpak";
+    
+    # Opcionais - Descomente se quiser usar:
+    # lanzaboote = {
+    #   url = "github:nix-community/lanzaboote/v0.4.3";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
+    # nix-flatpak.url = "github:gmodena/nix-flatpak";
+    # preload-ng.url = "github:miguel-b-p/preload-ng";
+    # hyprland.url = "github:hyprwm/Hyprland";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, nix-flatpak, lanzaboote, ... } @ inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, ... } @ inputs:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
@@ -2216,8 +1949,11 @@ generate_flake() {
           system = "x86_64-linux";
           modules = [
             ./configuration.nix
-            nix-flatpak.nixosModules.nix-flatpak
-            lanzaboote.nixosModules.lanzaboote
+            # Descomente os módulos abaixo se tiver descomentado os inputs correspondentes:
+            # nix-flatpak.nixosModules.nix-flatpak
+            # lanzaboote.nixosModules.lanzaboote
+            # preload-ng.nixosModules.default
+            # { services.preload-ng.enable = true; }
           ];
         };
       };
@@ -2225,11 +1961,9 @@ generate_flake() {
   nixConfig = {
     extra-substituters = [
       "https://nixpkgs.cachix.org"
-      "https://hyprland.cachix.org"
     ];
     extra-trusted-public-keys = [
       "nixpkgs.cachix.org-1:q91R6hxbwFvDqTSDKwDAV4T5PxqXGxswD8vhONFMeOE="
-      "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
     ];
   };
 }
