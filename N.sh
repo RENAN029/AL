@@ -24,8 +24,12 @@ select_language() {
         esac
     done
     case $lang_opt in
-        1) echo "pt_BR.UTF-8" > "$STATE_DIR/lang" ;;
-        2) echo "en_US.UTF-8" > "$STATE_DIR/lang" ;;
+        1) 
+            echo "pt_BR.UTF-8" > "$STATE_DIR/lang"
+            ;;
+        2) 
+            echo "en_US.UTF-8" > "$STATE_DIR/lang"
+            ;;
     esac
 }
 
@@ -240,6 +244,10 @@ select_encryption() {
 select_firewall() {
     clear
     echo "=== FIREWALL ==="
+    echo "Habilitar firewall? (recomendado para segurança)"
+    echo "- Com firewall ativado, portas e serviços ficam restritos"
+    echo "- É possível liberar portas específicas depois na configuração"
+    echo
     if confirm "Habilitar firewall?"; then
         echo "true" > "$STATE_DIR/firewall"
     else
@@ -250,6 +258,13 @@ select_firewall() {
 select_recommended_config() {
     clear
     echo "=== CONFIGURAÇÕES RECOMENDADAS / RECOMMENDED SETTINGS ==="
+    echo "Aplicar configurações otimizadas de desempenho e sistema?"
+    echo "- Kernel otimizado (BBR, sysctl, parâmetros)"
+    echo "- earlyOOM para evitar travamentos"
+    echo "- ananicy para priorização de processos"
+    echo "- Gerenciamento de memória otimizado"
+    echo "- Regras udev para dispositivos"
+    echo
     if confirm "Aplicar configurações recomendadas?"; then
         echo "yes" > "$STATE_DIR/recommended"
     else
@@ -1327,15 +1342,6 @@ generate_config() {
     local nixpkgs_packages=$(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')
     local config_file="/mnt/etc/nixos/configuration.nix"
     
-    # Coleta parâmetros do kernel para evitar duplicação
-    kernel_params=()
-    if [ "$recommended" = "yes" ]; then
-        kernel_params+=("quiet" "splash" "transparent_hugepage=always" "preempt=full")
-    fi
-    if [ "$gpu_driver" = "intel-amd" ]; then
-        kernel_params+=("amdgpu.si_support=1" "radeon.si_support=0" "amdgpu.cik_support=1" "radeon.cik_support=0")
-    fi
-    
     if [ "$fs" = "btrfs" ]; then
         local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
         if [ -f "$hw_config" ]; then
@@ -1413,6 +1419,12 @@ EOF
         sudo tee -a "$config_file" > /dev/null << EOF
     loader.timeout = 2;
     kernelModules = [ "tcp_bbr" ];
+    kernelParams = [
+      "quiet"
+      "splash"
+      "transparent_hugepage=always"
+      "preempt=full"
+    ];
     kernel.sysctl = {
       "kernel.split_lock_mitigate" = 0;
       "kernel.nmi_watchdog" = 0;
@@ -1420,13 +1432,6 @@ EOF
       "fs.file-max" = 2097152;
       "net.ipv4.tcp_congestion_control" = "bbr";
     };
-EOF
-    fi
-
-    # Escreve kernelParams se houver parâmetros
-    if [ ${#kernel_params[@]} -gt 0 ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-    kernelParams = [ $(printf '"%s" ' "${kernel_params[@]}") ];
 EOF
     fi
 
@@ -1716,6 +1721,13 @@ EOF
     AMD_VULKAN_ICD = "RADV";
     LIBVA_DRIVER_NAME = "iHD";
   };
+  boot.kernelParams = [
+    "amdgpu.si_support=1"
+    "radeon.si_support=0"
+    "amdgpu.cik_support=1"
+    "radeon.cik_support=0"
+  ];
+  hardware.firmware = [ pkgs.linux-firmware ];
 EOF
     fi
 
@@ -2001,6 +2013,7 @@ EOF
     poppins
   ];
   hardware.enableAllFirmware = true;
+  hardware.firmware = [ pkgs.linux-firmware ];
   system.stateVersion = "25.11";
 }
 EOF
