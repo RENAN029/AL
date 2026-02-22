@@ -24,12 +24,8 @@ select_language() {
         esac
     done
     case $lang_opt in
-        1) 
-            echo "pt_BR.UTF-8" > "$STATE_DIR/lang"
-            ;;
-        2) 
-            echo "en_US.UTF-8" > "$STATE_DIR/lang"
-            ;;
+        1) echo "pt_BR.UTF-8" > "$STATE_DIR/lang" ;;
+        2) echo "en_US.UTF-8" > "$STATE_DIR/lang" ;;
     esac
 }
 
@@ -1352,6 +1348,27 @@ generate_config() {
         fi
     fi
     
+    # Coletar parâmetros do kernel e sysctls para evitar duplicações
+    kernel_params=()
+    kernel_modules=()
+    declare -A sysctl_settings
+
+    if [ "$recommended" = "yes" ]; then
+        kernel_modules+=("tcp_bbr")
+        kernel_params+=("quiet" "splash" "transparent_hugepage=always" "preempt=full")
+        sysctl_settings["kernel.split_lock_mitigate"]="0"
+        sysctl_settings["kernel.nmi_watchdog"]="0"
+        sysctl_settings["net.core.netdev_max_backlog"]="4096"
+        sysctl_settings["fs.file-max"]="2097152"
+        sysctl_settings["net.ipv4.tcp_congestion_control"]="bbr"
+    fi
+
+    if [ "$gpu_driver" = "intel-amd" ]; then
+        kernel_params+=("amdgpu.si_support=1" "radeon.si_support=0" "amdgpu.cik_support=1" "radeon.cik_support=0")
+    fi
+
+    sysctl_settings["vm.swappiness"]="10"
+
     sudo tee "$config_file" > /dev/null << EOF
 { config, pkgs, lib, ... }:
 
@@ -1418,22 +1435,17 @@ EOF
     if [ "$recommended" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
     loader.timeout = 2;
-    kernelModules = [ "tcp_bbr" ];
-    kernelParams = [
-      "quiet"
-      "splash"
-      "transparent_hugepage=always"
-      "preempt=full"
-    ];
-    kernel.sysctl = {
-      "kernel.split_lock_mitigate" = 0;
-      "kernel.nmi_watchdog" = 0;
-      "net.core.netdev_max_backlog" = 4096;
-      "fs.file-max" = 2097152;
-      "net.ipv4.tcp_congestion_control" = "bbr";
-    };
 EOF
     fi
+
+    # Escrever kernelModules, kernelParams e kernel.sysctl de forma combinada
+    sudo tee -a "$config_file" > /dev/null << EOF
+    kernelModules = [ ${kernel_modules[@]} ];
+    kernelParams = [ ${kernel_params[@]} ];
+    kernel.sysctl = {
+$(for key in "${!sysctl_settings[@]}"; do echo "      \"$key\" = ${sysctl_settings[$key]};"; done)
+    };
+EOF
 
     sudo tee -a "$config_file" > /dev/null << EOF
   };
@@ -1721,12 +1733,6 @@ EOF
     AMD_VULKAN_ICD = "RADV";
     LIBVA_DRIVER_NAME = "iHD";
   };
-  boot.kernelParams = [
-    "amdgpu.si_support=1"
-    "radeon.si_support=0"
-    "amdgpu.cik_support=1"
-    "radeon.cik_support=0"
-  ];
   hardware.firmware = [ pkgs.linux-firmware ];
 EOF
     fi
@@ -1785,7 +1791,6 @@ EOF
 
     sudo tee -a "$config_file" > /dev/null << EOF
   zramSwap.enable = true;
-  boot.kernel.sysctl."vm.swappiness" = 10;
   
   users.mutableUsers = false;
   users.users.root.hashedPassword = "!";
@@ -1963,30 +1968,6 @@ EOF
         fi
     done
 
-    case $desktop in
-        gnome)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-        plasma)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-        cosmic)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-        hyprland)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-    esac
-
-    if [ "$recommended" = "yes" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-    fi
-
     sudo tee -a "$config_file" > /dev/null << EOF
   ];
   nix.settings = {
@@ -2075,7 +2056,7 @@ generate_flake() {
       "https://hyprland.cachix.org"
     ];
     extra-trusted-public-keys = [
-      "nixpkgs.cachix.org-1:q91R6hxbwFvDqTSDKwDAV4T5PxqXGxswD8vhONFMeOE="
+      "nixpkgs.cachix.org-1:q91R6hxbwFvDqTSDKWDAV4T5PxqXGxswD8vhONFMeOE="
       "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
     ];
   };
