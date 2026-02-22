@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-
+ 
 [ ! -f /etc/arch-release ] && { echo "Apenas Arch Linux é suportado."; exit 1; }
 
 STATE_DIR="$HOME/.config/arch_scripts"
