@@ -1174,6 +1174,11 @@ partition_disk() {
         sudo cryptsetup open ${disk}2 cryptroot
         local uuid=$(sudo blkid -s UUID -o value ${disk}2)
         echo "$uuid" > "$STATE_DIR/luks_uuid"
+        
+        # Adicionar módulos de aceleração AES ao initrd
+        echo "aesni_intel" >> "$STATE_DIR/initrd_modules" 2>/dev/null || echo "aesni_intel" > "$STATE_DIR/initrd_modules"
+        echo "cryptd" >> "$STATE_DIR/initrd_modules" 2>/dev/null || true
+        
         if [ "$fs" = "btrfs" ]; then
             sudo mkfs.btrfs -f /dev/mapper/cryptroot
         else
@@ -1332,6 +1337,7 @@ generate_config() {
     local disk=$(cat "$STATE_DIR/disk")
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
+    local initrd_modules=$(cat "$STATE_DIR/initrd_modules" 2>/dev/null || echo "")
     local recommended=$(cat "$STATE_DIR/recommended")
     local flatpak_packages=$(cat "$STATE_DIR/packages" 2>/dev/null | tr '\n' ' ')
     local nixpkgs_packages=$(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')
@@ -1398,6 +1404,18 @@ EOF
 EOF
     fi
 
+    if [ "$encryption" = "yes" ] && [ -n "$luks_uuid" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+    initrd = {
+      luks.devices."cryptroot" = {
+        device = "/dev/disk/by-uuid/$luks_uuid";
+        preLVM = true;
+      };
+      availableKernelModules = [ "aesni_intel" "cryptd" ];
+    };
+EOF
+    fi
+
     if [ "$recommended" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
     loader.timeout = 2;
@@ -1423,17 +1441,17 @@ EOF
   networking.hostName = "$hostname";
   networking.networkmanager.enable = true;
   networking.wireless.iwd.enable = true;
-  networking.firewall.enable = $firewall;
-EOF
-
-    if [ "$firewall" = "true" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  networking.firewall.allowedTCPPorts = [ 53317 1714 1715 1716 1717 1718 1719 1720 1721 1722 1723 1724 1725 1726 1727 1728 1729 1730 1731 1732 1733 1734 1735 1736 1737 1738 1739 1740 1741 1742 1743 1744 1745 1746 1747 1748 1749 1750 1751 1752 1753 1754 1755 1756 1757 1758 1759 1760 1761 1762 1763 1764 ];
-  networking.firewall.allowedUDPPorts = [ 53317 1714 1715 1716 1717 1718 1719 1720 1721 1722 1723 1724 1725 1726 1727 1728 1729 1730 1731 1732 1733 1734 1735 1736 1737 1738 1739 1740 1741 1742 1743 1744 1745 1746 1747 1748 1749 1750 1751 1752 1753 1754 1755 1756 1757 1758 1759 1760 1761 1762 1763 1764 ];
-EOF
-    fi
-
-    sudo tee -a "$config_file" > /dev/null << EOF
+  networking.firewall = {
+    enable = $firewall;
+    allowedTCPPorts = [ 53317 ];
+    allowedUDPPorts = [ 53317 ];
+    allowedUDPPortRanges = [
+      { from = 1714; to = 1764; }
+    ];
+    allowedTCPPortRanges = [
+      { from = 1714; to = 1764; }
+    ];
+  };
   time.timeZone = "$timezone";
   i18n.defaultLocale = "$lang";
 EOF
@@ -1547,19 +1565,25 @@ EOF
     };
   };
   services.blueman.enable = true;
-  hardware.enableAllFirmware = true;
 EOF
     fi
 
     if [ "$cups" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  services.printing = {
-    enable = true;
-    drivers = with pkgs; [ cups-filters cups-browsed gutenprint hplip ];
-  };
   services.avahi = {
     enable = true;
     nssmdns4 = true;
+    openFirewall = true;
+    publish = {
+      enable = true;
+      userServices = true;
+    };
+  };
+  services.printing = {
+    enable = true;
+    drivers = with pkgs; [ gutenprint cups-filters cups-browsed ];
+    browsing = true;
+    defaultShared = true;
     openFirewall = true;
   };
 EOF
@@ -1674,16 +1698,6 @@ EOF
     }
   ];
 EOF
-
-    if [ "$encryption" = "yes" ] && [ -n "$luks_uuid" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-  boot.initrd.luks.devices."cryptroot" = {
-    device = "/dev/disk/by-uuid/$luks_uuid";
-    preLVM = true;
-  };
-  boot.initrd.availableKernelModules = [ "aesni_intel" "cryptd" ];
-EOF
-    fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
   services.flatpak.enable = true;
