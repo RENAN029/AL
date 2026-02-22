@@ -262,7 +262,6 @@ select_recommended_config() {
     echo "- Kernel otimizado (BBR, sysctl, parâmetros)"
     echo "- earlyOOM para evitar travamentos"
     echo "- ananicy para priorização de processos"
-    echo "- zram para compressão de memória"
     echo "- Gerenciamento de memória otimizado"
     echo "- Regras udev para dispositivos"
     echo
@@ -1229,10 +1228,10 @@ setup_btrfs_subvolumes() {
     
     sudo umount /mnt
     
-    echo "Montando subvolumes com compressão zstd..."
-    sudo mount -o compress=zstd,subvol=@ $root_dev /mnt
+    echo "Montando subvolumes com compressão zstd e noatime..."
+    sudo mount -o compress=zstd,noatime,subvol=@ $root_dev /mnt
     sudo mkdir -p /mnt/{home,nix}
-    sudo mount -o compress=zstd,subvol=@home $root_dev /mnt/home
+    sudo mount -o compress=zstd,noatime,subvol=@home $root_dev /mnt/home
     sudo mount -o compress=zstd,noatime,subvol=@nix $root_dev /mnt/nix
 }
 
@@ -1261,8 +1260,8 @@ mount_partitions() {
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
-            echo "Montando partição ext4..."
-            sudo mount /dev/disk/by-label/NIXROOT /mnt
+            echo "Montando partição ext4 com noatime..."
+            sudo mount -o noatime /dev/disk/by-label/NIXROOT /mnt
         fi
     fi
     
@@ -1347,8 +1346,8 @@ generate_config() {
         local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
         if [ -f "$hw_config" ]; then
             sudo cp "$hw_config" "${hw_config}.backup"
-            sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
-            sudo sed -i '/fileSystems."\/home".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd"|' "$hw_config"
+            sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
+            sudo sed -i '/fileSystems."\/home".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
             sudo sed -i '/fileSystems."\/nix".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
         fi
     fi
@@ -1440,7 +1439,19 @@ EOF
   };
   networking.hostName = "$hostname";
   networking.networkmanager.enable = true;
+  networking.networkmanager.wifi.backend = "iwd";
   networking.wireless.iwd.enable = true;
+  networking.wireless.iwd.settings = {
+    Network = {
+      EnableIPv6 = true;
+    };
+    Settings = {
+      AutoConnect = true;
+    };
+    General = {
+      ControlPortOverNL80211 = false;
+    };
+  };
   networking.firewall = {
     enable = $firewall;
     allowedTCPPorts = [ 53317 ];
@@ -1452,7 +1463,14 @@ EOF
       { from = 1714; to = 1764; }
     ];
   };
+  networking.timeServers = [
+    "0.pool.ntp.org"
+    "1.pool.ntp.org"
+    "2.pool.ntp.org"
+    "3.pool.ntp.org"
+  ];
   time.timeZone = "$timezone";
+  services.ntp.enable = true;
   i18n.defaultLocale = "$lang";
 EOF
 
@@ -1570,6 +1588,56 @@ EOF
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
+    wireplumber.enable = true;
+    extraConfig = {
+      pipewire."92-low-latency" = {
+        "context.properties" = {
+          "default.clock.rate" = 48000;
+          "default.clock.quantum" = 32;
+          "default.clock.min-quantum" = 32;
+          "default.clock.max-quantum" = 32;
+        };
+      };
+      pipewire-pulse."92-low-latency" = {
+        "context.properties" = [
+          { name = "libpipewire-module-protocol-pulse"; args = { }; }
+        ];
+        "pulse.properties" = {
+          "pulse.min.req" = "32/48000";
+          "pulse.default.req" = "32/48000";
+          "pulse.max.req" = "32/48000";
+          "pulse.min.quantum" = "32/48000";
+          "pulse.max.quantum" = "32/48000";
+        };
+        "stream.properties" = {
+          "node.latency" = "32/48000";
+          "resample.quality" = 1;
+        };
+      };
+    };
+    wireplumber.extraConfig."10-bluez" = {
+      "monitor.bluez.properties" = {
+        "bluez5.enable-sbc-xq" = true;
+        "bluez5.enable-msbc" = true;
+        "bluez5.enable-hw-volume" = true;
+        "bluez5.roles" = [ "hsp_hs" "hsp_ag" "hfp_hf" "hfp_ag" ];
+      };
+    };
+    wireplumber.extraConfig."99-disable-suspend" = {
+      "monitor.alsa.rules" = [
+        {
+          matches = [
+            { "node.name" = "~alsa_input.*"; }
+            { "node.name" = "~alsa_output.*"; }
+          ];
+          actions = {
+            update-props = {
+              "session.suspend-timeout-seconds" = 0;
+            };
+          };
+        }
+      ];
+    };
   };
 EOF
 
@@ -1610,7 +1678,10 @@ EOF
 
     if [ "$trim" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  services.fstrim.enable = true;
+  services.fstrim = {
+    enable = true;
+    interval = "weekly";
+  };
 EOF
     fi
 
@@ -1878,6 +1949,10 @@ EOF
     file
     clinfo
     wayland-utils
+    pavucontrol
+    pwvucontrol
+    libsForQt5.qt5ct
+    libsForQt5.qtstyleplugin-kvantum
 EOF
 
     for pkg in $nixpkgs_packages; do
@@ -1957,18 +2032,16 @@ generate_flake() {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
-    
-    # Opcionais - Descomente se quiser usar:
-    # lanzaboote = {
-    #   url = "github:nix-community/lanzaboote/v0.4.3";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
-    # nix-flatpak.url = "github:gmodena/nix-flatpak";
-    # preload-ng.url = "github:miguel-b-p/preload-ng";
-    # hyprland.url = "github:hyprwm/Hyprland";
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote/v0.4.3";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-flatpak.url = "github:gmodena/nix-flatpak";
+    preload-ng.url = "github:miguel-b-p/preload-ng";
+    hyprland.url = "github:hyprwm/Hyprland";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, ... } @ inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, lanzaboote, nix-flatpak, preload-ng, hyprland, ... } @ inputs:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
@@ -1988,11 +2061,10 @@ generate_flake() {
           system = "x86_64-linux";
           modules = [
             ./configuration.nix
-            # Descomente os módulos abaixo se tiver descomentado os inputs correspondentes:
-            # nix-flatpak.nixosModules.nix-flatpak
-            # lanzaboote.nixosModules.lanzaboote
-            # preload-ng.nixosModules.default
-            # { services.preload-ng.enable = true; }
+            lanzaboote.nixosModules.lanzaboote
+            nix-flatpak.nixosModules.nix-flatpak
+            preload-ng.nixosModules.default
+            { services.preload-ng.enable = true; }
           ];
         };
       };
@@ -2000,9 +2072,11 @@ generate_flake() {
   nixConfig = {
     extra-substituters = [
       "https://nixpkgs.cachix.org"
+      "https://hyprland.cachix.org"
     ];
     extra-trusted-public-keys = [
       "nixpkgs.cachix.org-1:q91R6hxbwFvDqTSDKwDAV4T5PxqXGxswD8vhONFMeOE="
+      "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
     ];
   };
 }
@@ -2016,19 +2090,8 @@ EOF
     echo "PARA ATIVAR O FLAKE APÓS A INSTALAÇÃO:"
     echo
     echo "1. Após reiniciar, edite o arquivo /etc/nixos/flake.nix"
-    echo "   e descomente as linhas dos inputs e módulos que deseja usar"
-    echo
-    echo "2. No arquivo /etc/nixos/configuration.nix, descomente as linhas"
-    echo "   relacionadas aos módulos que você ativou no flake.nix"
-    echo
-    echo "3. Execute para ativar:"
+    echo "2. Execute para ativar:"
     echo "   sudo nixos-rebuild switch --flake /etc/nixos#$hostname"
-    echo
-    echo "4. Para atualizar as entradas do flake:"
-    echo "   sudo nix flake update --flake /etc/nixos"
-    echo
-    echo "NOTA: Os experimental-features 'nix-command' e 'flakes'"
-    echo "já estão habilitados no configuration.nix gerado."
     echo "============================================="
 }
 
