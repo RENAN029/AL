@@ -1338,15 +1338,25 @@ generate_config() {
     local nixpkgs_packages=$(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')
     local config_file="/mnt/etc/nixos/configuration.nix"
     
-    # Construir lista de parâmetros do kernel
-    local kernel_params=()
+    if [ "$fs" = "btrfs" ]; then
+        local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
+        if [ -f "$hw_config" ]; then
+            sudo cp "$hw_config" "${hw_config}.backup"
+            sudo sed -i '/fileSystems."\/".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
+            sudo sed -i '/fileSystems."\/home".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
+            sudo sed -i '/fileSystems."\/nix".* = {/,/}/ s|\(options = \[\)|\1 "compress=zstd" "noatime"|' "$hw_config"
+        fi
+    fi
+    
+    # Coletar parâmetros de kernel para evitar duplicação
+    kernel_params=()
     if [ "$recommended" = "yes" ]; then
         kernel_params+=("quiet" "splash" "transparent_hugepage=always" "preempt=full")
     fi
     if [ "$gpu_driver" = "intel-amd" ]; then
         kernel_params+=("amdgpu.si_support=1" "radeon.si_support=0" "amdgpu.cik_support=1" "radeon.cik_support=0")
     fi
-    
+
     sudo tee "$config_file" > /dev/null << EOF
 { config, pkgs, lib, ... }:
 
@@ -1398,20 +1408,6 @@ EOF
 EOF
     fi
 
-    if [ ${#kernel_params[@]} -gt 0 ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-    kernelParams = [
-EOF
-        for param in "${kernel_params[@]}"; do
-            sudo tee -a "$config_file" > /dev/null << EOF
-      "$param"
-EOF
-        done
-        sudo tee -a "$config_file" > /dev/null << EOF
-    ];
-EOF
-    fi
-
     if [ "$encryption" = "yes" ] && [ -n "$luks_uuid" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
     initrd = {
@@ -1421,6 +1417,13 @@ EOF
       };
       availableKernelModules = [ "aesni_intel" "cryptd" ];
     };
+EOF
+    fi
+
+    # Escrever kernelParams uma única vez
+    if [ ${#kernel_params[@]} -gt 0 ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+    kernelParams = [ $(printf '"%s" ' "${kernel_params[@]}") ];
 EOF
     fi
 
@@ -1724,7 +1727,6 @@ EOF
     AMD_VULKAN_ICD = "RADV";
     LIBVA_DRIVER_NAME = "iHD";
   };
-  hardware.firmware = [ pkgs.linux-firmware ];
 EOF
     fi
 
@@ -1986,7 +1988,6 @@ EOF
     poppins
   ];
   hardware.enableAllFirmware = true;
-  hardware.firmware = [ pkgs.linux-firmware ];
   system.stateVersion = "25.11";
 }
 EOF
