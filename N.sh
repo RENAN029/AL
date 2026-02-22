@@ -240,7 +240,6 @@ select_encryption() {
 select_firewall() {
     clear
     echo "=== FIREWALL ==="
-    echo "Habilitar firewall? (recomendado para segurança)"
     if confirm "Habilitar firewall?"; then
         echo "true" > "$STATE_DIR/firewall"
     else
@@ -251,7 +250,6 @@ select_firewall() {
 select_recommended_config() {
     clear
     echo "=== CONFIGURAÇÕES RECOMENDADAS / RECOMMENDED SETTINGS ==="
-    echo "Aplicar configurações otimizadas de desempenho e sistema?"
     if confirm "Aplicar configurações recomendadas?"; then
         echo "yes" > "$STATE_DIR/recommended"
     else
@@ -286,10 +284,12 @@ toggle_all_packages() {
                         14) pkg="org.darktable.Darktable"; type="flatpak" ;;
                         15) pkg="org.stellarium.Stellarium"; type="flatpak" ;;
                     esac
+                    
                     if [ "$type" = "flatpak" ] && ! grep -q "$pkg" "$packages_file" 2>/dev/null; then
                         echo "$pkg" >> "$packages_file"
                     fi
                 done
+                
                 for num in {16..30}; do
                     case $num in
                         16) pkg="vim"; type="nixpkgs" ;;
@@ -308,6 +308,7 @@ toggle_all_packages() {
                         29) pkg="fzf"; type="nixpkgs" ;;
                         30) pkg="zoxide"; type="nixpkgs" ;;
                     esac
+                    
                     if [ "$type" = "nixpkgs" ] && ! grep -q "$pkg" "$nixpkgs_file" 2>/dev/null; then
                         echo "$pkg" >> "$nixpkgs_file"
                     fi
@@ -332,10 +333,12 @@ toggle_all_packages() {
                         14) pkg="app.zen_browser.zen"; type="flatpak" ;;
                         15) pkg="com.bitwarden.desktop"; type="flatpak" ;;
                     esac
+                    
                     if [ "$type" = "flatpak" ] && ! grep -q "$pkg" "$packages_file" 2>/dev/null; then
                         echo "$pkg" >> "$packages_file"
                     fi
                 done
+                
                 for num in {16..30}; do
                     case $num in
                         16) pkg="fish"; type="nixpkgs" ;;
@@ -354,6 +357,7 @@ toggle_all_packages() {
                         29) pkg="mangohud"; type="nixpkgs" ;;
                         30) pkg="goverlay"; type="nixpkgs" ;;
                     esac
+                    
                     if [ "$type" = "nixpkgs" ] && ! grep -q "$pkg" "$nixpkgs_file" 2>/dev/null; then
                         echo "$pkg" >> "$nixpkgs_file"
                     fi
@@ -378,10 +382,12 @@ toggle_all_packages() {
                         14) pkg="com.google.AndroidStudio"; type="flatpak" ;;
                         15) pkg="com.termius.Termius"; type="flatpak" ;;
                     esac
+                    
                     if [ "$type" = "flatpak" ] && ! grep -q "$pkg" "$packages_file" 2>/dev/null; then
                         echo "$pkg" >> "$packages_file"
                     fi
                 done
+                
                 for num in {16..30}; do
                     case $num in
                         16) pkg="ollama"; type="nixpkgs" ;;
@@ -400,6 +406,7 @@ toggle_all_packages() {
                         29) pkg="f3"; type="nixpkgs" ;;
                         30) pkg="rustup"; type="nixpkgs" ;;
                     esac
+                    
                     if [ "$type" = "nixpkgs" ] && ! grep -q "$pkg" "$nixpkgs_file" 2>/dev/null; then
                         echo "$pkg" >> "$nixpkgs_file"
                     fi
@@ -424,15 +431,17 @@ toggle_all_packages() {
                         14) pkg="io.github.unknownskl.greenlight"; type="flatpak" ;;
                         15) pkg="io.github.wivrn.wivrn"; type="flatpak" ;;
                     esac
+                    
                     if [ "$type" = "flatpak" ] && ! grep -q "$pkg" "$packages_file" 2>/dev/null; then
                         echo "$pkg" >> "$packages_file"
                     fi
                 done
+                
                 for num in {16..30}; do
                     case $num in
                         16) pkg="waydroid"; type="nixpkgs" ;;
-                        17) pkg="wine"; type="nixpkgs" ;;       # corrigido: winboat -> wine
-                        18) pkg="ryujinx"; type="nixpkgs" ;;   # corrigido: ryubing -> ryujinx
+                        17) pkg="winboat"; type="nixpkgs" ;;
+                        18) pkg="ryubing"; type="nixpkgs" ;;
                         19) pkg="yt-dlp"; type="nixpkgs" ;;
                         20) pkg="aria2"; type="nixpkgs" ;;
                         21) pkg="ffmpegthumbnailer"; type="nixpkgs" ;;
@@ -446,6 +455,7 @@ toggle_all_packages() {
                         29) pkg="unrar"; type="nixpkgs" ;;
                         30) pkg="unar"; type="nixpkgs" ;;
                     esac
+                    
                     if [ "$type" = "nixpkgs" ] && ! grep -q "$pkg" "$nixpkgs_file" 2>/dev/null; then
                         echo "$pkg" >> "$nixpkgs_file"
                     fi
@@ -464,9 +474,12 @@ select_packages_page1() {
         echo "=== SELEÇÃO DE PACOTES - PÁGINA 1/4 ==="
         echo "Digite o número do pacote para marcar/desmarcar, N próxima, T selecionar todos, 0 continuar"
         echo "================================================================================"
+        echo
+        
         local i=1
         local flatpak_selected=$(cat "$packages_file" 2>/dev/null || echo "")
         local nixpkgs_selected=$(cat "$nixpkgs_file" 2>/dev/null || echo "")
+        
         echo "Pacotes Flatpak (15):"
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.mozilla.firefox"; then echo "[X]"; else echo "[ ]"; fi) Firefox (Navegador web)"
         i=$((i+1))
@@ -498,6 +511,7 @@ select_packages_page1() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.stellarium.Stellarium"; then echo "[X]"; else echo "[ ]"; fi) Stellarium (Planetário)"
         i=$((i+1))
+        
         echo
         echo "Pacotes Nixpkgs (15):"
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "vim"; then echo "[X]"; else echo "[ ]"; fi) Vim (Editor de texto)"
@@ -530,8 +544,10 @@ select_packages_page1() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "zoxide"; then echo "[X]"; else echo "[ ]"; fi) Zoxide (Navegação por diretórios)"
         i=$((i+1))
+        
         echo
         read -p "Opção: " choice
+        
         if [ "$choice" = "0" ]; then
             return 0
         elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
@@ -573,7 +589,9 @@ select_packages_page1() {
                 30) pkg="zoxide"; type="nixpkgs" ;;
                 *) continue ;;
             esac
+            
             local temp_file=$(mktemp)
+            
             if [ "$type" = "flatpak" ]; then
                 if cat "$packages_file" 2>/dev/null | grep -q "$pkg"; then
                     grep -v "$pkg" "$packages_file" 2>/dev/null > "$temp_file" || true
@@ -603,9 +621,12 @@ select_packages_page2() {
         echo "=== SELEÇÃO DE PACOTES - PÁGINA 2/4 ==="
         echo "Digite o número do pacote para marcar/desmarcar, P anterior, N próxima, T selecionar todos, 0 continuar"
         echo "================================================================================"
+        echo
+        
         local i=1
         local flatpak_selected=$(cat "$packages_file" 2>/dev/null || echo "")
         local nixpkgs_selected=$(cat "$nixpkgs_file" 2>/dev/null || echo "")
+        
         echo "Pacotes Flatpak (15):"
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.telegram.desktop"; then echo "[X]"; else echo "[ ]"; fi) Telegram (Mensageiro)"
         i=$((i+1))
@@ -637,6 +658,7 @@ select_packages_page2() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.bitwarden.desktop"; then echo "[X]"; else echo "[ ]"; fi) Bitwarden (Gerenciador de senhas)"
         i=$((i+1))
+        
         echo
         echo "Pacotes Nixpkgs (15):"
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "fish"; then echo "[X]"; else echo "[ ]"; fi) Fish (Shell)"
@@ -669,8 +691,10 @@ select_packages_page2() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "goverlay"; then echo "[X]"; else echo "[ ]"; fi) GOverlay (Configuração do MangoHud)"
         i=$((i+1))
+        
         echo
         read -p "Opção: " choice
+        
         if [ "$choice" = "0" ]; then
             return 0
         elif [ "$choice" = "P" ] || [ "$choice" = "p" ]; then
@@ -715,7 +739,9 @@ select_packages_page2() {
                 30) pkg="goverlay"; type="nixpkgs" ;;
                 *) continue ;;
             esac
+            
             local temp_file=$(mktemp)
+            
             if [ "$type" = "flatpak" ]; then
                 if cat "$packages_file" 2>/dev/null | grep -q "$pkg"; then
                     grep -v "$pkg" "$packages_file" 2>/dev/null > "$temp_file" || true
@@ -745,9 +771,12 @@ select_packages_page3() {
         echo "=== SELEÇÃO DE PACOTES - PÁGINA 3/4 ==="
         echo "Digite o número do pacote para marcar/desmarcar, P anterior, N próxima, T selecionar todos, 0 continuar"
         echo "================================================================================"
+        echo
+        
         local i=1
         local flatpak_selected=$(cat "$packages_file" 2>/dev/null || echo "")
         local nixpkgs_selected=$(cat "$nixpkgs_file" 2>/dev/null || echo "")
+        
         echo "Pacotes Flatpak (15):"
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.gnome.Boxes"; then echo "[X]"; else echo "[ ]"; fi) GNOME Boxes (Virtualização)"
         i=$((i+1))
@@ -779,6 +808,7 @@ select_packages_page3() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "com.termius.Termius"; then echo "[X]"; else echo "[ ]"; fi) Termius (Cliente SSH)"
         i=$((i+1))
+        
         echo
         echo "Pacotes Nixpkgs (15):"
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ollama"; then echo "[X]"; else echo "[ ]"; fi) Ollama (Execução de modelos LLM)"
@@ -811,8 +841,10 @@ select_packages_page3() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "rustup"; then echo "[X]"; else echo "[ ]"; fi) Rustup (Gerenciador Rust)"
         i=$((i+1))
+        
         echo
         read -p "Opção: " choice
+        
         if [ "$choice" = "0" ]; then
             return 0
         elif [ "$choice" = "P" ] || [ "$choice" = "p" ]; then
@@ -857,7 +889,9 @@ select_packages_page3() {
                 30) pkg="rustup"; type="nixpkgs" ;;
                 *) continue ;;
             esac
+            
             local temp_file=$(mktemp)
+            
             if [ "$type" = "flatpak" ]; then
                 if cat "$packages_file" 2>/dev/null | grep -q "$pkg"; then
                     grep -v "$pkg" "$packages_file" 2>/dev/null > "$temp_file" || true
@@ -887,9 +921,12 @@ select_packages_page4() {
         echo "=== SELEÇÃO DE PACOTES - PÁGINA 4/4 ==="
         echo "Digite o número do pacote para marcar/desmarcar, P anterior, T selecionar todos, 0 continuar"
         echo "================================================================================"
+        echo
+        
         local i=1
         local flatpak_selected=$(cat "$packages_file" 2>/dev/null || echo "")
         local nixpkgs_selected=$(cat "$nixpkgs_file" 2>/dev/null || echo "")
+        
         echo "Pacotes Flatpak (15):"
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "org.kde.kalendar"; then echo "[X]"; else echo "[ ]"; fi) Kalendar (Calendário)"
         i=$((i+1))
@@ -921,13 +958,14 @@ select_packages_page4() {
         i=$((i+1))
         echo "  $i) $(if echo "$flatpak_selected" | grep -q "io.github.wivrn.wivrn"; then echo "[X]"; else echo "[ ]"; fi) WiVRn (Streaming VR)"
         i=$((i+1))
+        
         echo
         echo "Pacotes Nixpkgs (15):"
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "waydroid"; then echo "[X]"; else echo "[ ]"; fi) Waydroid (Android em Wayland)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "wine"; then echo "[X]"; else echo "[ ]"; fi) Wine (Camada de compatibilidade Windows)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "winboat"; then echo "[X]"; else echo "[ ]"; fi) Winboat (Gerenciador de Wine)"
         i=$((i+1))
-        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ryujinx"; then echo "[X]"; else echo "[ ]"; fi) Ryujinx (Emulador de Switch)"
+        echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "ryubing"; then echo "[X]"; else echo "[ ]"; fi) Ryubing (Emulador de Switch)"
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "yt-dlp"; then echo "[X]"; else echo "[ ]"; fi) yt-dlp (Download de vídeos)"
         i=$((i+1))
@@ -953,8 +991,10 @@ select_packages_page4() {
         i=$((i+1))
         echo "  $i) $(if echo "$nixpkgs_selected" | grep -q "unar"; then echo "[X]"; else echo "[ ]"; fi) Unar (Extrator universal)"
         i=$((i+1))
+        
         echo
         read -p "Opção: " choice
+        
         if [ "$choice" = "0" ]; then
             return 0
         elif [ "$choice" = "P" ] || [ "$choice" = "p" ]; then
@@ -986,8 +1026,8 @@ select_packages_page4() {
                 local nix_index=$((choice - total_flatpak))
                 case $nix_index in
                     1) pkg="waydroid"; type="nixpkgs" ;;
-                    2) pkg="wine"; type="nixpkgs" ;;
-                    3) pkg="ryujinx"; type="nixpkgs" ;;
+                    2) pkg="winboat"; type="nixpkgs" ;;
+                    3) pkg="ryubing"; type="nixpkgs" ;;
                     4) pkg="yt-dlp"; type="nixpkgs" ;;
                     5) pkg="aria2"; type="nixpkgs" ;;
                     6) pkg="ffmpegthumbnailer"; type="nixpkgs" ;;
@@ -1002,7 +1042,9 @@ select_packages_page4() {
                     15) pkg="unar"; type="nixpkgs" ;;
                 esac
             fi
+            
             local temp_file=$(mktemp)
+            
             if [ "$type" = "flatpak" ]; then
                 if cat "$packages_file" 2>/dev/null | grep -q "$pkg"; then
                     grep -v "$pkg" "$packages_file" 2>/dev/null > "$temp_file" || true
@@ -1117,6 +1159,7 @@ partition_disk() {
         sudo cryptsetup open ${disk}2 cryptroot
         local uuid=$(sudo blkid -s UUID -o value ${disk}2)
         echo "$uuid" > "$STATE_DIR/luks_uuid"
+        
         echo "aesni_intel" >> "$STATE_DIR/initrd_modules" 2>/dev/null || echo "aesni_intel" > "$STATE_DIR/initrd_modules"
         echo "cryptd" >> "$STATE_DIR/initrd_modules" 2>/dev/null || true
         
@@ -1283,14 +1326,14 @@ generate_config() {
     local flatpak_packages=$(cat "$STATE_DIR/packages" 2>/dev/null | tr '\n' ' ')
     local nixpkgs_packages=$(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')
     local config_file="/mnt/etc/nixos/configuration.nix"
-
-    # Coleta de parâmetros do kernel para evitar duplicação
-    local kernelParamsList=()
+    
+    # Coleta parâmetros do kernel para evitar duplicação
+    kernel_params=()
     if [ "$recommended" = "yes" ]; then
-        kernelParamsList+=("quiet" "splash" "transparent_hugepage=always" "preempt=full")
+        kernel_params+=("quiet" "splash" "transparent_hugepage=always" "preempt=full")
     fi
     if [ "$gpu_driver" = "intel-amd" ]; then
-        kernelParamsList+=("amdgpu.si_support=1" "radeon.si_support=0" "amdgpu.cik_support=1" "radeon.cik_support=0")
+        kernel_params+=("amdgpu.si_support=1" "radeon.si_support=0" "amdgpu.cik_support=1" "radeon.cik_support=0")
     fi
     
     if [ "$fs" = "btrfs" ]; then
@@ -1310,7 +1353,9 @@ generate_config() {
   imports = [ ./hardware-configuration.nix ];
 
   nixpkgs.config.allowUnfree = true;
+EOF
 
+    sudo tee -a "$config_file" > /dev/null << EOF
   boot = {
     loader = {
 EOF
@@ -1352,18 +1397,15 @@ EOF
 EOF
     fi
 
-    # Kernel parameters (definidos uma única vez)
-    if [ ${#kernelParamsList[@]} -gt 0 ]; then
+    if [ "$encryption" = "yes" ] && [ -n "$luks_uuid" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-    kernelParams = [
-EOF
-        for param in "${kernelParamsList[@]}"; do
-            sudo tee -a "$config_file" > /dev/null << EOF
-      "$param"
-EOF
-        done
-        sudo tee -a "$config_file" > /dev/null << EOF
-    ];
+    initrd = {
+      luks.devices."cryptroot" = {
+        device = "/dev/disk/by-uuid/$luks_uuid";
+        preLVM = true;
+      };
+      availableKernelModules = [ "aesni_intel" "cryptd" ];
+    };
 EOF
     fi
 
@@ -1381,15 +1423,10 @@ EOF
 EOF
     fi
 
-    if [ "$encryption" = "yes" ] && [ -n "$luks_uuid" ]; then
+    # Escreve kernelParams se houver parâmetros
+    if [ ${#kernel_params[@]} -gt 0 ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-    initrd = {
-      luks.devices."cryptroot" = {
-        device = "/dev/disk/by-uuid/$luks_uuid";
-        preLVM = true;
-      };
-      availableKernelModules = [ "aesni_intel" "cryptd" ];
-    };
+    kernelParams = [ $(printf '"%s" ' "${kernel_params[@]}") ];
 EOF
     fi
 
@@ -1400,19 +1437,32 @@ EOF
   networking.networkmanager.wifi.backend = "iwd";
   networking.wireless.iwd.enable = true;
   networking.wireless.iwd.settings = {
-    Network = { EnableIPv6 = true; };
-    Settings = { AutoConnect = true; };
-    General = { ControlPortOverNL80211 = false; };
+    Network = {
+      EnableIPv6 = true;
+    };
+    Settings = {
+      AutoConnect = true;
+    };
+    General = {
+      ControlPortOverNL80211 = false;
+    };
   };
   networking.firewall = {
     enable = $firewall;
     allowedTCPPorts = [ 53317 ];
     allowedUDPPorts = [ 53317 ];
-    allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
-    allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];
+    allowedUDPPortRanges = [
+      { from = 1714; to = 1764; }
+    ];
+    allowedTCPPortRanges = [
+      { from = 1714; to = 1764; }
+    ];
   };
   networking.timeServers = [
-    "0.pool.ntp.org" "1.pool.ntp.org" "2.pool.ntp.org" "3.pool.ntp.org"
+    "0.pool.ntp.org"
+    "1.pool.ntp.org"
+    "2.pool.ntp.org"
+    "3.pool.ntp.org"
   ];
   time.timeZone = "$timezone";
   services.ntp.enable = true;
@@ -1459,14 +1509,21 @@ EOF
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
   environment.gnome.excludePackages = with pkgs; [
-    totem epiphany geary gnome-music gnome-tour gnome-user-docs
+    totem
+    epiphany
+    geary
+    gnome-music
+    gnome-tour
+    gnome-user-docs
   ];
   programs.dconf.profiles.user.databases = [
     {
       settings = {
         "org/gnome/mutter" = {
           experimental-features = [
-            "scale-monitor-framebuffer" "variable-refresh-rate" "xwayland-native-scaling"
+            "scale-monitor-framebuffer"
+            "variable-refresh-rate"
+            "xwayland-native-scaling"
           ];
         };
       };
@@ -1482,14 +1539,20 @@ EOF
     settings.General.DisplayServer = "wayland";
   };
   services.desktopManager.plasma6.enable = true;
-  environment.plasma6.excludePackages = with pkgs.kdePackages; [ kate plasma-systemmonitor ];
+  environment.plasma6.excludePackages = with pkgs.kdePackages; [
+    kate
+    plasma-systemmonitor
+  ];
 EOF
                 ;;
             cosmic)
                 sudo tee -a "$config_file" > /dev/null << EOF
   services.desktopManager.cosmic.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
-  environment.cosmic.excludePackages = with pkgs; [ cosmic-player cosmic-edit ];
+  environment.cosmic.excludePackages = with pkgs; [
+    cosmic-player
+    cosmic-edit
+  ];
 EOF
                 ;;
             hyprland)
@@ -1531,7 +1594,9 @@ EOF
         };
       };
       pipewire-pulse."92-low-latency" = {
-        "context.properties" = [ { name = "libpipewire-module-protocol-pulse"; args = { }; } ];
+        "context.properties" = [
+          { name = "libpipewire-module-protocol-pulse"; args = { }; }
+        ];
         "pulse.properties" = {
           "pulse.min.req" = "32/48000";
           "pulse.default.req" = "32/48000";
@@ -1556,8 +1621,15 @@ EOF
     wireplumber.extraConfig."99-disable-suspend" = {
       "monitor.alsa.rules" = [
         {
-          matches = [ { "node.name" = "~alsa_input.*"; } { "node.name" = "~alsa_output.*"; } ];
-          actions = { update-props = { "session.suspend-timeout-seconds" = 0; }; };
+          matches = [
+            { "node.name" = "~alsa_input.*"; }
+            { "node.name" = "~alsa_output.*"; }
+          ];
+          actions = {
+            update-props = {
+              "session.suspend-timeout-seconds" = 0;
+            };
+          };
         }
       ];
     };
@@ -1568,7 +1640,11 @@ EOF
         sudo tee -a "$config_file" > /dev/null << EOF
   hardware.bluetooth = {
     enable = true;
-    settings = { General = { Experimental = true; }; };
+    settings = {
+      General = {
+        Experimental = true;
+      };
+    };
   };
   services.blueman.enable = true;
 EOF
@@ -1580,7 +1656,10 @@ EOF
     enable = true;
     nssmdns4 = true;
     openFirewall = true;
-    publish = { enable = true; userServices = true; };
+    publish = {
+      enable = true;
+      userServices = true;
+    };
   };
   services.printing = {
     enable = true;
@@ -1594,7 +1673,10 @@ EOF
 
     if [ "$trim" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  services.fstrim = { enable = true; interval = "weekly"; };
+  services.fstrim = {
+    enable = true;
+    interval = "weekly";
+  };
 EOF
     fi
 
@@ -1619,9 +1701,15 @@ EOF
     elif [ "$gpu_driver" = "intel-amd" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
     extraPackages = with pkgs; [
-      intel-compute-runtime intel-media-driver vpl-gpu-rt amdvlk mesa.opencl
+      intel-compute-runtime
+      intel-media-driver
+      vpl-gpu-rt
+      amdvlk
+      mesa.opencl
     ];
-    extraPackages32 = with pkgs; [ driversi686Linux.amdvlk ];
+    extraPackages32 = with pkgs; [
+      driversi686Linux.amdvlk
+    ];
   };
   services.xserver.videoDrivers = [ "modesetting" ];
   environment.variables = {
@@ -1654,12 +1742,17 @@ EOF
     enable = true;
     freeSwapThreshold = 2;
     freeMemThreshold = 2;
-    extraArgs = [ "-g" "--avoid" "'^(X|plasma.*|konsole|kwin|wayland|gnome.*)$'" ];
+    extraArgs = [
+      "-g" "--avoid" "'^(X|plasma.*|konsole|kwin|wayland|gnome.*)$'"
+    ];
   };
   services.udev.extraRules = ''
-    ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
-    ACTION=="add|change", KERNEL=="sd[a-z]*|mmcblk[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
-    ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="none"
+    ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="1", \
+      ATTR{queue/scheduler}="bfq"
+    ACTION=="add|change", KERNEL=="sd[a-z]*|mmcblk[0-9]*", ATTR{queue/rotational}=="0", \
+      ATTR{queue/scheduler}="mq-deadline"
+    ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/rotational}=="0", \
+      ATTR{queue/scheduler}="none"
     KERNEL=="rtc0", GROUP="audio"
     KERNEL=="hpet", GROUP="audio"
     DEVPATH=="/devices/virtual/misc/cpu_dma_latency", OWNER="root", GROUP="audio", MODE="0660"
@@ -1694,10 +1787,17 @@ EOF
   security.sudo.extraRules = [
     {
       groups = [ "wheel" ];
-      commands = [ { command = "ALL"; options = [ "SETENV" ]; } ];
+      commands = [
+        {
+          command = "ALL";
+          options = [ "SETENV" ];
+        }
+      ];
     }
   ];
+EOF
 
+    sudo tee -a "$config_file" > /dev/null << EOF
   services.flatpak.enable = true;
   systemd.services.flatpak-install = {
     wantedBy = [ "multi-user.target" ];
@@ -1708,110 +1808,172 @@ EOF
       flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 EOF
 
-    for pkg in $flatpak_packages; do
-        if [ -n "$pkg" ]; then
-            sudo tee -a "$config_file" > /dev/null << EOF
+    if [ -n "$flatpak_packages" ]; then
+        for pkg in $flatpak_packages; do
+            if [ -n "$pkg" ]; then
+                sudo tee -a "$config_file" > /dev/null << EOF
       flatpak install --noninteractive -y flathub $pkg
 EOF
-        fi
-    done
+            fi
+        done
+    fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
     '';
   };
 EOF
 
-    # Ativação condicional de serviços baseados em pacotes selecionados
     if echo "$nixpkgs_packages" | grep -q "podman"; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  virtualisation.podman = { enable = true; dockerCompat = false; };
+  virtualisation.podman = {
+    enable = true;
+    dockerCompat = false;
+  };
 EOF
     fi
+
     if echo "$nixpkgs_packages" | grep -q "waydroid"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   virtualisation.waydroid.enable = true;
 EOF
     fi
+
     if echo "$nixpkgs_packages" | grep -q "zerotierone"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.zerotierone.enable = true;
 EOF
     fi
+
     if echo "$nixpkgs_packages" | grep -q "dnsmasq"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.dnsmasq.enable = true;
 EOF
     fi
+
     if echo "$nixpkgs_packages" | grep -q "tailscale"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.tailscale.enable = true;
 EOF
     fi
+
     if echo "$nixpkgs_packages" | grep -q "wireguard-tools"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   networking.wireguard.enable = true;
 EOF
     fi
+
     if echo "$nixpkgs_packages" | grep -q "cockpit"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.cockpit.enable = true;
 EOF
     fi
+
     if echo "$nixpkgs_packages" | grep -q "openssh"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.openssh.enable = true;
 EOF
     fi
+
     if echo "$nixpkgs_packages" | grep -q "forgejo"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   services.forgejo.enable = true;
 EOF
     fi
+
     if echo "$nixpkgs_packages" | grep -q "ollama"; then
         if [ "$gpu_driver" = "nvidia" ]; then
             sudo tee -a "$config_file" > /dev/null << EOF
-  services.ollama = { enable = true; acceleration = "cuda"; };
+  services.ollama = {
+    enable = true;
+    acceleration = "cuda";
+  };
 EOF
         else
             sudo tee -a "$config_file" > /dev/null << EOF
-  services.ollama = { enable = true; };
+  services.ollama = {
+    enable = true;
+  };
 EOF
         fi
     fi
+
     if echo "$nixpkgs_packages" | grep -q "gamemode"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   programs.gamemode.enable = true;
 EOF
     fi
+
     if echo "$nixpkgs_packages" | grep -q "gamescope"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   programs.gamescope.enable = true;
 EOF
     fi
+
     if echo "$nixpkgs_packages" | grep -q "fish"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   programs.fish.enable = true;
 EOF
     fi
+
     if echo "$nixpkgs_packages" | grep -q "zsh"; then
         sudo tee -a "$config_file" > /dev/null << EOF
   programs.zsh.enable = true;
 EOF
     fi
 
+    if echo "$nixpkgs_packages" | grep -q "oh-my-zsh"; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  programs.zsh.ohMyZsh.enable = true;
+EOF
+    fi
+
     sudo tee -a "$config_file" > /dev/null << EOF
   environment.systemPackages = with pkgs; [
-    pciutils usbutils unzip zip openssl file clinfo wayland-utils pavucontrol pwvucontrol
-    libsForQt5.qt5ct libsForQt5.qtstyleplugin-kvantum
+    pciutils
+    usbutils
+    unzip
+    zip
+    openssl
+    file
+    clinfo
+    wayland-utils
+    pavucontrol
+    pwvucontrol
+    libsForQt5.qt5ct
+    libsForQt5.qtstyleplugin-kvantum
 EOF
 
     for pkg in $nixpkgs_packages; do
-        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "zerotierone" ] && [ "$pkg" != "dnsmasq" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "wireguard-tools" ] && [ "$pkg" != "cockpit" ] && [ "$pkg" != "openssh" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ] && [ "$pkg" != "zsh" ]; then
+        if [ -n "$pkg" ] && [ "$pkg" != "podman" ] && [ "$pkg" != "waydroid" ] && [ "$pkg" != "zerotierone" ] && [ "$pkg" != "dnsmasq" ] && [ "$pkg" != "tailscale" ] && [ "$pkg" != "wireguard-tools" ] && [ "$pkg" != "cockpit" ] && [ "$pkg" != "openssh" ] && [ "$pkg" != "forgejo" ] && [ "$pkg" != "ollama" ] && [ "$pkg" != "gamemode" ] && [ "$pkg" != "gamescope" ] && [ "$pkg" != "fish" ] && [ "$pkg" != "zsh" ] && [ "$pkg" != "oh-my-zsh" ]; then
             sudo tee -a "$config_file" > /dev/null << EOF
     ${pkg}
 EOF
         fi
     done
+
+    case $desktop in
+        gnome)
+            sudo tee -a "$config_file" > /dev/null << EOF
+EOF
+            ;;
+        plasma)
+            sudo tee -a "$config_file" > /dev/null << EOF
+EOF
+            ;;
+        cosmic)
+            sudo tee -a "$config_file" > /dev/null << EOF
+EOF
+            ;;
+        hyprland)
+            sudo tee -a "$config_file" > /dev/null << EOF
+EOF
+            ;;
+    esac
+
+    if [ "$recommended" = "yes" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+EOF
+    fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
   ];
@@ -1830,10 +1992,15 @@ EOF
     options = "--delete-older-than 5d";
   };
   fonts.packages = with pkgs; [
-    nerd-fonts.adwaita-mono noto-fonts noto-fonts-cjk-sans noto-fonts-color-emoji
-    liberation_ttf cantarell-fonts poppins
+    nerd-fonts.adwaita-mono
+    noto-fonts
+    noto-fonts-cjk-sans
+    noto-fonts-color-emoji
+    liberation_ttf
+    cantarell-fonts
+    poppins
   ];
-  hardware.firmware = [ pkgs.linux-firmware ];
+  hardware.enableAllFirmware = true;
   system.stateVersion = "25.11";
 }
 EOF
@@ -1875,7 +2042,9 @@ generate_flake() {
     in
       {
         nixosConfigurations.${hostname} = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs unstable; };
+          specialArgs = { 
+            inherit inputs unstable;
+          };
           system = "x86_64-linux";
           modules = [
             ./configuration.nix
