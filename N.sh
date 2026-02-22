@@ -234,12 +234,7 @@ select_ssd_trim() {
 select_encryption() {
     clear
     echo "=== CRIPTOGRAFIA / ENCRYPTION ==="
-    echo "Criptografar o disco com LUKS?"
-    echo "- A partição /boot permanecerá descriptografada"
-    echo "- As partições raiz, home e swap serão criptografadas"
-    echo "- Você precisará digitar a senha toda vez que iniciar o sistema"
-    echo
-    if confirm "Criptografar disco?"; then
+    if confirm "Criptografar disco com LUKS?"; then
         echo "yes" > "$STATE_DIR/encryption"
     else
         echo "no" > "$STATE_DIR/encryption"
@@ -267,6 +262,7 @@ select_recommended_config() {
     echo "- Kernel otimizado (BBR, sysctl, parâmetros)"
     echo "- earlyOOM para evitar travamentos"
     echo "- ananicy para priorização de processos"
+    echo "- Gerenciamento de memória otimizado"
     echo "- Regras udev para dispositivos"
     echo
     if confirm "Aplicar configurações recomendadas?"; then
@@ -1154,7 +1150,6 @@ partition_disk() {
     clear
     echo "=== PARTICIONANDO $disk ==="
     check_existing_partitions
-    
     if [ -d /sys/firmware/efi/efivars ]; then
         echo "UEFI detectado"
         echo "uefi" > "$STATE_DIR/boot_mode"
@@ -1174,26 +1169,11 @@ partition_disk() {
     fi
     
     if [ "$encryption" = "yes" ]; then
-        echo "Configurando criptografia LUKS na partição ${disk}2..."
-        echo "Você definirá uma senha de criptografia na próxima etapa."
-        echo "Guarde esta senha com segurança - sem ela seus dados não poderão ser recuperados!"
-        echo
-        read -p "Pressione Enter para continuar e definir a senha de criptografia..."
-        
-        # Formatar partição com LUKS2
-        sudo cryptsetup luksFormat --type luks2 ${disk}2
-        
-        # Abrir a partição criptografada
+        echo "Configurando criptografia LUKS..."
+        sudo cryptsetup luksFormat ${disk}2
         sudo cryptsetup open ${disk}2 cryptroot
-        
-        # Salvar UUID para configuração
         local uuid=$(sudo blkid -s UUID -o value ${disk}2)
         echo "$uuid" > "$STATE_DIR/luks_uuid"
-        
-        # Módulos de aceleração AES para initrd
-        echo "aesni_intel" > "$STATE_DIR/crypto_modules"
-        echo "cryptd" >> "$STATE_DIR/crypto_modules"
-        
         if [ "$fs" = "btrfs" ]; then
             sudo mkfs.btrfs -f /dev/mapper/cryptroot
         else
@@ -1258,12 +1238,6 @@ mount_partitions() {
     echo "Preparando montagem das partições..."
     
     if [ "$encryption" = "yes" ]; then
-        # Verificar se a partição criptografada já está aberta
-        if [ ! -e /dev/mapper/cryptroot ]; then
-            echo "Abrindo partição criptografada..."
-            sudo cryptsetup open $(cat "$STATE_DIR/disk")2 cryptroot
-        fi
-        
         if [ "$fs" = "btrfs" ]; then
             setup_btrfs_subvolumes
         else
@@ -1318,10 +1292,6 @@ show_summary() {
     echo "CUPS: $(cat "$STATE_DIR/cups")"
     echo "TRIM SSD: $(cat "$STATE_DIR/trim")"
     echo "Criptografia: $(cat "$STATE_DIR/encryption")"
-    if [ "$(cat "$STATE_DIR/encryption")" = "yes" ]; then
-        echo "  - /boot: descriptografado"
-        echo "  - Partição raiz: criptografada com LUKS"
-    fi
     echo "Firewall: $(cat "$STATE_DIR/firewall")"
     echo "Configurações recomendadas: $(cat "$STATE_DIR/recommended")"
     echo "Pacotes Flatpak: $(cat "$STATE_DIR/packages" 2>/dev/null | wc -l | tr -d ' ') selecionados"
@@ -1362,13 +1332,12 @@ generate_config() {
     local disk=$(cat "$STATE_DIR/disk")
     local fs=$(cat "$STATE_DIR/filesystem")
     local luks_uuid=$(cat "$STATE_DIR/luks_uuid" 2>/dev/null || echo "")
-    local crypto_modules=$(cat "$STATE_DIR/crypto_modules" 2>/dev/null || echo "")
     local recommended=$(cat "$STATE_DIR/recommended")
     local flatpak_packages=$(cat "$STATE_DIR/packages" 2>/dev/null | tr '\n' ' ')
     local nixpkgs_packages=$(cat "$STATE_DIR/nixpkgs_packages" 2>/dev/null | tr '\n' ' ')
     local config_file="/mnt/etc/nixos/configuration.nix"
     
-    if [ "$fs" = "btrfs" ] && [ "$encryption" = "no" ]; then
+    if [ "$fs" = "btrfs" ]; then
         local hw_config="/mnt/etc/nixos/hardware-configuration.nix"
         if [ -f "$hw_config" ]; then
             sudo cp "$hw_config" "${hw_config}.backup"
@@ -1429,18 +1398,6 @@ EOF
 EOF
     fi
 
-    if [ "$encryption" = "yes" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-    initrd = {
-      availableKernelModules = [ "aesni_intel" "cryptd" ];
-      luks.devices."cryptroot" = {
-        device = "/dev/disk/by-uuid/$luks_uuid";
-        preLVM = true;
-      };
-    };
-EOF
-    fi
-
     if [ "$recommended" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
     loader.timeout = 2;
@@ -1467,6 +1424,16 @@ EOF
   networking.networkmanager.enable = true;
   networking.wireless.iwd.enable = true;
   networking.firewall.enable = $firewall;
+EOF
+
+    if [ "$firewall" = "true" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  networking.firewall.allowedTCPPorts = [ 53317 1714 1715 1716 1717 1718 1719 1720 1721 1722 1723 1724 1725 1726 1727 1728 1729 1730 1731 1732 1733 1734 1735 1736 1737 1738 1739 1740 1741 1742 1743 1744 1745 1746 1747 1748 1749 1750 1751 1752 1753 1754 1755 1756 1757 1758 1759 1760 1761 1762 1763 1764 ];
+  networking.firewall.allowedUDPPorts = [ 53317 1714 1715 1716 1717 1718 1719 1720 1721 1722 1723 1724 1725 1726 1727 1728 1729 1730 1731 1732 1733 1734 1735 1736 1737 1738 1739 1740 1741 1742 1743 1744 1745 1746 1747 1748 1749 1750 1751 1752 1753 1754 1755 1756 1757 1758 1759 1760 1761 1762 1763 1764 ];
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
   time.timeZone = "$timezone";
   i18n.defaultLocale = "$lang";
 EOF
@@ -1571,14 +1538,30 @@ EOF
 
     if [ "$bluetooth" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  hardware.bluetooth.enable = true;
+  hardware.bluetooth = {
+    enable = true;
+    settings = {
+      General = {
+        Experimental = true;
+      };
+    };
+  };
   services.blueman.enable = true;
+  hardware.enableAllFirmware = true;
 EOF
     fi
 
     if [ "$cups" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
-  services.printing.enable = true;
+  services.printing = {
+    enable = true;
+    drivers = with pkgs; [ cups-filters cups-browsed gutenprint hplip ];
+  };
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    openFirewall = true;
+  };
 EOF
     fi
 
@@ -1675,7 +1658,7 @@ EOF
   users.users.$username = {
     isNormalUser = true;
     description = "$username";
-    extraGroups = [ "wheel" "networkmanager" "audio" "video" "lp" "render" ];
+    extraGroups = [ "wheel" "networkmanager" "audio" "video" "lp" "render" "lpadmin" ];
     hashedPassword = "$pass_hash";
     shell = pkgs.bash;
   };
@@ -1691,6 +1674,16 @@ EOF
     }
   ];
 EOF
+
+    if [ "$encryption" = "yes" ] && [ -n "$luks_uuid" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+  boot.initrd.luks.devices."cryptroot" = {
+    device = "/dev/disk/by-uuid/$luks_uuid";
+    preLVM = true;
+  };
+  boot.initrd.availableKernelModules = [ "aesni_intel" "cryptd" ];
+EOF
+    fi
 
     sudo tee -a "$config_file" > /dev/null << EOF
   services.flatpak.enable = true;
