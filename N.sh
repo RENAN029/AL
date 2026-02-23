@@ -1534,6 +1534,7 @@ EOF
     gnome-music
     gnome-tour
     gnome-user-docs
+    showtime
   ];
   programs.dconf.profiles.user.databases = [
     {
@@ -1559,6 +1560,7 @@ EOF
   };
   services.desktopManager.plasma6.enable = true;
   environment.plasma6.excludePackages = with pkgs.kdePackages; [
+    elisa
     kate
     plasma-systemmonitor
   ];
@@ -1945,18 +1947,7 @@ EOF
 
     sudo tee -a "$config_file" > /dev/null << EOF
   environment.systemPackages = with pkgs; [
-    pciutils
-    usbutils
-    unzip
-    zip
-    openssl
-    file
-    clinfo
-    wayland-utils
-    pavucontrol
-    pwvucontrol
-    libsForQt5.qt5ct
-    libsForQt5.qtstyleplugin-kvantum
+    fastfetch
 EOF
 
     for pkg in $nixpkgs_packages; do
