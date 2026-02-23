@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
- 
+  
 [ ! -f /etc/fedora-release ] && [ ! -f /etc/ostree ] && { echo "Apenas Fedora Atomic é suportado."; exit 1; }
 
 STATE_DIR="$HOME/.config/fedora_atomic_scripts"
