@@ -2238,7 +2238,7 @@ gnome_boxes_installer() {
 
 gnome_extension_installer() {
     local state_file="$STATE_DIR/extension"
-    local pkg_extension="gnome-shell-extension-dash-to-dock gnome-shell-extension-appindicator gnome-shell-extension-gsconnect gnome-shell-extension-blur-my-shell"
+    local pkg_extension="gnome-shell-extension-dash-to-dock gnome-shell-extension-appindicator gnome-shell-extension-gsconnect gnome-shell-extension-blur-my-shell gnome-shell-extension-alphabetical-grid-extension"
 
     if [ -f "$state_file" ] || pacman -Q gnome-shell-extension-dash-to-dock &>/dev/null; then
         if confirm "Gnome Extension detectado. Desinstalar?"; then
