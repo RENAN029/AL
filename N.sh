@@ -1723,16 +1723,13 @@ EOF
       intel-compute-runtime
       intel-media-driver
       vpl-gpu-rt
-      amdvlk
       mesa.opencl
     ];
     extraPackages32 = with pkgs; [
-      driversi686Linux.amdvlk
     ];
   };
   services.xserver.videoDrivers = [ "modesetting" ];
   environment.variables = {
-    AMD_VULKAN_ICD = "RADV";
     LIBVA_DRIVER_NAME = "iHD";
   };
 EOF
