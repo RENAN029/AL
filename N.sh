@@ -1415,7 +1415,6 @@ EOF
 EOF
     fi
 
-    # Inicializa a lista de kernelParams
     local kernel_params=()
 
     if [ "$recommended" = "yes" ]; then
@@ -1426,12 +1425,10 @@ EOF
         kernel_params+=("quiet" "splash" "transparent_hugepage=always" "preempt=full")
     fi
 
-    # Adiciona parâmetros específicos da GPU AMD
     if [ "$gpu_driver" = "intel-amd" ]; then
         kernel_params+=("amdgpu.si_support=1" "radeon.si_support=0" "amdgpu.cik_support=1" "radeon.cik_support=0")
     fi
 
-    # Só adiciona a seção kernelParams se houver parâmetros
     if [ ${#kernel_params[@]} -gt 0 ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
     kernelParams = [
@@ -1738,7 +1735,6 @@ EOF
     AMD_VULKAN_ICD = "RADV";
     LIBVA_DRIVER_NAME = "iHD";
   };
-  hardware.firmware = [ pkgs.linux-firmware ];
 EOF
     fi
 
@@ -1974,30 +1970,6 @@ EOF
         fi
     done
 
-    case $desktop in
-        gnome)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-        plasma)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-        cosmic)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-        hyprland)
-            sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-            ;;
-    esac
-
-    if [ "$recommended" = "yes" ]; then
-        sudo tee -a "$config_file" > /dev/null << EOF
-EOF
-    fi
-
     sudo tee -a "$config_file" > /dev/null << EOF
   ];
   nix.settings = {
@@ -2024,7 +1996,6 @@ EOF
     poppins
   ];
   hardware.enableAllFirmware = true;
-  hardware.firmware = [ pkgs.linux-firmware ];
   system.stateVersion = "25.11";
 }
 EOF
