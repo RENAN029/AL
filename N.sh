@@ -24,8 +24,12 @@ select_language() {
         esac
     done
     case $lang_opt in
-        1) echo "pt_BR.UTF-8" > "$STATE_DIR/lang" ;;
-        2) echo "en_US.UTF-8" > "$STATE_DIR/lang" ;;
+        1) 
+            echo "pt_BR.UTF-8" > "$STATE_DIR/lang"
+            ;;
+        2) 
+            echo "en_US.UTF-8" > "$STATE_DIR/lang"
+            ;;
     esac
 }
 
@@ -240,6 +244,10 @@ select_encryption() {
 select_firewall() {
     clear
     echo "=== FIREWALL ==="
+    echo "Habilitar firewall? (recomendado para segurança)"
+    echo "- Com firewall ativado, portas e serviços ficam restritos"
+    echo "- É possível liberar portas específicas depois na configuração"
+    echo
     if confirm "Habilitar firewall?"; then
         echo "true" > "$STATE_DIR/firewall"
     else
@@ -250,6 +258,13 @@ select_firewall() {
 select_recommended_config() {
     clear
     echo "=== CONFIGURAÇÕES RECOMENDADAS / RECOMMENDED SETTINGS ==="
+    echo "Aplicar configurações otimizadas de desempenho e sistema?"
+    echo "- Kernel otimizado (BBR, sysctl, parâmetros)"
+    echo "- earlyOOM para evitar travamentos"
+    echo "- ananicy para priorização de processos"
+    echo "- Gerenciamento de memória otimizado"
+    echo "- Regras udev para dispositivos"
+    echo
     if confirm "Aplicar configurações recomendadas?"; then
         echo "yes" > "$STATE_DIR/recommended"
     else
@@ -1774,11 +1789,7 @@ EOF
 
     sudo tee -a "$config_file" > /dev/null << EOF
   zramSwap.enable = true;
-  zramSwap.memoryPercent = 50;
   boot.kernel.sysctl."vm.swappiness" = 10;
-  boot.kernel.sysctl."vm.vfs_cache_pressure" = 50;
-  boot.kernel.sysctl."vm.dirty_ratio" = 3;
-  boot.kernel.sysctl."vm.dirty_background_ratio" = 2;
   
   users.mutableUsers = false;
   users.users.root.hashedPassword = "!";
@@ -1964,20 +1975,13 @@ EOF
     max-jobs = 1;
     cores = 1;
     extra-sandbox-paths = [];
-    min-free = 256000000;
-    max-free = 512000000;
-    fsync-metadata = false;
-    keep-outputs = false;
-    keep-derivations = false;
-    use-xdg-base-directories = true;
-    builders = "";
-    fallback = true;
-    connect-timeout = 5;
+    min-free = 512000000;
+    max-free = 1024000000;
   };
   nix.gc = {
     automatic = true;
-    dates = "daily";
-    options = "--delete-older-than 1d";
+    dates = "weekly";
+    options = "--delete-older-than 5d";
   };
   fonts.packages = with pkgs; [
     nerd-fonts.adwaita-mono
@@ -2074,6 +2078,8 @@ review_configs() {
     clear
     echo "=== REVISAR ARQUIVOS DE CONFIGURAÇÃO ==="
     echo "Deseja revisar os arquivos de configuração gerados?"
+    echo "Um editor será aberto para você visualizar e modificar se necessário."
+    echo
     if confirm "Revisar configuration.nix e flake.nix?"; then
         if command -v nano >/dev/null 2>&1; then
             EDITOR=nano
@@ -2103,18 +2109,18 @@ install_system() {
     local total_ram=$(free -m | awk '/^Mem:/{print $2}')
     echo "RAM detectada: ${total_ram}MB"
     
-    export NIX_BUILD_CORES=1
-    export NIX_REMOTE=""
-    
     if [ "$total_ram" -lt 2048 ]; then
-        echo "Pouca RAM detectada. Usando configuração ultra-otimizada..."
-        sudo -E nixos-install --no-root-passwd --max-jobs 1 --cores 1 --option substitute false --option keep-going true --option build-use-sandbox false
+        echo "Pouca RAM detectada. Usando configuração otimizada para baixa memória..."
+        export NIX_BUILD_CORES=1
+        export NIX_REMOTE=""
+        sudo -E nixos-install --no-root-passwd --max-jobs 1 --cores 1 --option substitute false
     elif [ "$total_ram" -lt 4096 ]; then
-        echo "RAM moderada detectada. Usando configuração otimizada..."
-        sudo -E nixos-install --no-root-passwd --max-jobs 1 --cores 1
+        echo "RAM moderada detectada. Usando configuração balanceada..."
+        export NIX_BUILD_CORES=2
+        sudo -E nixos-install --no-root-passwd --max-jobs 2
     else
-        echo "RAM suficiente detectada. Usando configuração padrão otimizada..."
-        sudo -E nixos-install --no-root-passwd --max-jobs 2 --cores 2
+        echo "RAM suficiente detectada. Usando configuração padrão..."
+        sudo -E nixos-install --no-root-passwd
     fi
     
     echo
@@ -2164,7 +2170,7 @@ main() {
     partition_disk
     mount_partitions
     generate_config
-    generate_flake
+    #generate_flake
     review_configs
     if confirm "Iniciar instalação do NixOS?"; then
         install_system
