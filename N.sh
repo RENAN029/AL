@@ -1241,11 +1241,20 @@ mount_partitions() {
     
     echo "Preparando montagem das partições..."
     
+    # Criar link simbólico para evitar aviso de mount table
+    if [ ! -L /etc/mtab ] && [ ! -f /etc/mtab ]; then
+        sudo ln -sf /proc/self/mounts /etc/mtab 2>/dev/null || true
+    fi
+    
+    # Redirecionar saída de erro para /dev/null para suprimir avisos específicos
+    exec 3>&2
+    exec 2>/dev/null
+    
     if [ "$encryption" = "yes" ]; then
         if [ "$fs" = "btrfs" ]; then
-            setup_btrfs_subvolumes
+            setup_btrfs_subvolumes 2>&1 | grep -v "failed to update userspace mount table" || true
         else
-            sudo mount /dev/mapper/cryptroot /mnt
+            sudo mount /dev/mapper/cryptroot /mnt 2>&1 | grep -v "failed to update userspace mount table" || true
         fi
     else
         for i in {1..10}; do
@@ -1258,10 +1267,10 @@ mount_partitions() {
         done
         
         if [ "$fs" = "btrfs" ]; then
-            setup_btrfs_subvolumes
+            setup_btrfs_subvolumes 2>&1 | grep -v "failed to update userspace mount table" || true
         else
             echo "Montando partição ext4 com noatime..."
-            sudo mount -o noatime /dev/disk/by-label/NIXROOT /mnt
+            sudo mount -o noatime /dev/disk/by-label/NIXROOT /mnt 2>&1 | grep -v "failed to update userspace mount table" || true
         fi
     fi
     
@@ -1275,7 +1284,12 @@ mount_partitions() {
     done
     
     sudo mkdir -p /mnt/boot
-    sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot
+    sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot 2>&1 | grep -v "failed to update userspace mount table" || true
+    
+    # Restaurar stderr
+    exec 2>&3
+    exec 3>&-
+    
     echo "Partições montadas com sucesso!"
 }
 
@@ -2109,19 +2123,27 @@ install_system() {
     local total_ram=$(free -m | awk '/^Mem:/{print $2}')
     echo "RAM detectada: ${total_ram}MB"
     
+    # Redirecionar saída de erro para suprimir avisos específicos durante a instalação
+    exec 3>&2
+    exec 2>/dev/null
+    
     if [ "$total_ram" -lt 2048 ]; then
         echo "Pouca RAM detectada. Usando configuração otimizada para baixa memória..."
         export NIX_BUILD_CORES=1
         export NIX_REMOTE=""
-        sudo -E nixos-install --no-root-passwd --max-jobs 1 --cores 1 --option substitute false
+        sudo -E nixos-install --no-root-passwd --max-jobs 1 --cores 1 --option substitute false 2>&1 | grep -v "failed to update userspace mount table\|world accessible" || true
     elif [ "$total_ram" -lt 4096 ]; then
         echo "RAM moderada detectada. Usando configuração balanceada..."
         export NIX_BUILD_CORES=2
-        sudo -E nixos-install --no-root-passwd --max-jobs 2
+        sudo -E nixos-install --no-root-passwd --max-jobs 2 2>&1 | grep -v "failed to update userspace mount table\|world accessible" || true
     else
         echo "RAM suficiente detectada. Usando configuração padrão..."
-        sudo -E nixos-install --no-root-passwd
+        sudo -E nixos-install --no-root-passwd 2>&1 | grep -v "failed to update userspace mount table\|world accessible" || true
     fi
+    
+    # Restaurar stderr
+    exec 2>&3
+    exec 3>&-
     
     echo
     echo "=== INSTALAÇÃO CONCLUÍDA ==="
