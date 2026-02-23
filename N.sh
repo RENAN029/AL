@@ -1415,16 +1415,33 @@ EOF
 EOF
     fi
 
+    # Inicializa a lista de kernelParams
+    local kernel_params=()
+
     if [ "$recommended" = "yes" ]; then
         sudo tee -a "$config_file" > /dev/null << EOF
     loader.timeout = 2;
     kernelModules = [ "tcp_bbr" ];
+EOF
+        kernel_params+=("quiet" "splash" "transparent_hugepage=always" "preempt=full")
+    fi
+
+    # Adiciona parâmetros específicos da GPU AMD
+    if [ "$gpu_driver" = "intel-amd" ]; then
+        kernel_params+=("amdgpu.si_support=1" "radeon.si_support=0" "amdgpu.cik_support=1" "radeon.cik_support=0")
+    fi
+
+    # Só adiciona a seção kernelParams se houver parâmetros
+    if [ ${#kernel_params[@]} -gt 0 ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
     kernelParams = [
-      "quiet"
-      "splash"
-      "transparent_hugepage=always"
-      "preempt=full"
+$(printf '      "%s"\n' "${kernel_params[@]}")
     ];
+EOF
+    fi
+
+    if [ "$recommended" = "yes" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
     kernel.sysctl = {
       "kernel.split_lock_mitigate" = 0;
       "kernel.nmi_watchdog" = 0;
@@ -1721,12 +1738,6 @@ EOF
     AMD_VULKAN_ICD = "RADV";
     LIBVA_DRIVER_NAME = "iHD";
   };
-  boot.kernelParams = [
-    "amdgpu.si_support=1"
-    "radeon.si_support=0"
-    "amdgpu.cik_support=1"
-    "radeon.cik_support=0"
-  ];
   hardware.firmware = [ pkgs.linux-firmware ];
 EOF
     fi
