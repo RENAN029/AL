@@ -5,7 +5,7 @@ STATE_DIR="/tmp/nixos_install_state"
 mkdir -p "$STATE_DIR"
 
 confirm() {
-    local prompt="$1" 
+    local prompt="$1"
     read -p "$prompt (s/n): " -n 1 resposta
     echo
     [[ "$resposta" = "s" || "$resposta" = "S" ]]
